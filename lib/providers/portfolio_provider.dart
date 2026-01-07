@@ -3,53 +3,124 @@ import '../database/database_helper.dart';
 import '../models/portfolio.dart';
 import '../models/holding.dart';
 import '../models/transaction.dart';
+import '../services/api_service.dart';
 
 class PortfolioProvider extends ChangeNotifier {
   List<Portfolio> _portfolios = [];
   Portfolio? _selectedPortfolio;
+  List<Holding> _holdings = [];
+  Map<String, double> _assetPrices = {};
+  bool _isLoading = false;
 
   List<Portfolio> get portfolios => _portfolios;
   Portfolio? get selectedPortfolio => _selectedPortfolio;
+  List<Holding> get holdings => _holdings;
+  bool get isLoading => _isLoading;
 
-  // Load portfolios from DB
+  // Stats
+  double get totalPortfolioValue => _holdings.fold(0, (sum, h) {
+    final price =
+        _assetPrices[h.symbol] ?? h.averageCost; // Fallback to cost if no price
+    return sum + (h.quantity * price);
+  });
+
+  double get totalPortfolioCost =>
+      _holdings.fold(0, (sum, h) => sum + (h.quantity * h.averageCost));
+
+  double get totalProfitLoss => totalPortfolioValue - totalPortfolioCost;
+
+  double get totalProfitLossRate {
+    if (totalPortfolioCost == 0) return 0;
+    return (totalProfitLoss / totalPortfolioCost) * 100;
+  }
+
+  // Stats by Type
+  Map<AssetType, double> get valueByType {
+    final Map<AssetType, double> map = {};
+    for (var h in _holdings) {
+      final price = _assetPrices[h.symbol] ?? h.averageCost;
+      final value = h.quantity * price;
+      map[h.type] = (map[h.type] ?? 0) + value;
+    }
+    return map;
+  }
+
+  int getCountByType(AssetType type) {
+    return _holdings.where((h) => h.type == type && h.quantity > 0).length;
+  }
+
+  double getValueByType(AssetType type) {
+    return valueByType[type] ?? 0;
+  }
+
   Future<void> loadPortfolios() async {
     final db = await DatabaseHelper.instance.database;
     final result = await db.query('portfolios');
     _portfolios = result.map((e) => Portfolio.fromMap(e)).toList();
 
     if (_portfolios.isNotEmpty) {
-      // Logic to select default OR the first one
-      _selectedPortfolio = _portfolios.firstWhere(
-        (p) => p.isDefault,
-        orElse: () => _portfolios.first,
-      );
+      if (_selectedPortfolio == null) {
+        _selectedPortfolio = _portfolios.firstWhere(
+          (p) => p.isDefault,
+          orElse: () => _portfolios.first,
+        );
+      }
+      await loadHoldings();
     }
     notifyListeners();
   }
 
-  // Add new Portfolio
+  Future<void> loadHoldings() async {
+    if (_selectedPortfolio == null) return;
+    _isLoading = true;
+    notifyListeners();
+
+    final db = await DatabaseHelper.instance.database;
+    final result = await db.query(
+      'holdings',
+      where: 'portfolio_id = ? AND quantity > 0', // Only active assets
+      whereArgs: [_selectedPortfolio!.id],
+    );
+
+    _holdings = result.map((e) => Holding.fromMap(e)).toList();
+
+    await _fetchPrices();
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> _fetchPrices() async {
+    if (_holdings.isEmpty) return;
+    final symbols = _holdings.map((e) => e.symbol).toList();
+    final api = ApiService(); // Or inject
+    _assetPrices = await api.getCurrentPrices(symbols);
+  }
+
   Future<void> addPortfolio(String name) async {
     final db = await DatabaseHelper.instance.database;
     final newPortfolio = Portfolio(
       name: name,
-      isDefault: _portfolios.isEmpty, // Default if it's the first one
+      isDefault: _portfolios.isEmpty,
       creationDate: DateTime.now(),
     );
 
     await db.insert('portfolios', newPortfolio.toMap());
-    await loadPortfolios(); // Reload to get IDs and fresh list
+    // Reload
+    final result = await db.query('portfolios');
+    _portfolios = result.map((e) => Portfolio.fromMap(e)).toList();
 
-    // Select the newly created portfolio
+    // Select the new one
     if (_portfolios.isNotEmpty) {
       _selectedPortfolio = _portfolios.last;
-      notifyListeners();
+      await loadHoldings();
     }
+    notifyListeners();
   }
 
-  // Select a different portfolio
   void selectPortfolio(Portfolio portfolio) {
     _selectedPortfolio = portfolio;
-    notifyListeners();
+    loadHoldings(); // This notifies listeners
   }
 
   // Add Transaction (Buy Logic)
@@ -127,6 +198,6 @@ class PortfolioProvider extends ChangeNotifier {
     );
 
     await db.insert('transactions', newTransaction.toMap());
-    notifyListeners();
+    await loadHoldings(); // Refresh holdings and stats
   }
 }

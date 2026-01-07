@@ -374,4 +374,38 @@ class ApiService {
         ];
     }
   }
+
+  // Mock getting current prices for a list of symbols
+  Future<Map<String, double>> getCurrentPrices(List<String> symbols) async {
+    // In a real app, this would fetch from API based on symbols.
+    // For now, we reuse the dummy data from getAssetsByType or generate random variations
+    // to simulate real-time updates if needed.
+
+    // Let's build a big map of all known assets prices first for simplicity
+    final Map<String, double> allPrices = {};
+
+    final types = [
+      AssetType.STOCK,
+      AssetType.GOLD,
+      AssetType.CRYPTO,
+      AssetType.FOREX,
+    ];
+    for (var type in types) {
+      final assets = await getAssetsByType(type);
+      for (var asset in assets) {
+        allPrices[asset['symbol']] = (asset['price'] as num).toDouble();
+      }
+    }
+
+    final Map<String, double> result = {};
+    for (var symbol in symbols) {
+      if (allPrices.containsKey(symbol)) {
+        result[symbol] = allPrices[symbol]!;
+      } else {
+        // Fallback for unknown/test symbols
+        result[symbol] = 100.0;
+      }
+    }
+    return result;
+  }
 }
