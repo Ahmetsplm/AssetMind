@@ -19,13 +19,15 @@ class PortfolioProvider extends ChangeNotifier {
 
   // Stats
   double get totalPortfolioValue => _holdings.fold(0, (sum, h) {
-    final price =
-        _assetPrices[h.symbol] ?? h.averageCost; // Fallback to cost if no price
+    if (h.quantity <= 0) return sum; // Skip closed positions
+    final price = _assetPrices[h.symbol] ?? h.averageCost;
     return sum + (h.quantity * price);
   });
 
-  double get totalPortfolioCost =>
-      _holdings.fold(0, (sum, h) => sum + (h.quantity * h.averageCost));
+  double get totalPortfolioCost => _holdings.fold(0, (sum, h) {
+    if (h.quantity <= 0) return sum;
+    return sum + (h.quantity * h.averageCost);
+  });
 
   double get totalProfitLoss => totalPortfolioValue - totalPortfolioCost;
 
@@ -38,6 +40,7 @@ class PortfolioProvider extends ChangeNotifier {
   Map<AssetType, double> get valueByType {
     final Map<AssetType, double> map = {};
     for (var h in _holdings) {
+      if (h.quantity <= 0) continue; // Skip closed positions for value charts
       final price = _assetPrices[h.symbol] ?? h.averageCost;
       final value = h.quantity * price;
       map[h.type] = (map[h.type] ?? 0) + value;
@@ -51,6 +54,27 @@ class PortfolioProvider extends ChangeNotifier {
 
   double getValueByType(AssetType type) {
     return valueByType[type] ?? 0;
+  }
+
+  List<Holding> getHoldingsByType(AssetType type) {
+    return _holdings.where((h) => h.type == type).toList();
+  }
+
+  double getCurrentPrice(String symbol) {
+    return _assetPrices[symbol] ?? 0.0;
+  }
+
+  Future<List<TransactionModel>> getTransactionsForHolding(
+    int holdingId,
+  ) async {
+    final db = await DatabaseHelper.instance.database;
+    final result = await db.query(
+      'transactions',
+      where: 'holding_id = ?',
+      whereArgs: [holdingId],
+      orderBy: 'date DESC',
+    );
+    return result.map((e) => TransactionModel.fromMap(e)).toList();
   }
 
   Future<void> loadPortfolios() async {
@@ -78,7 +102,7 @@ class PortfolioProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     final result = await db.query(
       'holdings',
-      where: 'portfolio_id = ? AND quantity > 0', // Only active assets
+      where: 'portfolio_id = ?', // Fetch ALL holdings, including closed
       whereArgs: [_selectedPortfolio!.id],
     );
 
@@ -146,12 +170,31 @@ class PortfolioProvider extends ChangeNotifier {
       // UPDATE existing holding
       final existingHolding = Holding.fromMap(holdingResult.first);
 
-      // Calculate Weighted Average Cost
-      final totalQuantity = existingHolding.quantity + transaction.amount;
-      final totalCost =
-          (existingHolding.quantity * existingHolding.averageCost) +
-          (transaction.amount * transaction.price);
-      final newAverageCost = totalCost / totalQuantity;
+      double newQuantity = existingHolding.quantity;
+      double newAverageCost = existingHolding.averageCost;
+      double newRealizedProfit = existingHolding.totalRealizedProfit;
+
+      if (transaction.type == TransactionType.BUY) {
+        final totalQuantity = existingHolding.quantity + transaction.amount;
+        final totalCost =
+            (existingHolding.quantity * existingHolding.averageCost) +
+            (transaction.amount * transaction.price);
+        newAverageCost = totalCost / totalQuantity;
+        newQuantity = totalQuantity;
+      } else {
+        // SELL Logic
+        if (transaction.amount > existingHolding.quantity) {
+          throw Exception("Satılacak miktar eldeki miktardan fazla olamaz!");
+        }
+        newQuantity = existingHolding.quantity - transaction.amount;
+        // Average cost does NOT change on sell
+
+        // Calculate Realized Profit
+        final realizedProfitFromThisSale =
+            (transaction.price - existingHolding.averageCost) *
+            transaction.amount;
+        newRealizedProfit += realizedProfitFromThisSale;
+      }
 
       // New holding object
       final updatedHolding = Holding(
@@ -159,10 +202,9 @@ class PortfolioProvider extends ChangeNotifier {
         portfolioId: existingHolding.portfolioId,
         symbol: existingHolding.symbol,
         type: existingHolding.type,
-        quantity: totalQuantity,
+        quantity: newQuantity,
         averageCost: newAverageCost,
-        totalRealizedProfit:
-            existingHolding.totalRealizedProfit, // Unchanged on BUY
+        totalRealizedProfit: newRealizedProfit,
         lastUpdate: DateTime.now(),
       );
 
@@ -174,6 +216,10 @@ class PortfolioProvider extends ChangeNotifier {
       );
       holdingId = existingHolding.id!;
     } else {
+      if (transaction.type == TransactionType.SELL) {
+        throw Exception("Portföyde olmayan bir varlığı satamazsınız!");
+      }
+
       // INSERT new holding
       final newHolding = Holding(
         portfolioId: _selectedPortfolio!.id!,

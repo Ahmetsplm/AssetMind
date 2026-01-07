@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/portfolio_provider.dart';
 import '../models/holding.dart';
 import 'package:intl/intl.dart';
+import 'portfolio/category_detail_screen.dart';
 
 class PortfolioScreen extends StatelessWidget {
   const PortfolioScreen({super.key});
@@ -309,7 +310,9 @@ class PortfolioScreen extends StatelessWidget {
     double value,
     double total,
   ) {
-    if (value <= 0) return const SizedBox.shrink();
+    if (value <= 0) {
+      return const SizedBox.shrink();
+    }
     final percent = (value / total) * 100;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -356,9 +359,11 @@ class PortfolioScreen extends StatelessWidget {
 
         final List<Widget> items = [];
 
-        if (stockCount > 0)
+        if (stockCount > 0) {
           items.add(
             _buildCategoryItem(
+              context,
+              AssetType.STOCK,
               "Türk Hisse Senetleri",
               stockCount,
               stockVal,
@@ -367,9 +372,12 @@ class PortfolioScreen extends StatelessWidget {
               const Color(0xFF4285F4),
             ),
           );
-        if (goldCount > 0)
+        }
+        if (goldCount > 0) {
           items.add(
             _buildCategoryItem(
+              context,
+              AssetType.GOLD,
               "Değerli Madenler",
               goldCount,
               goldVal,
@@ -378,9 +386,12 @@ class PortfolioScreen extends StatelessWidget {
               const Color(0xFFEA4335),
             ),
           );
-        if (cryptoCount > 0)
+        }
+        if (cryptoCount > 0) {
           items.add(
             _buildCategoryItem(
+              context,
+              AssetType.CRYPTO,
               "Kripto Para",
               cryptoCount,
               cryptoVal,
@@ -389,9 +400,12 @@ class PortfolioScreen extends StatelessWidget {
               const Color(0xFFFBBC05),
             ),
           );
-        if (forexCount > 0)
+        }
+        if (forexCount > 0) {
           items.add(
             _buildCategoryItem(
+              context,
+              AssetType.FOREX,
               "Döviz",
               forexCount,
               forexVal,
@@ -400,6 +414,7 @@ class PortfolioScreen extends StatelessWidget {
               const Color(0xFF34A853),
             ),
           );
+        }
 
         if (items.isEmpty) {
           return const Center(
@@ -416,6 +431,8 @@ class PortfolioScreen extends StatelessWidget {
   }
 
   Widget _buildCategoryItem(
+    BuildContext context,
+    AssetType type,
     String title,
     int count,
     double value,
@@ -425,64 +442,74 @@ class PortfolioScreen extends StatelessWidget {
   ) {
     final percent = total > 0 ? (value / total) * 100 : 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withAlpha(50)), // Slight border
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withAlpha(20),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CategoryDetailScreen(type: type, title: title),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: color.withAlpha(30),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withAlpha(50)), // Slight border
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withAlpha(20),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: color.withAlpha(30),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    "$count Varlık",
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                  '₺${NumberFormat('#,##0.00', 'tr_TR').format(value)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  "$count Varlık",
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  "${percent.toStringAsFixed(1)}%",
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '₺${NumberFormat('#,##0.00', 'tr_TR').format(value)}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "${percent.toStringAsFixed(1)}%",
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

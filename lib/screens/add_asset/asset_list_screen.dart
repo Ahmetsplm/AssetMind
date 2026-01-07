@@ -213,7 +213,6 @@ class _AssetListScreenState extends State<AssetListScreen> {
           name: item['name'],
           initialPrice: (item['price'] as num).toDouble(),
           type: widget.type,
-          scrollController: controller,
         ),
       ),
     );
