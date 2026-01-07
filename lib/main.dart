@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'screens/home_screen.dart';
 import 'providers/favorite_provider.dart';
+import 'providers/portfolio_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,6 +19,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (_) => FavoriteProvider()..loadFavorites(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PortfolioProvider()..loadPortfolios(),
         ),
       ],
       child: MaterialApp(

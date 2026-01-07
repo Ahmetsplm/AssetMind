@@ -1,3 +1,5 @@
+import '../models/holding.dart'; // For AssetType enum
+
 class ApiService {
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
@@ -129,5 +131,247 @@ class ApiService {
     ];
 
     return isRising ? risingCryptos : fallingCryptos;
+  }
+
+  Future<List<Map<String, dynamic>>> getAssetsByType(AssetType type) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    switch (type) {
+      case AssetType.STOCK:
+        return [
+          {
+            'symbol': 'ACSEL',
+            'name': 'Acıpayam Selüloz',
+            'price': 99.10,
+            'change': 1.43,
+          },
+          {
+            'symbol': 'ADEL',
+            'name': 'Adel Kalemcilik',
+            'price': 34.22,
+            'change': 3.70,
+          },
+          {
+            'symbol': 'ADESE',
+            'name': 'Adese Gayrimenkul',
+            'price': 1.54,
+            'change': 1.32,
+          },
+          {
+            'symbol': 'AEFES',
+            'name': 'Anadolu Efes',
+            'price': 15.96,
+            'change': 1.10,
+          },
+          {
+            'symbol': 'AFYON',
+            'name': 'Afyon Çimento',
+            'price': 13.13,
+            'change': 1.16,
+          },
+          {
+            'symbol': 'AGESA',
+            'name': 'Agesa Emeklilik',
+            'price': 215.50,
+            'change': -2.58,
+          },
+          {
+            'symbol': 'AGHOL',
+            'name': 'AG Anadolu Grubu',
+            'price': 29.34,
+            'change': 2.23,
+          },
+          {'symbol': 'AKBNK', 'name': 'Akbank', 'price': 42.50, 'change': 0.50},
+          {
+            'symbol': 'ALARK',
+            'name': 'Alarko Holding',
+            'price': 110.20,
+            'change': -1.20,
+          },
+          {
+            'symbol': 'ASELS',
+            'name': 'Aselsan',
+            'price': 65.40,
+            'change': 1.80,
+          },
+          {
+            'symbol': 'BIMAS',
+            'name': 'BİM Mağazalar',
+            'price': 380.00,
+            'change': -0.40,
+          },
+          {
+            'symbol': 'EREGL',
+            'name': 'Ereğli Demir Çelik',
+            'price': 48.70,
+            'change': 0.90,
+          },
+          {
+            'symbol': 'FROTO',
+            'name': 'Ford Otosan',
+            'price': 1100.00,
+            'change': 2.10,
+          },
+          {
+            'symbol': 'GARAN',
+            'name': 'Garanti BBVA',
+            'price': 118.40,
+            'change': -0.45,
+          },
+          {
+            'symbol': 'KCHOL',
+            'name': 'Koç Holding',
+            'price': 185.00,
+            'change': 1.15,
+          },
+          {
+            'symbol': 'ODAS',
+            'name': 'Odaş Elektrik',
+            'price': 9.80,
+            'change': 3.40,
+          },
+          {
+            'symbol': 'PETKM',
+            'name': 'Petkim',
+            'price': 22.10,
+            'change': -1.10,
+          },
+          {
+            'symbol': 'PGSUS',
+            'name': 'Pegasus',
+            'price': 850.50,
+            'change': 4.20,
+          },
+          {
+            'symbol': 'SAHOL',
+            'name': 'Sabancı Holding',
+            'price': 95.30,
+            'change': 0.80,
+          },
+          {
+            'symbol': 'SISE',
+            'name': 'Şişecam',
+            'price': 52.40,
+            'change': -0.30,
+          },
+          {
+            'symbol': 'THYAO',
+            'name': 'Türk Hava Yolları',
+            'price': 312.50,
+            'change': 1.25,
+          },
+          {
+            'symbol': 'TUPRS',
+            'name': 'Tüpraş',
+            'price': 175.80,
+            'change': 0.60,
+          },
+          {'symbol': 'VESTL', 'name': 'Vestel', 'price': 88.90, 'change': 2.80},
+          {
+            'symbol': 'YKBNK',
+            'name': 'Yapı Kredi Bankası',
+            'price': 32.10,
+            'change': 0.10,
+          },
+        ];
+      case AssetType.GOLD:
+        return [
+          {
+            'symbol': 'ONS',
+            'name': 'Ons Altın',
+            'price': 2450.00,
+            'change': 0.8,
+          },
+          {
+            'symbol': 'GRAM',
+            'name': 'Gram Altın',
+            'price': 2950.40,
+            'change': 1.2,
+          },
+          {
+            'symbol': 'CEYREK',
+            'name': 'Çeyrek Altın',
+            'price': 4850.00,
+            'change': 1.1,
+          },
+          {
+            'symbol': 'YARIM',
+            'name': 'Yarım Altın',
+            'price': 9700.00,
+            'change': 1.1,
+          },
+          {
+            'symbol': 'TAM',
+            'name': 'Tam Altın',
+            'price': 19400.00,
+            'change': 1.1,
+          },
+          {
+            'symbol': 'CUMHURIYET',
+            'name': 'Cumhuriyet Altını',
+            'price': 20100.00,
+            'change': 1.0,
+          },
+          {
+            'symbol': 'GUMUS',
+            'name': 'Gümüş (Gram)',
+            'price': 32.40,
+            'change': 2.5,
+          },
+        ];
+      case AssetType.CRYPTO:
+        return [
+          {
+            'symbol': 'BTC',
+            'name': 'Bitcoin',
+            'price': 67500.00,
+            'change': 2.1,
+          },
+          {
+            'symbol': 'ETH',
+            'name': 'Ethereum',
+            'price': 3500.00,
+            'change': 1.5,
+          },
+          {'symbol': 'SOL', 'name': 'Solana', 'price': 148.50, 'change': 4.2},
+          {
+            'symbol': 'BNB',
+            'name': 'Binance Coin',
+            'price': 590.00,
+            'change': 0.5,
+          },
+          {'symbol': 'XRP', 'name': 'Ripple', 'price': 0.62, 'change': -1.0},
+          {'symbol': 'ADA', 'name': 'Cardano', 'price': 0.46, 'change': -0.8},
+          {
+            'symbol': 'AVAX',
+            'name': 'Avalanche',
+            'price': 46.20,
+            'change': 3.0,
+          },
+          {'symbol': 'DOGE', 'name': 'Dogecoin', 'price': 0.16, 'change': -2.0},
+        ];
+      case AssetType.FOREX:
+        return [
+          {
+            'symbol': 'USDTRY',
+            'name': 'Amerikan Doları',
+            'price': 34.15,
+            'change': 0.05,
+          },
+          {'symbol': 'EURTRY', 'name': 'Euro', 'price': 37.25, 'change': -0.1},
+          {
+            'symbol': 'GBPTRY',
+            'name': 'İngiliz Sterlini',
+            'price': 43.50,
+            'change': 0.2,
+          },
+          {
+            'symbol': 'EURUSD',
+            'name': 'Euro / USD',
+            'price': 1.09,
+            'change': -0.15,
+          },
+        ];
+    }
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'market_screen.dart';
 import 'favorites_screen.dart';
+import 'add_asset/asset_type_selection_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const MarketScreen(),
     const FavoritesScreen(),
-    const Center(child: Text("Varlık Ekle")), // Placeholder
+    const AssetTypeSelectionScreen(),
     const Center(child: Text("Portföyüm")), // Placeholder
   ];
 
