@@ -3,8 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../providers/favorite_provider.dart';
+import '../providers/market_provider.dart';
 import '../models/favorite.dart';
 import '../models/holding.dart'; // For AssetType
+import 'add_asset/asset_list_screen.dart'; // For Navigation
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -14,74 +16,98 @@ class MarketScreen extends StatefulWidget {
 }
 
 class _MarketScreenState extends State<MarketScreen> {
-  final ApiService _api = ApiService();
   int _selectedCategoryIndex = 0; // 0: Özet, 1: BIST, 2: Kripto, 3: Döviz
   bool _isStockRising = true;
   bool _isCryptoRising = true;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Piyasalar',
-          style: GoogleFonts.poppins(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
+    return Consumer<MarketProvider>(
+      builder: (context, marketProvider, child) {
+        return Scaffold(
+          backgroundColor: Colors.grey[50],
+          appBar: AppBar(
+            title: Text(
+              'Piyasalar',
+              style: GoogleFonts.poppins(
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.search, color: Colors.black87),
+                onPressed: () {},
+              ),
+            ],
           ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () {},
+          body: Column(
+            children: [
+              _buildCategorySelector(context),
+              Expanded(child: _buildSummaryView()),
+            ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildCategorySelector(),
-          Expanded(
-            child: _selectedCategoryIndex == 0
-                ? _buildSummaryView()
-                : _buildPlaceholderView(),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildCategorySelector() {
+  Widget _buildCategorySelector(BuildContext context) {
     final categories = ['Özet', 'BIST', 'Kripto', 'Döviz'];
     return SizedBox(
-      height: 60,
+      height: 50, // Reduced height
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: categories.length,
         itemBuilder: (context, index) {
-          final isSelected = _selectedCategoryIndex == index;
+          final isSelected = _selectedCategoryIndex == index && index == 0;
           return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: ChoiceChip(
-              label: Text(categories[index]),
-              selected: isSelected,
-              onSelected: (selected) =>
-                  setState(() => _selectedCategoryIndex = index),
-              backgroundColor: Colors.grey[200],
-              selectedColor: Colors.black,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
-                fontWeight: FontWeight.w600,
+            padding: const EdgeInsets.only(right: 12), // Reduced padding
+            child: InkWell(
+              onTap: () {
+                if (index == 0) {
+                  setState(() => _selectedCategoryIndex = 0);
+                } else {
+                  AssetType type;
+                  if (index == 1)
+                    type = AssetType.STOCK;
+                  else if (index == 2)
+                    type = AssetType.CRYPTO;
+                  else
+                    type = AssetType.FOREX;
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AssetListScreen(type: type),
+                    ),
+                  );
+                }
+              },
+              borderRadius: BorderRadius.circular(25),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ), // Generous padding
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.black : Colors.grey[200],
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  categories[index],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
               ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide.none,
-              ),
-              showCheckmark: false,
             ),
           );
         },
@@ -90,6 +116,9 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   Widget _buildSummaryView() {
+    final api = ApiService();
+    final summaryData = api.getMarketSummarySync();
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -99,22 +128,12 @@ class _MarketScreenState extends State<MarketScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: SizedBox(
               height: 140,
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _api.getMarketSummary(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (!snapshot.hasData) return const SizedBox();
-
-                  return ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: snapshot.data!.length,
-                    itemBuilder: (context, index) {
-                      final item = snapshot.data![index];
-                      return _buildMarketCard(item);
-                    },
-                  );
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: summaryData.length,
+                itemBuilder: (context, index) {
+                  final item = summaryData[index];
+                  return _buildMarketCard(item);
                 },
               ),
             ),
@@ -124,8 +143,8 @@ class _MarketScreenState extends State<MarketScreen> {
             title: 'Piyasa Hareketleri - BIST',
             isRising: _isStockRising,
             onToggle: (val) => setState(() => _isStockRising = val),
-            future: _api.getStockMovers(isRising: _isStockRising),
-            type: AssetType.STOCK, // Assuming BIST Movers are Stocks
+            data: api.getStockMoversSync(isRising: _isStockRising),
+            type: AssetType.STOCK,
           ),
 
           const SizedBox(height: 20),
@@ -134,7 +153,7 @@ class _MarketScreenState extends State<MarketScreen> {
             title: 'Piyasa Hareketleri - Kripto',
             isRising: _isCryptoRising,
             onToggle: (val) => setState(() => _isCryptoRising = val),
-            future: _api.getCryptoMovers(isRising: _isCryptoRising),
+            data: api.getCryptoMoversSync(isRising: _isCryptoRising),
             isCrypto: true,
             type: AssetType.CRYPTO,
           ),
@@ -149,20 +168,15 @@ class _MarketScreenState extends State<MarketScreen> {
     if (symbol.contains('Altın')) return AssetType.GOLD;
     if (symbol.contains('USD') || symbol.contains('EUR'))
       return AssetType.FOREX;
-    return AssetType.STOCK; // Default for BIST 100
+    return AssetType.STOCK;
   }
 
   Widget _buildMarketCard(Map<String, dynamic> item) {
-    final bool isUp = item['is_rising'];
+    final bool isUp = item['is_rising']; // Logic already done in ApiService
     final Color color = isUp ? Colors.green : Colors.red;
     final symbol = item['symbol'] as String;
-    // Special case for 'BIST 100' card, mapped to XU100 internally for favorites logic if needed,
-    // but the prompt says "BIST 100" so let's stick to the display symbol or a mapped key.
-    // Let's use the symbol string as ID.
-    final type = _determineTypeFromSummary(symbol);
-
-    // Actually, prompt said "XU100" in favorites. Let's map "BIST 100" -> "XU100" for consistency.
     final mappedSymbol = symbol == 'BIST 100' ? 'XU100' : symbol;
+    final type = _determineTypeFromSummary(symbol);
 
     return Consumer<FavoriteProvider>(
       builder: (context, favoriteProvider, child) {
@@ -219,7 +233,7 @@ class _MarketScreenState extends State<MarketScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item['value'].toString(),
+                    item['value'].toString(), // It's already formatted String
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -236,7 +250,7 @@ class _MarketScreenState extends State<MarketScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '%${item['change_rate']}',
+                        '%${item['change_rate']}', // Already formatted String
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -258,7 +272,7 @@ class _MarketScreenState extends State<MarketScreen> {
     required String title,
     required bool isRising,
     required Function(bool) onToggle,
-    required Future<List<Map<String, dynamic>>> future,
+    required List<Map<String, dynamic>> data, // Changed from Future to List
     bool isCrypto = false,
     required AssetType type,
   }) {
@@ -283,26 +297,13 @@ class _MarketScreenState extends State<MarketScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        FutureBuilder<List<Map<String, dynamic>>>(
-          future: future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.all(20),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            if (!snapshot.hasData) return const SizedBox();
-
-            return ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) {
-                final item = snapshot.data![index];
-                return _buildListItem(item, isCrypto, type);
-              },
-            );
+        // No FutureBuilder!
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: data.length,
+          itemBuilder: (context, index) {
+            return _buildListItem(data[index], isCrypto, type);
           },
         ),
       ],
@@ -344,9 +345,11 @@ class _MarketScreenState extends State<MarketScreen> {
     bool isCrypto,
     AssetType type,
   ) {
-    final double change = item['change'];
-    final bool isUp = change >= 0;
+    // New API keys: price(String), change(String), raw_change(double), time(String)
+    final double rawChange = item['raw_change']; // Use raw for logic
+    final bool isUp = rawChange >= 0;
     final symbol = item['symbol'] as String;
+    final String timeStr = item['time'] ?? '';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -382,7 +385,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   ),
                 ),
                 Text(
-                  '10:07:39',
+                  timeStr,
                   style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 ),
               ],
@@ -392,7 +395,7 @@ class _MarketScreenState extends State<MarketScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${item['price']}',
+                item['price'],
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -406,7 +409,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  '%${change.abs()}',
+                  '%${item['change']}',
                   style: TextStyle(
                     color: isUp ? Colors.green : Colors.red,
                     fontWeight: FontWeight.bold,

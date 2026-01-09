@@ -179,45 +179,39 @@ class ApiService {
   }
 
   /// 5. FETCH: Forex (Frankfurter)
+  /// 5. FETCH: Forex (Yahoo Finance for rich data including Change%)
   Future<void> fetchForex() async {
-    try {
-      final String toSyms = _whitelistForex.where((x) => x != "USD").join(',');
-      // Base USD -> we get 1 USD = X TRY, 1 USD = Y EUR.
-      // We need X/TRY.
-      final url = Uri.parse("$_frankfurterBaseUrl?from=USD&to=TRY,$toSyms");
+    // We prefer Yahoo for USD and EUR to get the Daily Change %.
+    // Symbols: USDTRY=X, EURTRY=X
+    final List<String> yahooForex = ["USDTRY=X", "EURTRY=X"];
 
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final rates = data['rates'];
+    await Future.wait(
+      yahooForex.map((s) async {
+        await _fetchYahooSingle(s);
+      }),
+    );
 
-        final double usdTry = (rates['TRY'] as num).toDouble();
-        _cachedUsdTry = usdTry;
-
-        // USD Special
-        // Calculate change for USD? Yahoo might be better for change.
-        // For now, assume 0 for Frankfurter or fetch history?
-        // User agreed: "if hist unavailable, set to 0".
-        _updateCache("USD/TRY", usdTry, 0.0);
-
-        for (var cur in _whitelistForex) {
-          if (cur == "USD") continue; // Handled
-          if (cur == "TRY") continue;
-
-          if (rates.containsKey(cur)) {
-            final double usdToCur = (rates[cur] as num)
-                .toDouble(); // 1 USD = ? EUR
-            // 1 EUR = ? USD -> 1/usdToCur
-            // 1 EUR in TL = (1/usdToCur) * USDTRY
-            final double priceTl = (1.0 / usdToCur) * usdTry;
-            _updateCache("$cur/TRY", priceTl, 0.0);
-          }
-        }
-        await _saveCache();
-      }
-    } catch (e) {
-      print("Forex Fetch Error: $e");
+    // Map Yahoo results to our internal keys
+    if (_cache.containsKey("USDTRY=X")) {
+      final item = _cache["USDTRY=X"]!;
+      _cachedUsdTry = item.price;
+      _updateCache("USD/TRY", item.price, item.change);
     }
+
+    if (_cache.containsKey("EURTRY=X")) {
+      final item = _cache["EURTRY=X"]!;
+      _updateCache("EUR/TRY", item.price, item.change);
+
+      // Calculate EUR/USD parity for information? Not needed for now.
+    }
+
+    // Fallback/Secondary: If we wanted other currencies, we could still use Frankfurter here.
+    // But for now, these two are the critical ones.
+
+    // Now that we have fresh USD, recalculate Gold
+    _calculateGold();
+
+    await _saveCache();
   }
 
   // --- PRIVATE HELPERS ---
@@ -256,11 +250,19 @@ class ApiService {
       // Change percent is assumed same as Ounce
       final double chg = ons.change;
 
+      print(
+        "GOLD CALC: Ounce=${ons.price} USD=${_cachedUsdTry} Gram=$gramPrice Change=$chg",
+      );
+
       _updateCache("GRAM", gramPrice, chg);
       _updateCache("CEYREK", gramPrice * 1.63, chg);
       _updateCache("YARIM", gramPrice * 3.26, chg);
       _updateCache("TAM", gramPrice * 6.52, chg);
       _updateCache("CUMHURIYET", gramPrice * 6.70, chg);
+    } else {
+      print(
+        "GOLD CALC FAIL: CC=F present? ${_cache.containsKey('GC=F')} UsdTry: $_cachedUsdTry",
+      );
     }
   }
 
@@ -296,18 +298,18 @@ class ApiService {
   // --- UI PROVIDERS (Read from Cache) ---
   // Just simple accessors now, logic is in Fetchers
 
-  Future<List<Map<String, dynamic>>> getMarketSummary() async {
-    // Return specific keys for Home Screen
+  // --- SYNC PUBLIC API (For UI Consumers via Provider) ---
+
+  List<Map<String, dynamic>> getMarketSummarySync() {
     final List<Map<String, dynamic>> list = [];
 
-    // Helper
     void add(String sym, String display) {
-      final item = _cache[sym] ?? _cache["$sym.IS"]; // Try both
+      final item = _cache[sym] ?? _cache["$sym.IS"];
       if (item != null) {
         list.add({
           'symbol': display,
-          'value': item.price,
-          'change_rate': double.parse(item.change.toStringAsFixed(2)),
+          'value': item.price.toStringAsFixed(2),
+          'change_rate': item.change.toStringAsFixed(2),
           'is_rising': item.change >= 0,
         });
       }
@@ -321,38 +323,51 @@ class ApiService {
     return list;
   }
 
-  Future<List<Map<String, dynamic>>> getStockMovers({
-    bool isRising = true,
-  }) async {
-    // Filter cache for BIST symbols
+  List<Map<String, dynamic>> getStockMoversSync({bool isRising = true}) {
+    final now = DateTime.now().subtract(const Duration(minutes: 15));
+    final timeStr =
+        "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+
     final items = _cache.entries
         .where((e) => e.key.endsWith(".IS") && e.key != "XU100.IS")
         .map(
           (e) => {
             'symbol': e.key.replaceAll(".IS", ""),
-            'price': e.value.price,
-            'change': e.value.change,
+            'price': e.value.price.toStringAsFixed(2),
+            'change': e.value.change.toStringAsFixed(2),
+            'raw_change': e.value.change,
+            'time': timeStr,
           },
         )
         .toList();
 
+    // Sort by magnitude
     items.sort(
-      (a, b) => (b['change'] as double).compareTo(a['change'] as double),
+      (a, b) => (b['raw_change'] as double).abs().compareTo(
+        (a['raw_change'] as double).abs(),
+      ),
     );
 
-    if (isRising)
-      return items.where((i) => (i['change'] as double) > 0).take(5).toList();
-    return items.reversed
-        .where((i) => (i['change'] as double) < 0)
-        .take(5)
-        .toList();
+    // Filter by direction
+    final filtered = items.where((i) {
+      final chg = i['raw_change'] as double;
+      return isRising ? chg > 0 : chg < 0;
+    }).toList();
+
+    filtered.sort((a, b) {
+      final da = a['raw_change'] as double;
+      final db = b['raw_change'] as double;
+      return isRising ? db.compareTo(da) : da.compareTo(db);
+    });
+
+    return filtered.take(5).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getCryptoMovers({
-    bool isRising = true,
-  }) async {
-    // Filter cache for Crypto (Keys that are in whitelist without USDT suffix usually)
-    // In fetchCrypto we stored them as "BTC", "ETH" etc.
+  List<Map<String, dynamic>> getCryptoMoversSync({bool isRising = true}) {
+    final now = DateTime.now();
+    final timeStr =
+        "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+
     final items = _cache.entries
         .where(
           (e) =>
@@ -364,22 +379,26 @@ class ApiService {
         .map(
           (e) => {
             'symbol': e.key,
-            'price': e.value.price,
-            'change': e.value.change,
+            'price': e.value.price.toStringAsFixed(2),
+            'change': e.value.change.toStringAsFixed(2),
+            'raw_change': e.value.change,
+            'time': timeStr,
           },
         )
         .toList();
 
-    items.sort(
-      (a, b) => (b['change'] as double).compareTo(a['change'] as double),
-    );
+    final filtered = items.where((i) {
+      final chg = i['raw_change'] as double;
+      return isRising ? chg > 0 : chg < 0;
+    }).toList();
 
-    if (isRising)
-      return items.where((i) => (i['change'] as double) > 0).take(5).toList();
-    return items.reversed
-        .where((i) => (i['change'] as double) < 0)
-        .take(5)
-        .toList();
+    filtered.sort((a, b) {
+      final da = a['raw_change'] as double;
+      final db = b['raw_change'] as double;
+      return isRising ? db.compareTo(da) : da.compareTo(db);
+    });
+
+    return filtered.take(5).toList();
   }
 
   Future<List<Map<String, dynamic>>> getAssetsByType(AssetType type) async {
