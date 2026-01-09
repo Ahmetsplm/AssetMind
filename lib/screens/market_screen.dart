@@ -6,7 +6,8 @@ import '../providers/favorite_provider.dart';
 import '../providers/market_provider.dart';
 import '../models/favorite.dart';
 import '../models/holding.dart'; // For AssetType
-import 'add_asset/asset_list_screen.dart'; // For Navigation
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'add_asset/asset_list_screen.dart';
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -21,146 +22,167 @@ class _MarketScreenState extends State<MarketScreen> {
   bool _isCryptoRising = true;
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Consumer<MarketProvider>(
       builder: (context, marketProvider, child) {
         return Scaffold(
           backgroundColor: Colors.grey[50],
-          appBar: AppBar(
-            title: Text(
-              'Piyasalar',
-              style: GoogleFonts.poppins(
-                color: Colors.black87,
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
-            ),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search, color: Colors.black87),
-                onPressed: () {},
-              ),
-            ],
-          ),
-          body: Column(
-            children: [
-              _buildCategorySelector(context),
-              Expanded(child: _buildSummaryView()),
-            ],
-          ),
+          appBar: _buildAppBar(),
+          body: _buildBody(),
         );
       },
     );
   }
 
-  Widget _buildCategorySelector(BuildContext context) {
-    final categories = ['Özet', 'BIST', 'Kripto', 'Döviz'];
-    return SizedBox(
-      height: 50, // Reduced height
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final isSelected = _selectedCategoryIndex == index && index == 0;
-          return Padding(
-            padding: const EdgeInsets.only(right: 12), // Reduced padding
-            child: InkWell(
-              onTap: () {
-                if (index == 0) {
-                  setState(() => _selectedCategoryIndex = 0);
-                } else {
-                  AssetType type;
-                  if (index == 1)
-                    type = AssetType.STOCK;
-                  else if (index == 2)
-                    type = AssetType.CRYPTO;
-                  else
-                    type = AssetType.FOREX;
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      title: Text(
+        'Piyasalar',
+        style: GoogleFonts.poppins(
+          color: Colors.black87,
+          fontWeight: FontWeight.bold,
+          fontSize: 24,
+        ),
+      ),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.search, color: Colors.black87),
+          onPressed: () {},
+        ),
+      ],
+    );
+  }
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AssetListScreen(type: type),
-                    ),
-                  );
-                }
-              },
-              borderRadius: BorderRadius.circular(25),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ), // Generous padding
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.black : Colors.grey[200],
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  categories[index],
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+  Widget _buildBody() {
+    final api = ApiService();
+    final summaryData = api.getMarketSummarySync();
+
+    // Performance Optimization: Cache movers data if possible or just use Sync access
+    // But CustomScrollView with Slivers is the key here.
+
+    return AnimationLimiter(
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // Category Selector
+          SliverToBoxAdapter(child: _buildCategorySelector(context)),
+
+          // Horizontal Summary List
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: SizedBox(
+                height: 140,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: summaryData.length,
+                  itemBuilder: (context, index) {
+                    final item = summaryData[index];
+                    return AnimationConfiguration.staggeredList(
+                      position: index,
+                      duration: const Duration(milliseconds: 375),
+                      child: SlideAnimation(
+                        horizontalOffset: 50.0,
+                        child: FadeInAnimation(child: _buildMarketCard(item)),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
-          );
-        },
+          ),
+
+          // BIST Movers Header
+          SliverToBoxAdapter(
+            child: _buildSectionHeader(
+              'Piyasa Hareketleri - BIST',
+              _isStockRising,
+              (val) => setState(() => _isStockRising = val),
+            ),
+          ),
+
+          // BIST Movers List (Sliver)
+          _buildSliverList(
+            api.getStockMoversSync(isRising: _isStockRising),
+            false,
+            AssetType.STOCK,
+          ),
+
+          SliverToBoxAdapter(child: const SizedBox(height: 20)),
+
+          // Crypto Movers Header
+          SliverToBoxAdapter(
+            child: _buildSectionHeader(
+              'Piyasa Hareketleri - Kripto',
+              _isCryptoRising,
+              (val) => setState(() => _isCryptoRising = val),
+            ),
+          ),
+
+          // Crypto Movers List (Sliver)
+          _buildSliverList(
+            api.getCryptoMoversSync(isRising: _isCryptoRising),
+            true,
+            AssetType.CRYPTO,
+          ),
+
+          SliverToBoxAdapter(child: const SizedBox(height: 30)),
+        ],
       ),
     );
   }
 
-  Widget _buildSummaryView() {
-    final api = ApiService();
-    final summaryData = api.getMarketSummarySync();
+  Widget _buildSectionHeader(
+    String title,
+    bool isRising,
+    Function(bool) onToggle,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              _buildToggleButton('Yükselen', isRising, () => onToggle(true)),
+              const SizedBox(width: 12),
+              _buildToggleButton('Düşen', !isRising, () => onToggle(false)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: SizedBox(
-              height: 140,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: summaryData.length,
-                itemBuilder: (context, index) {
-                  final item = summaryData[index];
-                  return _buildMarketCard(item);
-                },
-              ),
+  Widget _buildSliverList(
+    List<Map<String, dynamic>> data,
+    bool isCrypto,
+    AssetType type,
+  ) {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        return AnimationConfiguration.staggeredList(
+          position: index,
+          duration: const Duration(milliseconds: 375),
+          child: SlideAnimation(
+            verticalOffset: 50.0,
+            child: FadeInAnimation(
+              child: _buildListItem(data[index], isCrypto, type),
             ),
           ),
-
-          _buildMoversSection(
-            title: 'Piyasa Hareketleri - BIST',
-            isRising: _isStockRising,
-            onToggle: (val) => setState(() => _isStockRising = val),
-            data: api.getStockMoversSync(isRising: _isStockRising),
-            type: AssetType.STOCK,
-          ),
-
-          const SizedBox(height: 20),
-
-          _buildMoversSection(
-            title: 'Piyasa Hareketleri - Kripto',
-            isRising: _isCryptoRising,
-            onToggle: (val) => setState(() => _isCryptoRising = val),
-            data: api.getCryptoMoversSync(isRising: _isCryptoRising),
-            isCrypto: true,
-            type: AssetType.CRYPTO,
-          ),
-
-          const SizedBox(height: 30),
-        ],
-      ),
+        );
+      }, childCount: data.length),
     );
   }
 
@@ -286,45 +308,63 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Widget _buildMoversSection({
-    required String title,
-    required bool isRising,
-    required Function(bool) onToggle,
-    required List<Map<String, dynamic>> data, // Changed from Future to List
-    bool isCrypto = false,
-    required AssetType type,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              _buildToggleButton('Yükselen', isRising, () => onToggle(true)),
-              const SizedBox(width: 12),
-              _buildToggleButton('Düşen', !isRising, () => onToggle(false)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        // No FutureBuilder!
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: data.length,
-          itemBuilder: (context, index) {
-            return _buildListItem(data[index], isCrypto, type);
-          },
-        ),
-      ],
+  Widget _buildCategorySelector(BuildContext context) {
+    final categories = ['Özet', 'BIST', 'Kripto', 'Döviz'];
+    return SizedBox(
+      height: 50, // Reduced height
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final isSelected = _selectedCategoryIndex == index && index == 0;
+          return Padding(
+            padding: const EdgeInsets.only(right: 12), // Reduced padding
+            child: InkWell(
+              onTap: () {
+                if (index == 0) {
+                  setState(() => _selectedCategoryIndex = 0);
+                } else {
+                  AssetType type;
+                  if (index == 1)
+                    type = AssetType.STOCK;
+                  else if (index == 2)
+                    type = AssetType.CRYPTO;
+                  else
+                    type = AssetType.FOREX;
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AssetListScreen(type: type),
+                    ),
+                  );
+                }
+              },
+              borderRadius: BorderRadius.circular(25),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ), // Generous padding
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.black : Colors.grey[200],
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  categories[index],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

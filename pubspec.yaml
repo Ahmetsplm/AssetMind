@@ -19,6 +19,7 @@ dependencies:
   intl: ^0.19.0
   google_fonts: ^6.2.1
   shared_preferences: ^2.5.4
+  flutter_staggered_animations: ^1.1.1
 
 dev_dependencies:
   flutter_test:
@@ -32,4 +33,4 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: false
-  image_path: "assets/icon/app_icon.jpeg"
+  image_path: "assets/icon/app_icon.png"

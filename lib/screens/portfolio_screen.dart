@@ -24,6 +24,7 @@ class PortfolioScreen extends StatelessWidget {
               const SizedBox(height: 20),
               _buildDashboardCard(context),
               const SizedBox(height: 24),
+              const SizedBox(height: 24),
               _buildAssetsHeader(context),
               const SizedBox(height: 12),
               _buildAssetCategories(context),

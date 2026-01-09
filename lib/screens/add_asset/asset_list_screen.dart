@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -122,14 +123,23 @@ class _AssetListScreenState extends State<AssetListScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.separated(
-                    itemCount: _filteredAssets.length,
-                    separatorBuilder: (context, index) =>
-                        const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final item = _filteredAssets[index];
-                      return _buildListItem(item);
-                    },
+                : AnimationLimiter(
+                    child: ListView.separated(
+                      itemCount: _filteredAssets.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final item = _filteredAssets[index];
+                        return AnimationConfiguration.staggeredList(
+                          position: index,
+                          duration: const Duration(milliseconds: 375),
+                          child: SlideAnimation(
+                            verticalOffset: 50.0,
+                            child: FadeInAnimation(child: _buildListItem(item)),
+                          ),
+                        );
+                      },
+                    ),
                   ),
           ),
 

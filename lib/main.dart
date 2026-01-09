@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
 
 import 'providers/favorite_provider.dart';
 import 'providers/portfolio_provider.dart';
@@ -56,7 +56,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const HomeScreen(),
+        home: const SplashScreen(),
       ),
     );
   }

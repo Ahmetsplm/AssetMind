@@ -71,7 +71,7 @@ class AssetTypeSelectionScreen extends StatelessWidget {
                   _buildCategoryCard(
                     context,
                     title: 'Değerli Madenler',
-                    subtitle: 'ALtın,Gümüş ve diğer değerli madenler',
+                    subtitle: 'Altın,Gümüş ve diğer değerli madenler',
                     icon: Icons.hexagon_outlined,
                     color: Colors.redAccent,
                     type: AssetType.GOLD,

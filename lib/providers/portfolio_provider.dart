@@ -151,9 +151,75 @@ class PortfolioProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<List<dynamic>> _historyPoints = [];
+  List<List<dynamic>> get historyPoints => _historyPoints;
+
+  Future<void> loadHistory() async {
+    if (_selectedPortfolio == null) return;
+
+    final db = await DatabaseHelper.instance.database;
+    final transactions = await db.query(
+      'transactions',
+      where: 'holding_id IN (SELECT id FROM holdings WHERE portfolio_id = ?)',
+      whereArgs: [_selectedPortfolio!.id],
+      orderBy: 'date ASC',
+    );
+
+    double cumulativeValue = 0;
+    List<List<dynamic>> points = [];
+
+    // Initial point
+    if (transactions.isNotEmpty) {
+      // Add a starting point just before the first transaction?
+      // Or just start from 0 at the first date?
+    }
+
+    for (var t in transactions) {
+      final dynamic typeRaw = t['type'];
+      int typeIndex = 0;
+
+      if (typeRaw is int) {
+        typeIndex = typeRaw;
+      } else if (typeRaw is String) {
+        // Try parsing "0" or "1"
+        final parsed = int.tryParse(typeRaw);
+        if (parsed != null) {
+          typeIndex = parsed;
+        } else {
+          // Fallback for legacy "BUY"/"SELL" strings if they exist
+          if (typeRaw == 'SELL' || typeRaw == 'TransactionType.SELL')
+            typeIndex = 1;
+        }
+      }
+
+      final amount = t['amount'] as double;
+      final price = t['price'] as double;
+      final total = amount * price;
+      final dateStr = t['date'] as String;
+      final date = DateTime.parse(dateStr); // Database stores ISO string
+
+      // Enums: BUY=0, SELL=1
+      if (typeIndex == 0) {
+        // BUY
+        cumulativeValue += total;
+      } else {
+        // SELL
+        cumulativeValue -= total;
+      }
+
+      // Ensure positive only?
+      if (cumulativeValue < 0) cumulativeValue = 0;
+
+      points.add([date.millisecondsSinceEpoch.toDouble(), cumulativeValue]);
+    }
+    _historyPoints = points;
+    notifyListeners();
+  }
+
   void selectPortfolio(Portfolio portfolio) {
     _selectedPortfolio = portfolio;
-    loadHoldings(); // This notifies listeners
+    loadHoldings();
+    loadHistory(); // Load history when selected
   }
 
   // Add Transaction (Buy Logic)
@@ -253,6 +319,8 @@ class PortfolioProvider extends ChangeNotifier {
     );
 
     await db.insert('transactions', newTransaction.toMap());
+    await db.insert('transactions', newTransaction.toMap());
     await loadHoldings(); // Refresh holdings and stats
+    await loadHistory();
   }
 }

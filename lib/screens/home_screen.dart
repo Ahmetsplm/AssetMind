@@ -5,6 +5,8 @@ import 'favorites_screen.dart';
 import 'add_asset/asset_type_selection_screen.dart';
 import 'portfolio_screen.dart';
 
+import 'settings_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -20,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const FavoritesScreen(),
     const AssetTypeSelectionScreen(),
     const PortfolioScreen(),
+    const SettingsScreen(),
   ];
 
   @override
@@ -33,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _currentIndex = index;
           });
         },
-        type: BottomNavigationBarType.fixed, // 4 items require fixed type
+        type: BottomNavigationBarType.fixed, // 5 items require fixed type
         selectedItemColor: const Color(0xFF1A237E),
         unselectedItemColor: Colors.grey,
         showSelectedLabels: true,
@@ -56,6 +59,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.pie_chart_outline_rounded),
             activeIcon: Icon(Icons.pie_chart_rounded),
             label: 'Portföy',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_outlined),
+            activeIcon: Icon(Icons.settings),
+            label: 'Ayarlar',
           ),
         ],
       ),
