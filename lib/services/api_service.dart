@@ -582,7 +582,10 @@ class ApiService {
           final d = _cache[s];
           if (d != null) {
             results.add({
-              'symbol': s,
+              'symbol': s.replaceAll(
+                ".IS",
+                "",
+              ), // Normalize keys to exclude .IS
               'name': s.replaceAll(".IS", ""),
               'price': d.price,
               'change': d.change,
