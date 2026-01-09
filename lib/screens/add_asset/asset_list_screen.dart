@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -47,14 +48,19 @@ class _AssetListScreenState extends State<AssetListScreen> {
     }
   }
 
+  Timer? _debounce;
+
   void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredAssets = _assets.where((item) {
-        final symbol = item['symbol'].toString().toLowerCase();
-        final name = item['name'].toString().toLowerCase();
-        return symbol.contains(query) || name.contains(query);
-      }).toList();
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      final query = _searchController.text.toLowerCase();
+      setState(() {
+        _filteredAssets = _assets.where((item) {
+          final symbol = item['symbol'].toString().toLowerCase();
+          final name = item['name'].toString().toLowerCase();
+          return symbol.contains(query) || name.contains(query);
+        }).toList();
+      });
     });
   }
 
@@ -74,22 +80,25 @@ class _AssetListScreenState extends State<AssetListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           _getTitle(),
           style: GoogleFonts.poppins(
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: Theme.of(context).iconTheme,
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.info_outline)),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.info_outline_rounded),
+          ),
         ],
       ),
       body: Column(
@@ -97,37 +106,58 @@ class _AssetListScreenState extends State<AssetListScreen> {
           // Search Bar
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Ara...',
-                prefixIcon: const Icon(Icons.search),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: 16,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: GoogleFonts.poppins(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                decoration: InputDecoration(
+                  hintText: 'Varlık ara...',
+                  hintStyle: GoogleFonts.poppins(
+                    color: Theme.of(context).disabledColor,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 16,
+                  ),
+                  border: InputBorder.none,
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                filled: true,
-                fillColor: Colors.white,
               ),
             ),
           ),
 
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  )
                 : AnimationLimiter(
                     child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       itemCount: _filteredAssets.length,
                       separatorBuilder: (context, index) =>
-                          const Divider(height: 1),
+                          const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final item = _filteredAssets[index];
                         return AnimationConfiguration.staggeredList(
@@ -135,7 +165,9 @@ class _AssetListScreenState extends State<AssetListScreen> {
                           duration: const Duration(milliseconds: 375),
                           child: SlideAnimation(
                             verticalOffset: 50.0,
-                            child: FadeInAnimation(child: _buildListItem(item)),
+                            child: FadeInAnimation(
+                              child: _buildListItem(context, item),
+                            ),
                           ),
                         );
                       },
@@ -148,23 +180,30 @@ class _AssetListScreenState extends State<AssetListScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: Colors.grey[900],
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.orange,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    "Fiyatları 15 dk. gecikmeli görmektesiniz.",
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 13,
+              color: Theme.of(context).cardColor,
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.orange,
+                      size: 20,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "Piyasa verileri 15 dakika gecikmeli olabilir.",
+                        style: GoogleFonts.poppins(
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
@@ -172,64 +211,95 @@ class _AssetListScreenState extends State<AssetListScreen> {
     );
   }
 
-  Widget _buildListItem(Map<String, dynamic> item) {
+  Widget _buildListItem(BuildContext context, Map<String, dynamic> item) {
     final change = item['change'] as double;
     final isUp = change >= 0;
+    final trendColor = isUp ? Colors.green : Colors.red;
 
-    return ListTile(
-      onTap: () {
-        _openTransactionSheet(item);
-      },
-      leading: Consumer<FavoriteProvider>(
-        builder: (context, provider, child) {
-          final isFav = provider.isFavorite(item['symbol']);
-          return IconButton(
-            icon: Icon(
-              isFav ? Icons.star : Icons.star_border,
-              color: isFav ? Colors.amber : Colors.grey[400],
-            ),
-            onPressed: () {
-              provider.toggleFavorite(
-                Favorite(symbol: item['symbol'], type: widget.type),
-              );
-            },
-          );
-        },
-      ),
-      title: Text(
-        item['symbol'],
-        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
-      ),
-      subtitle: Text(item['name'] ?? ''),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            '₺${(item['price'] as num).toDouble().toStringAsFixed(2)}',
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isUp
-                  ? Colors.green.withAlpha(30)
-                  : Colors.red.withAlpha(30),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              '%${change.abs().toStringAsFixed(2)}',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                color: isUp ? Colors.green : Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        onTap: () {
+          _openTransactionSheet(item);
+        },
+        leading: Consumer<FavoriteProvider>(
+          builder: (context, provider, child) {
+            final isFav = provider.isFavorite(item['symbol']);
+            return IconButton(
+              icon: Icon(
+                isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                color: isFav
+                    ? const Color(0xFFFFB300)
+                    : Theme.of(context).disabledColor,
+                size: 28,
+              ),
+              onPressed: () {
+                provider.toggleFavorite(
+                  Favorite(symbol: item['symbol'], type: widget.type),
+                );
+              },
+            );
+          },
+        ),
+        title: Text(
+          item['symbol'],
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        subtitle: Text(
+          item['name'] ?? '',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '₺${(item['price'] as num).toDouble().toStringAsFixed(2)}',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: trendColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '%${change.abs().toStringAsFixed(2)}',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: trendColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

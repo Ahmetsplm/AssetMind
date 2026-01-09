@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -7,7 +9,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -19,17 +21,20 @@ class SettingsScreen extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
               ),
               const SizedBox(height: 24),
-              _buildSectionHeader("Genel"),
-              _buildAboutCard(),
+              _buildSectionHeader(context, "Genel"),
+              _buildAboutCard(context),
               const SizedBox(height: 24),
-              _buildSectionHeader("Destek"),
-              _buildContactButton(),
+              _buildSectionHeader(context, "Görünüm"),
+              _buildAppearanceCard(context),
+              const SizedBox(height: 24),
+              _buildSectionHeader(context, "Destek"),
+              _buildContactButton(context),
               const SizedBox(height: 48),
-              _buildVersionInfo(),
+              _buildVersionInfo(context),
             ],
           ),
         ),
@@ -37,7 +42,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 4),
       child: Text(
@@ -45,17 +50,19 @@ class SettingsScreen extends StatelessWidget {
         style: GoogleFonts.poppins(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: Colors.grey[600],
+          color: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.color?.withOpacity(0.6),
           letterSpacing: 1.2,
         ),
       ),
     );
   }
 
-  Widget _buildAboutCard() {
+  Widget _buildAboutCard(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -72,12 +79,12 @@ class SettingsScreen extends StatelessWidget {
             leading: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A237E).withOpacity(0.1),
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.info_outline_rounded,
-                color: Color(0xFF1A237E),
+                color: Theme.of(context).primaryColor,
                 size: 28,
               ),
             ),
@@ -86,6 +93,7 @@ class SettingsScreen extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
             subtitle: Padding(
@@ -94,7 +102,9 @@ class SettingsScreen extends StatelessWidget {
                 "AssetMind, tüm yatırımlarınızı tek bir yerden takip etmenizi sağlayan kapsamlı bir portföy yönetim aracıdır. Türk Hisse Senetleri, Döviz, Altın ve Kripto paralarınızı anlık verilerle izleyin.",
                 style: GoogleFonts.poppins(
                   fontSize: 13,
-                  color: Colors.grey[600],
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withOpacity(0.7),
                   height: 1.5,
                 ),
               ),
@@ -105,10 +115,106 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactButton() {
+  Widget _buildAppearanceCard(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 8,
+            ),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                themeProvider.isDarkMode
+                    ? Icons.dark_mode_rounded
+                    : Icons.light_mode_rounded,
+                color: Theme.of(context).primaryColor,
+                size: 24,
+              ),
+            ),
+            title: Text(
+              "Tema",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+            trailing: DropdownButton<ThemeMode>(
+              value: themeProvider.themeMode,
+              underline: const SizedBox(),
+              dropdownColor: Theme.of(context).cardColor,
+              icon: Icon(
+                Icons.arrow_drop_down_rounded,
+                color: Theme.of(context).primaryColor,
+              ),
+              items: [
+                DropdownMenuItem(
+                  value: ThemeMode.system,
+                  child: Text(
+                    "Sistem",
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: ThemeMode.light,
+                  child: Text(
+                    "Aydınlık",
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: ThemeMode.dark,
+                  child: Text(
+                    "Karanlık",
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                ),
+              ],
+              onChanged: (ThemeMode? mode) {
+                if (mode != null) {
+                  themeProvider.setThemeMode(mode);
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactButton(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -135,7 +241,11 @@ class SettingsScreen extends StatelessWidget {
         ),
         title: Text(
           "İletişim",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
         ),
         subtitle: Text(
           "Geri bildirim gönder",
@@ -144,7 +254,7 @@ class SettingsScreen extends StatelessWidget {
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: Theme.of(context).dividerColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -152,7 +262,7 @@ class SettingsScreen extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[500],
+              color: Theme.of(context).disabledColor,
             ),
           ),
         ),
@@ -160,24 +270,31 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildVersionInfo() {
+  Widget _buildVersionInfo(BuildContext context) {
     return Center(
       child: Column(
         children: [
           // App Logo could go here
-          Icon(Icons.pie_chart_rounded, size: 40, color: Colors.grey[300]),
+          Icon(
+            Icons.pie_chart_rounded,
+            size: 40,
+            color: Theme.of(context).disabledColor,
+          ),
           const SizedBox(height: 12),
           Text(
             "AssetMind",
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: Colors.grey[400],
+              color: Theme.of(context).disabledColor,
             ),
           ),
           Text(
             "v1.0.0",
-            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[400]),
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Theme.of(context).disabledColor,
+            ),
           ),
         ],
       ),

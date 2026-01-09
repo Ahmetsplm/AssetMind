@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/holding.dart'; // AssetType
@@ -76,16 +76,47 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                '${widget.symbol} ${_transactionType == TransactionType.BUY ? "portföye eklendi" : "satışı yapıldı"}!',
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${widget.symbol} ${_transactionType == TransactionType.BUY ? "portföye eklendi" : "satışı yapıldı"}!',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              backgroundColor: _transactionType == TransactionType.BUY
+                  ? Colors.green[700]
+                  : Colors.red[700],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(16),
             ),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Hata: $e'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(
+                'Hata: $e',
+                style: GoogleFonts.poppins(color: Colors.white),
+              ),
+              backgroundColor: Colors.red[800],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
           );
         }
       }
@@ -101,22 +132,29 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       maxChildSize: 0.95,
       builder: (_, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
               const SizedBox(height: 12),
               // Drag Handle
               Center(
                 child: Container(
-                  width: 40,
-                  height: 4,
+                  width: 48,
+                  height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
+                    color: Theme.of(context).dividerColor.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2.5),
                   ),
                 ),
               ),
@@ -124,115 +162,25 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
+                  physics: const BouncingScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Header
-                      _buildHeader(),
+                      _buildHeader(context),
                       const SizedBox(height: 24),
 
                       // Buy / Sell Toggle
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => setState(
-                                  () => _transactionType = TransactionType.BUY,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        _transactionType == TransactionType.BUY
-                                        ? Colors.green
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
-                                    boxShadow:
-                                        _transactionType == TransactionType.BUY
-                                        ? [
-                                            BoxShadow(
-                                              color: Colors.black.withAlpha(20),
-                                              blurRadius: 4,
-                                            ),
-                                          ]
-                                        : [],
-                                  ),
-                                  child: Text(
-                                    "Alış",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          _transactionType ==
-                                              TransactionType.BUY
-                                          ? Colors.white
-                                          : Colors.grey,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => setState(
-                                  () => _transactionType = TransactionType.SELL,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        _transactionType == TransactionType.SELL
-                                        ? Colors.red
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
-                                    boxShadow:
-                                        _transactionType == TransactionType.SELL
-                                        ? [
-                                            BoxShadow(
-                                              color: Colors.black.withAlpha(20),
-                                              blurRadius: 4,
-                                            ),
-                                          ]
-                                        : [],
-                                  ),
-                                  child: Text(
-                                    "Satış",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          _transactionType ==
-                                              TransactionType.SELL
-                                          ? Colors.white
-                                          : Colors.grey,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      _buildTransactionTypeToggle(context),
                       const SizedBox(height: 24),
 
                       // Form
-                      _buildForm(),
+                      _buildForm(context),
 
                       const SizedBox(height: 24),
 
                       // Summary and Button
-                      _buildBottomSection(),
+                      _buildBottomSection(context),
 
                       const SizedBox(height: 32),
                     ],
@@ -246,21 +194,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
             widget.symbol.isNotEmpty ? widget.symbol.substring(0, 1) : "?",
-            style: const TextStyle(
+            style: GoogleFonts.poppins(
               fontWeight: FontWeight.bold,
-              fontSize: 20,
-              color: Color(0xFF1A237E),
+              fontSize: 24,
+              color: Theme.of(context).primaryColor,
             ),
           ),
         ),
@@ -271,132 +219,337 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             children: [
               Text(
                 widget.symbol,
-                style: const TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
               ),
-              Text(widget.name, style: const TextStyle(color: Colors.grey)),
+              Text(
+                widget.name,
+                style: GoogleFonts.poppins(
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                  fontSize: 14,
+                ),
+              ),
             ],
           ),
         ),
         Text(
           '₺${widget.initialPrice}',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
+  Widget _buildTransactionTypeToggle(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(0.1),
+        ),
+      ),
+      child: Row(
         children: [
-          TextFormField(
-            controller: _quantityController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: widget.type == AssetType.FOREX
-                  ? 'Miktar (Birim)'
-                  : 'Adet (Lot)',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () =>
+                  setState(() => _transactionType = TransactionType.BUY),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _transactionType == TransactionType.BUY
+                      ? const Color(0xFF4CAF50) // Green
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: _transactionType == TransactionType.BUY
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF4CAF50).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: Text(
+                  "Alış",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: _transactionType == TransactionType.BUY
+                        ? Colors.white
+                        : Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                  ),
+                ),
               ),
             ),
-            onChanged: (val) => setState(() {}), // Refresh summary
-            validator: (val) {
-              if (val == null || val.isEmpty) return 'Gerekli';
-              if (double.tryParse(val) == null) return 'Geçersiz sayı';
-              return null;
-            },
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _priceController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: 'Fiyat (TL)',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () =>
+                  setState(() => _transactionType = TransactionType.SELL),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _transactionType == TransactionType.SELL
+                      ? const Color(0xFFE53935) // Red
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: _transactionType == TransactionType.SELL
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFFE53935).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: Text(
+                  "Satış",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: _transactionType == TransactionType.SELL
+                        ? Colors.white
+                        : Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                  ),
+                ),
               ),
             ),
-            onChanged: (val) => setState(() {}),
-            validator: (val) {
-              if (val == null || val.isEmpty) return 'Gerekli';
-              if (double.tryParse(val) == null) return 'Geçersiz sayı';
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _dateController,
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: 'İşlem Tarihi',
-              suffixIcon: const Icon(Icons.calendar_today),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: _selectedDate,
-                firstDate: DateTime(2000),
-                lastDate: DateTime.now(),
-              );
-              if (picked != null) {
-                setState(() {
-                  _selectedDate = picked;
-                  _dateController.text = DateFormat(
-                    'dd/MM/yyyy',
-                  ).format(picked);
-                });
-              }
-            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBottomSection() {
+  Widget _buildForm(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          _buildInputField(
+            context,
+            controller: _quantityController,
+            label: widget.type == AssetType.FOREX
+                ? 'Miktar (Birim)'
+                : 'Adet (Lot)',
+            inputType: const TextInputType.numberWithOptions(decimal: true),
+            icon: Icons.tag_rounded,
+          ),
+          const SizedBox(height: 16),
+          _buildInputField(
+            context,
+            controller: _priceController,
+            label: 'Fiyat (TL)',
+            inputType: const TextInputType.numberWithOptions(decimal: true),
+            icon: Icons.price_change_rounded,
+          ),
+          const SizedBox(height: 16),
+          _buildDateField(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputField(
+    BuildContext context, {
+    required TextEditingController controller,
+    required String label,
+    required TextInputType inputType,
+    required IconData icon,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: inputType,
+      style: GoogleFonts.poppins(
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).textTheme.bodyLarge?.color,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.poppins(
+          color: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: Theme.of(context).primaryColor.withOpacity(0.7),
+        ),
+        filled: true,
+        fillColor: Theme.of(context).cardColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: Theme.of(context).dividerColor.withOpacity(0.1),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: Theme.of(context).primaryColor,
+            width: 2,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 20,
+        ),
+      ),
+      onChanged: (val) => setState(() {}),
+      validator: (val) {
+        if (val == null || val.isEmpty) return 'Gerekli';
+        if (double.tryParse(val) == null) return 'Geçersiz sayı';
+        return null;
+      },
+    );
+  }
+
+  Widget _buildDateField(BuildContext context) {
+    return TextFormField(
+      controller: _dateController,
+      readOnly: true,
+      style: GoogleFonts.poppins(
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).textTheme.bodyLarge?.color,
+      ),
+      decoration: InputDecoration(
+        labelText: 'İşlem Tarihi',
+        labelStyle: GoogleFonts.poppins(
+          color: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+        ),
+        prefixIcon: Icon(
+          Icons.calendar_today_rounded,
+          color: Theme.of(context).primaryColor.withOpacity(0.7),
+        ),
+        filled: true,
+        fillColor: Theme.of(context).cardColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: Theme.of(context).dividerColor.withOpacity(0.1),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: Theme.of(context).primaryColor,
+            width: 2,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 20,
+        ),
+      ),
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _selectedDate,
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: Theme.of(context).primaryColor,
+                  onPrimary: Colors.white,
+                  surface: Theme.of(context).cardColor,
+                  onSurface: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                dialogBackgroundColor: Theme.of(context).cardColor,
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (picked != null) {
+          setState(() {
+            _selectedDate = picked;
+            _dateController.text = DateFormat('dd/MM/yyyy').format(picked);
+          });
+        }
+      },
+    );
+  }
+
+  Widget _buildBottomSection(BuildContext context) {
+    final bool isBuy = _transactionType == TransactionType.BUY;
+    final color = isBuy ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFFE8EAF6),
-            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Theme.of(context).dividerColor.withOpacity(0.1),
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Toplam İşlem Tutarı',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                'Toplam Tutar',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                ),
               ),
               Text(
                 '₺${NumberFormat('#,##0.00', 'tr_TR').format(_total)}',
-                style: const TextStyle(
+                style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: Color(0xFF1A237E),
+                  fontSize: 22,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
-          height: 50,
+          height: 56,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _transactionType == TransactionType.BUY
-                  ? Colors.green
-                  : Colors.red,
+              backgroundColor: color,
+              elevation: 4,
+              shadowColor: color.withOpacity(0.4),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -405,13 +558,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             child: Consumer<PortfolioProvider>(
               builder: (context, provider, child) {
                 return Text(
-                  _transactionType == TransactionType.BUY
-                      ? 'Portföye Ekle'
-                      : 'Satış Yap',
-                  style: const TextStyle(
+                  isBuy ? 'Portföye Ekle' : 'Satış Yap',
+                  style: GoogleFonts.poppins(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
                   ),
                 );
               },

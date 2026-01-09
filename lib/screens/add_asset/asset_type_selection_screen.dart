@@ -19,36 +19,41 @@ class AssetTypeSelectionScreen extends StatelessWidget {
     });
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          'Varlık Kategorisi Seçin',
+          'Varlık Ekle',
           style: GoogleFonts.poppins(
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: Theme.of(context).iconTheme,
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              'Portföyünüze eklemek istediğiniz varlık türünü seçin',
+              'Portföyünüze hangi türde varlık eklemek istersiniz?',
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 14),
+              style: GoogleFonts.poppins(
+                color: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                fontSize: 14,
+              ),
             ),
           ),
 
           // Portfolio Selector
           _buildPortfolioSelector(context),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
           // Grid Menu
           Expanded(
@@ -58,39 +63,38 @@ class AssetTypeSelectionScreen extends StatelessWidget {
                 crossAxisCount: 2, // 2 Columns
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 0.8, // Taller cards to fill screen
+                childAspectRatio: 0.85, // Taller cards to fill screen
                 children: [
                   _buildCategoryCard(
                     context,
-                    title: 'Türk Hisse Senetleri',
-                    subtitle: 'Borsa İstanbul\'da işlem gören hisse senetleri',
-                    icon: Icons.show_chart,
-                    color: Colors.blueAccent,
+                    title: 'Borsa İstanbul',
+                    subtitle: 'BIST 100/30 Hisse Senetleri',
+                    icon: Icons.show_chart_rounded,
+                    color: const Color(0xFF4285F4),
                     type: AssetType.STOCK,
                   ),
                   _buildCategoryCard(
                     context,
                     title: 'Değerli Madenler',
-                    subtitle: 'Altın,Gümüş ve diğer değerli madenler',
-                    icon: Icons.hexagon_outlined,
-                    color: Colors.redAccent,
+                    subtitle: 'Altın, Gümüş, Platin',
+                    icon: Icons.diamond_outlined,
+                    color: const Color(0xFFEA4335),
                     type: AssetType.GOLD,
                   ),
                   _buildCategoryCard(
                     context,
                     title: 'Kripto Para',
-                    subtitle:
-                        'Bitcoin, Ethereum ve diğer kripto para birimleri',
-                    icon: Icons.currency_bitcoin,
-                    color: Colors.orange,
+                    subtitle: 'Bitcoin, Ethereum, Altcoinler',
+                    icon: Icons.currency_bitcoin_rounded,
+                    color: const Color(0xFFFBBC05),
                     type: AssetType.CRYPTO,
                   ),
                   _buildCategoryCard(
                     context,
                     title: 'Döviz',
-                    subtitle: 'Farklı para birimlerinde nakit pozisyonları',
-                    icon: Icons.attach_money,
-                    color: Colors.green,
+                    subtitle: 'Dolar, Euro, Sterlin',
+                    icon: Icons.currency_exchange_rounded,
+                    color: const Color(0xFF34A853),
                     type: AssetType.FOREX,
                   ),
                 ],
@@ -106,27 +110,48 @@ class AssetTypeSelectionScreen extends StatelessWidget {
     return Consumer<PortfolioProvider>(
       builder: (context, provider, child) {
         if (provider.portfolios.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).primaryColor,
+            ),
+          );
         }
 
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).dividerColor.withOpacity(0.1),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
             children: [
-              const Icon(Icons.folder_open, color: Color(0xFF1A237E)),
-              const SizedBox(width: 10),
+              Icon(
+                Icons.account_balance_wallet_outlined,
+                color: Theme.of(context).primaryColor,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
                     value: provider.selectedPortfolio?.id,
+                    dropdownColor: Theme.of(context).cardColor,
                     hint: const Text('Portföy Seçin'),
                     isExpanded: true,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Theme.of(context).iconTheme.color,
+                    ),
                     items: [
                       ...provider.portfolios.map((p) {
                         return DropdownMenuItem<int>(
@@ -135,17 +160,19 @@ class AssetTypeSelectionScreen extends StatelessWidget {
                             p.name,
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.color,
                             ),
                           ),
                         );
                       }),
-                      const DropdownMenuItem<int>(
+                      DropdownMenuItem<int>(
                         value: -1,
                         child: Text(
                           '+ Yeni Portföy Oluştur',
-                          style: TextStyle(
-                            color: Color(0xFF1A237E),
+                          style: GoogleFonts.poppins(
+                            color: Theme.of(context).primaryColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -164,18 +191,12 @@ class AssetTypeSelectionScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.add_circle, color: Color(0xFF1A237E)),
-                onPressed: () => _showAddPortfolioDialog(context, provider),
-              ),
             ],
           ),
         );
       },
     );
   }
-
-  // ... (Portfolio Selector remains same)
 
   Widget _buildCategoryCard(
     BuildContext context, {
@@ -194,12 +215,14 @@ class AssetTypeSelectionScreen extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade100),
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withOpacity(0.1),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withAlpha(20),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -213,10 +236,10 @@ class AssetTypeSelectionScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: color.withAlpha(20),
+                color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 36),
+              child: Icon(icon, color: color, size: 32),
             ),
             const SizedBox(height: 16),
             Text(
@@ -225,7 +248,7 @@ class AssetTypeSelectionScreen extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
             const SizedBox(height: 8),
@@ -234,7 +257,9 @@ class AssetTypeSelectionScreen extends StatelessWidget {
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.color?.withOpacity(0.6),
                 fontWeight: FontWeight.w400,
               ),
               maxLines: 2,
@@ -254,17 +279,43 @@ class AssetTypeSelectionScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Yeni Portföy'),
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Yeni Portföy',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
+          cursorColor: Theme.of(context).primaryColor,
+          decoration: InputDecoration(
             hintText: 'Portföy Adı (Örn: Emeklilik)',
+            hintStyle: GoogleFonts.poppins(
+              color: Theme.of(context).disabledColor,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Theme.of(context).dividerColor),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Theme.of(context).primaryColor),
+            ),
+          ),
+          style: GoogleFonts.poppins(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
+            child: Text(
+              'İptal',
+              style: GoogleFonts.poppins(
+                color: Theme.of(context).disabledColor,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -273,7 +324,13 @@ class AssetTypeSelectionScreen extends StatelessWidget {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Oluştur'),
+            child: Text(
+              'Oluştur',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
           ),
         ],
       ),

@@ -5,28 +5,41 @@ import 'package:provider/provider.dart';
 import '../providers/portfolio_provider.dart';
 import '../models/holding.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart'; // Import for date locale
 import 'portfolio/category_detail_screen.dart';
 
-class PortfolioScreen extends StatelessWidget {
+class PortfolioScreen extends StatefulWidget {
   const PortfolioScreen({super.key});
+
+  @override
+  State<PortfolioScreen> createState() => _PortfolioScreenState();
+}
+
+class _PortfolioScreenState extends State<PortfolioScreen> {
+  @override
+  void initState() {
+    super.initState();
+    initializeDateFormatting('tr_TR', null); // Initialize Turkish locale
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50], // Light background
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context),
-              const SizedBox(height: 20),
-              _buildDashboardCard(context),
-              const SizedBox(height: 24),
-              const SizedBox(height: 24),
-              _buildAssetsHeader(context),
+              _buildDateHeader(context),
               const SizedBox(height: 12),
+              _buildSelectorHeader(context),
+              const SizedBox(height: 24),
+              _buildDashboardCard(context),
+              const SizedBox(height: 32),
+              _buildAssetsHeader(context),
+              const SizedBox(height: 16),
               _buildAssetCategories(context),
             ],
           ),
@@ -35,7 +48,21 @@ class PortfolioScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildDateHeader(BuildContext context) {
+    final now = DateTime.now();
+    final dateStr = DateFormat('d MMMM EEEE', 'tr_TR').format(now);
+
+    return Text(
+      "Bugün, $dateStr",
+      style: GoogleFonts.poppins(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+      ),
+    );
+  }
+
+  Widget _buildSelectorHeader(BuildContext context) {
     return Consumer<PortfolioProvider>(
       builder: (context, provider, child) {
         final portfolioName = provider.selectedPortfolio?.name ?? "Portföy Seç";
@@ -43,81 +70,85 @@ class PortfolioScreen extends StatelessWidget {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  portfolioName,
-                  style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+            Expanded(
+              child: Text(
+                portfolioName,
+                style: GoogleFonts.poppins(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
-              ],
-            ),
-            PopupMenuButton<int>(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    const Text("Seçenekler"),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.keyboard_arrow_down, size: 16),
-                  ],
-                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              onSelected: (value) {
-                if (value == -1) {
-                  _showAddPortfolioDialog(context, provider);
-                } else {
-                  final p = provider.portfolios.firstWhere(
-                    (e) => e.id == value,
-                  );
-                  provider.selectPortfolio(p);
-                }
-              },
-              itemBuilder: (context) => [
-                ...provider.portfolios.map(
-                  (p) => PopupMenuItem(
-                    value: p.id,
-                    child: Text(
-                      p.name,
-                      style: TextStyle(
-                        fontWeight: p.id == provider.selectedPortfolio?.id
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(5),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: PopupMenuButton<int>(
+                borderRadius: BorderRadius.circular(16),
+                color: Theme.of(context).cardColor,
+                elevation: 4,
+                icon: Icon(
+                  Icons.expand_more_rounded,
+                  color: Theme.of(context).primaryColor,
+                ),
+                onSelected: (value) {
+                  if (value == -1) {
+                    _showAddPortfolioDialog(context, provider);
+                  } else {
+                    final p = provider.portfolios.firstWhere(
+                      (e) => e.id == value,
+                    );
+                    provider.selectPortfolio(p);
+                  }
+                },
+                itemBuilder: (context) => [
+                  ...provider.portfolios.map(
+                    (p) => PopupMenuItem(
+                      value: p.id,
+                      child: Text(
+                        p.name,
+                        style: GoogleFonts.poppins(
+                          fontWeight: p.id == provider.selectedPortfolio?.id
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const PopupMenuDivider(),
-                const PopupMenuItem(
-                  value: -1,
-                  child: Row(
-                    children: [
-                      Icon(Icons.add, color: Color(0xFF1A237E), size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        "Yeni Portföy Oluştur",
-                        style: TextStyle(
-                          color: Color(0xFF1A237E),
-                          fontWeight: FontWeight.bold,
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: -1,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.add_circle_outline_rounded,
+                          color: Theme.of(context).primaryColor,
+                          size: 20,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          "Yeni Portföy",
+                          style: GoogleFonts.poppins(
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         );
@@ -129,9 +160,13 @@ class PortfolioScreen extends StatelessWidget {
     return Consumer<PortfolioProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const SizedBox(
+          return SizedBox(
             height: 250,
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
           );
         }
 
@@ -150,9 +185,9 @@ class PortfolioScreen extends StatelessWidget {
             case AssetType.STOCK:
               return const Color(0xFF4285F4); // Blue
             case AssetType.GOLD:
-              return const Color(0xFFEA4335); // Red/Orange ish
+              return const Color(0xFFEA4335); // Red
             case AssetType.CRYPTO:
-              return const Color(0xFFFBBC05); // Yellow/Orange
+              return const Color(0xFFFBBC05); // Yellow
             case AssetType.FOREX:
               return const Color(0xFF34A853); // Green
           }
@@ -166,23 +201,22 @@ class PortfolioScreen extends StatelessWidget {
                 color: getColor(type),
                 value: value,
                 title: '${percentage.toStringAsFixed(1)}%',
-                radius: 25,
+                radius: 20, // Sleeker
                 titleStyle: const TextStyle(
-                  fontSize: 10,
+                  fontSize: 0, // Hide text inside
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
-                showTitle: false, // Too small, prefer legend or just visual
+                showTitle: false,
               ),
             );
           }
         });
 
-        // If empty mock data
         if (sections.isEmpty) {
           sections.add(
             PieChartSectionData(
-              color: Colors.grey.shade300,
+              color: Colors.white.withOpacity(0.2),
               value: 1,
               radius: 20,
               showTitle: false,
@@ -190,119 +224,147 @@ class PortfolioScreen extends StatelessWidget {
           );
         }
 
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            // Premium Gradient for Light mode to pop? Or Solid for clean look?
+            // Let's use a solid clean look for dashboard, maybe slight gradient
+            gradient: isDark
+                ? const LinearGradient(
+                    colors: [Color(0xFF1E1E1E), Color(0xFF252525)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Colors.white, Color(0xFFFAFAFA)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            borderRadius: BorderRadius.circular(32),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(10),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
+                color: isDark
+                    ? Colors.black.withOpacity(0.5)
+                    : const Color(0xFF1A237E).withOpacity(0.08),
+                blurRadius: 25,
+                offset: const Offset(0, 10),
+              ),
+              BoxShadow(
+                color: isDark ? Colors.white.withOpacity(0.02) : Colors.white,
+                blurRadius: 0,
+                offset: const Offset(0, 0),
               ),
             ],
+            // Border highlight for dark mode
+            border: isDark
+                ? Border.all(color: Colors.white.withOpacity(0.1))
+                : null,
           ),
-          child: Row(
+          child: Column(
             children: [
-              // Chart
-              SizedBox(
-                height: 150,
-                width: 150,
-                child: Stack(
-                  children: [
-                    PieChart(
-                      PieChartData(
-                        sections: sections,
-                        centerSpaceRadius: 55,
-                        sectionsSpace: 2,
-                      ),
+              // Total Value Section
+              Column(
+                children: [
+                  Text(
+                    "Toplam Varlık",
+                    style: GoogleFonts.poppins(
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      fontSize: 14,
                     ),
-                    Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            "Toplam K/Z",
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${isProfit ? '+' : ''}₺${NumberFormat('#,##0.00', 'tr_TR').format(totalPL)}',
-                            style: GoogleFonts.poppins(
-                              color: isProfit ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          Text(
-                            isProfit
-                                ? "%${plRate.toStringAsFixed(2)}"
-                                : "%${plRate.toStringAsFixed(2)}",
-                            style: GoogleFonts.poppins(
-                              color: isProfit ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '₺${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      letterSpacing: -0.5,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 20),
+              const SizedBox(height: 24),
+              const Divider(height: 1),
+              const SizedBox(height: 24),
 
-              // Legend & Total
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Toplam Değer",
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+              // Chart & Stats Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Chart
+                  SizedBox(
+                    height: 120,
+                    width: 120,
+                    child: Stack(
+                      children: [
+                        PieChart(
+                          PieChartData(
+                            sections: sections,
+                            centerSpaceRadius: 45,
+                            sectionsSpace: 4,
+                            startDegreeOffset: -90,
+                          ),
+                        ),
+                        Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isProfit ? "Kâr" : "Zarar",
+                                style: GoogleFonts.poppins(
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.color,
+                                  fontSize: 10,
+                                ),
+                              ),
+                              Text(
+                                "%${plRate.toStringAsFixed(1)}",
+                                style: GoogleFonts.poppins(
+                                  color: isProfit ? Colors.green : Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '₺${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Stats
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _buildStatRow(
+                          context,
+                          "Net Kâr/Zarar",
+                          '${isProfit ? '+' : ''}₺${NumberFormat('#,##0.00', 'tr_TR').format(totalPL)}',
+                          isProfit
+                              ? (isDark ? Colors.greenAccent : Colors.green)
+                              : (isDark ? Colors.redAccent : Colors.red),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildStatRow(
+                          context,
+                          "Varlık Sayısı",
+                          provider.holdings.length.toString(),
+                          Theme.of(context).primaryColor,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    _buildLegendItem(
-                      getColor(AssetType.CRYPTO),
-                      "Kripto Para",
-                      data[AssetType.CRYPTO] ?? 0,
-                      totalValue,
-                    ),
-                    _buildLegendItem(
-                      getColor(AssetType.GOLD),
-                      "Değerli Madenler",
-                      data[AssetType.GOLD] ?? 0,
-                      totalValue,
-                    ),
-                    _buildLegendItem(
-                      getColor(AssetType.STOCK),
-                      "Türk Hisse Senetleri",
-                      data[AssetType.STOCK] ?? 0,
-                      totalValue,
-                    ),
-                    _buildLegendItem(
-                      getColor(AssetType.FOREX),
-                      "Döviz",
-                      data[AssetType.FOREX] ?? 0,
-                      totalValue,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -311,79 +373,95 @@ class PortfolioScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLegendItem(
-    Color color,
-    String text,
-    double value,
-    double total,
+  Widget _buildStatRow(
+    BuildContext context,
+    String label,
+    String value,
+    Color valueColor,
   ) {
-    if (value <= 0) {
-      return const SizedBox.shrink();
-    }
-    final percent = (value / total) * 100;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          CircleAvatar(backgroundColor: color, radius: 4),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.color?.withOpacity(0.6),
           ),
-          Text(
-            "${percent.toStringAsFixed(1)}%",
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.black54,
-            ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: valueColor,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildAssetsHeader(BuildContext context) {
     return Consumer<PortfolioProvider>(
       builder: (context, provider, child) {
-        String sortText = "Değere Göre";
-        if (provider.sortOption == SortOption.nameAsc) sortText = "A-Z";
-        if (provider.sortOption == SortOption.valueAsc)
-          sortText = "Değer Artan";
+        String sortText = "Değer";
+        IconData sortIcon = Icons.sort;
+
+        switch (provider.sortOption) {
+          case SortOption.valueDesc:
+            sortText = "Azalan Değer";
+            sortIcon = Icons.arrow_downward_rounded;
+            break;
+          case SortOption.valueAsc:
+            sortText = "Artan Değer";
+            sortIcon = Icons.arrow_upward_rounded;
+            break;
+          case SortOption.nameAsc:
+            sortText = "İsim (A-Z)";
+            sortIcon = Icons.sort_by_alpha_rounded;
+            break;
+        }
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Varlıklarım',
+              'Portföy Dağılımı',
               style: GoogleFonts.poppins(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
             PopupMenuButton<SortOption>(
               borderRadius: BorderRadius.circular(12),
+              color: Theme.of(context).cardColor,
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
+                  color: Theme.of(context).cardColor,
+                  border: Border.all(color: Theme.of(context).dividerColor),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.sort, size: 16, color: Colors.grey[700]),
-                    const SizedBox(width: 4),
+                    Icon(
+                      sortIcon,
+                      size: 14,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
+                    const SizedBox(width: 6),
                     Text(
                       sortText,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: Colors.grey[700],
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -393,17 +471,23 @@ class PortfolioScreen extends StatelessWidget {
                 provider.setSortOption(value);
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: SortOption.valueDesc,
-                  child: Text("Değere Göre (Azalan)"),
+                _buildSortItem(
+                  context,
+                  SortOption.valueDesc,
+                  "Azalan Değer",
+                  Icons.arrow_downward_rounded,
                 ),
-                const PopupMenuItem(
-                  value: SortOption.valueAsc,
-                  child: Text("Değere Göre (Artan)"),
+                _buildSortItem(
+                  context,
+                  SortOption.valueAsc,
+                  "Artan Değer",
+                  Icons.arrow_upward_rounded,
                 ),
-                const PopupMenuItem(
-                  value: SortOption.nameAsc,
-                  child: Text("İsim (A-Z)"),
+                _buildSortItem(
+                  context,
+                  SortOption.nameAsc,
+                  "İsim (A-Z)",
+                  Icons.sort_by_alpha_rounded,
                 ),
               ],
             ),
@@ -413,8 +497,34 @@ class PortfolioScreen extends StatelessWidget {
     );
   }
 
+  PopupMenuItem<SortOption> _buildSortItem(
+    BuildContext context,
+    SortOption value,
+    String text,
+    IconData icon,
+  ) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAssetCategories(BuildContext context) {
-    // Only show categories that have assets
     return Consumer<PortfolioProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) return const SizedBox();
@@ -431,6 +541,34 @@ class PortfolioScreen extends StatelessWidget {
 
         final total = provider.totalPortfolioValue;
 
+        // Mock data to prevent empty feel if desired, but here we show a message
+        if (stockCount == 0 &&
+            goldCount == 0 &&
+            cryptoCount == 0 &&
+            forexCount == 0) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.add_chart_rounded,
+                    size: 48,
+                    color: Theme.of(context).disabledColor,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Henüz varlık eklemediniz.",
+                    style: GoogleFonts.poppins(
+                      color: Theme.of(context).disabledColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         // Create a list of Map to sort easily
         List<Map<String, dynamic>> categories = [];
 
@@ -438,9 +576,10 @@ class PortfolioScreen extends StatelessWidget {
           categories.add({
             'type': AssetType.STOCK,
             'title': "Türk Hisse Senetleri",
+            'subtitle': "BIST 100 Endeks", // More context
             'count': stockCount,
             'value': stockVal,
-            'icon': Icons.show_chart,
+            'icon': Icons.trending_up_rounded,
             'color': const Color(0xFF4285F4),
           });
         }
@@ -448,9 +587,10 @@ class PortfolioScreen extends StatelessWidget {
           categories.add({
             'type': AssetType.GOLD,
             'title': "Değerli Madenler",
+            'subtitle': "Altın, Gümüş, Platin",
             'count': goldCount,
             'value': goldVal,
-            'icon': Icons.hexagon_outlined,
+            'icon': Icons.diamond_outlined, // More premium icon
             'color': const Color(0xFFEA4335),
           });
         }
@@ -458,9 +598,10 @@ class PortfolioScreen extends StatelessWidget {
           categories.add({
             'type': AssetType.CRYPTO,
             'title': "Kripto Para",
+            'subtitle': "Bitcoin, Ethereum...",
             'count': cryptoCount,
             'value': cryptoVal,
-            'icon': Icons.currency_bitcoin,
+            'icon': Icons.currency_bitcoin_rounded,
             'color': const Color(0xFFFBBC05),
           });
         }
@@ -468,20 +609,12 @@ class PortfolioScreen extends StatelessWidget {
           categories.add({
             'type': AssetType.FOREX,
             'title': "Döviz",
+            'subtitle': "Dolar, Euro ve diğerleri",
             'count': forexCount,
             'value': forexVal,
-            'icon': Icons.attach_money,
+            'icon': Icons.currency_exchange_rounded,
             'color': const Color(0xFF34A853),
           });
-        }
-
-        if (categories.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Text("Henüz varlık eklemediniz."),
-            ),
-          );
         }
 
         // SORTING LOGIC
@@ -503,6 +636,7 @@ class PortfolioScreen extends StatelessWidget {
                   context,
                   c['type'],
                   c['title'],
+                  c['subtitle'],
                   c['count'],
                   c['value'],
                   total,
@@ -520,6 +654,7 @@ class PortfolioScreen extends StatelessWidget {
     BuildContext context,
     AssetType type,
     String title,
+    String subtitle,
     int count,
     double value,
     double total,
@@ -527,6 +662,8 @@ class PortfolioScreen extends StatelessWidget {
     Color color,
   ) {
     final percent = total > 0 ? (value / total) * 100 : 0;
+    // Brighten color for dark mode slightly to pop?
+    Color displayColor = color;
 
     return GestureDetector(
       onTap: () {
@@ -539,13 +676,13 @@ class PortfolioScreen extends StatelessWidget {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withAlpha(20),
+              color: Colors.black.withAlpha(5),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -553,16 +690,19 @@ class PortfolioScreen extends StatelessWidget {
         ),
         child: Row(
           children: [
+            // Icon Container
             Container(
-              height: 48,
-              width: 48,
+              height: 52,
+              width: 52,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
+                color: displayColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: displayColor, size: 28),
             ),
             const SizedBox(width: 16),
+
+            // Text Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,19 +712,25 @@ class PortfolioScreen extends StatelessWidget {
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
-                      color: Colors.black87,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
                   Text(
-                    "$count Varlık",
+                    "$count Varlık • $subtitle",
                     style: GoogleFonts.poppins(
-                      color: Colors.grey[500],
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.color?.withOpacity(0.6),
                       fontSize: 12,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ],
               ),
             ),
+
+            // Value Info
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -592,16 +738,26 @@ class PortfolioScreen extends StatelessWidget {
                   '₺${NumberFormat('#,##0.00', 'tr_TR').format(value)}',
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Colors.black87,
+                    fontSize: 16,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
-                Text(
-                  "${percent.toStringAsFixed(1)}%",
-                  style: GoogleFonts.poppins(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: displayColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    "%${percent.toStringAsFixed(1)}",
+                    style: GoogleFonts.poppins(
+                      color: displayColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -620,17 +776,43 @@ class PortfolioScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Yeni Portföy'),
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Yeni Portföy',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
+          cursorColor: Theme.of(context).primaryColor,
+          decoration: InputDecoration(
             hintText: 'Portföy Adı (Örn: Emeklilik)',
+            hintStyle: GoogleFonts.poppins(
+              color: Theme.of(context).disabledColor,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Theme.of(context).dividerColor),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Theme.of(context).primaryColor),
+            ),
+          ),
+          style: GoogleFonts.poppins(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
+            child: Text(
+              'İptal',
+              style: GoogleFonts.poppins(
+                color: Theme.of(context).disabledColor,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -639,7 +821,13 @@ class PortfolioScreen extends StatelessWidget {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Oluştur'),
+            child: Text(
+              'Oluştur',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
           ),
         ],
       ),

@@ -52,25 +52,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
   }
 
-  // Refresh data when the tab is visible or provider changes
-  // Ideally we would listen to provider, but fetching market data on every toggle might be heavy.
-  // For now, let's re-fetch if the list size changes significantly or rely on polling.
-  // Simplified for this step: We use a FutureBuilder or just re-fetch in build if new symbols appear.
-  // Better approach: Listen to provider, if new symbol appears in favorites that is not in _marketData, fetch it.
-
   @override
   Widget build(BuildContext context) {
     return Consumer<FavoriteProvider>(
       builder: (context, favoriteProvider, child) {
         final favorites = favoriteProvider.favorites;
 
-        // Simple logic: if we have symbols without data, fetch data (lazy load)
-        // This is a bit rough but works for this stage.
+        // Lazy load logic for simplified fetching
         final missingData = favorites.any(
           (f) => !_marketData.containsKey(f.symbol),
         );
         if (missingData && !_isLoading) {
-          // Trigger fetch
           _api.getFavoritesData(favorites.map((e) => e.symbol).toList()).then((
             data,
           ) {
@@ -85,46 +77,53 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         }
 
         return Scaffold(
-          backgroundColor: Colors.grey[50],
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             title: Text(
               'Favoriler',
               style: GoogleFonts.poppins(
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
                 fontWeight: FontWeight.bold,
                 fontSize: 24,
               ),
             ),
             backgroundColor: Colors.transparent,
             elevation: 0,
-            // Test button removed as requested
+            iconTheme: Theme.of(context).iconTheme,
           ),
           body: favorites.isEmpty
-              ? _buildEmptyState()
-              : _buildFavoritesList(favorites),
+              ? _buildEmptyState(context)
+              : _buildFavoritesList(context, favorites),
         );
       },
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.star_border_rounded, size: 80, color: Colors.grey[300]),
+          Icon(
+            Icons.star_border_rounded,
+            size: 80,
+            color: Theme.of(context).disabledColor,
+          ),
           const SizedBox(height: 16),
           Text(
             'Henüz takip ettiğiniz\nbir varlık yok.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(color: Colors.grey[500], fontSize: 16),
+            style: GoogleFonts.poppins(
+              color: Theme.of(context).disabledColor,
+              fontSize: 16,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFavoritesList(List<Favorite> favorites) {
+  Widget _buildFavoritesList(BuildContext context, List<Favorite> favorites) {
     // Deduplicate logic for Display
     final Set<String> seen = {};
     final List<Favorite> uniqueFavorites = [];
@@ -159,39 +158,35 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         .where((f) => f.type == AssetType.CRYPTO)
         .toList();
 
-    // Note: display item.symbol might still be "USD" if it was old, but we mapped data in API service.
-    // _buildListItem uses item.symbol to fetch data. ApiService handles "USD".
-    // Perfect.
-
     return ListView(
       padding: const EdgeInsets.only(bottom: 20),
       children: [
-        if (xu100 != null) _buildSpecialCard(xu100),
+        if (xu100 != null) _buildSpecialCard(context, xu100),
 
         if (stocks.isNotEmpty) ...[
-          _buildSectionHeader('Hisse Senetleri'),
-          ...stocks.map(_buildListItem),
+          _buildSectionHeader(context, 'Hisse Senetleri'),
+          ...stocks.map((f) => _buildListItem(context, f)),
         ],
 
         if (gold.isNotEmpty) ...[
-          _buildSectionHeader('Kıymetli Madenler'),
-          ...gold.map(_buildListItem),
+          _buildSectionHeader(context, 'Kıymetli Madenler'),
+          ...gold.map((f) => _buildListItem(context, f)),
         ],
 
         if (forex.isNotEmpty) ...[
-          _buildSectionHeader('Döviz'),
-          ...forex.map(_buildListItem),
+          _buildSectionHeader(context, 'Döviz'),
+          ...forex.map((f) => _buildListItem(context, f)),
         ],
 
         if (crypto.isNotEmpty) ...[
-          _buildSectionHeader('Kripto Paralar'),
-          ...crypto.map(_buildListItem),
+          _buildSectionHeader(context, 'Kripto Paralar'),
+          ...crypto.map((f) => _buildListItem(context, f)),
         ],
       ],
     );
   }
 
-  Widget _buildSpecialCard(Favorite item) {
+  Widget _buildSpecialCard(BuildContext context, Favorite item) {
     final data =
         _marketData[item.symbol] ?? {'price': '0.00', 'change_rate': 0.0};
     final change = (data['change_rate'] as num).toDouble();
@@ -201,13 +196,20 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A237E),
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).primaryColor,
+            Theme.of(context).primaryColor.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1A237E).withAlpha(76),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Theme.of(context).primaryColor.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -221,13 +223,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 'BIST 100',
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                'Endeks',
+                'Borsa İstanbul Endeksi',
                 style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
               ),
             ],
@@ -239,32 +241,39 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 '${data['price']}',
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Container(
-                margin: const EdgeInsets.only(top: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                margin: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: isUp ? Colors.green : Colors.red,
-                  borderRadius: BorderRadius.circular(4),
+                  color: isUp
+                      ? Colors.greenAccent.withOpacity(0.2)
+                      : Colors.redAccent.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isUp ? Icons.arrow_upward : Icons.arrow_downward,
-                      color: Colors.white,
-                      size: 14,
+                      isUp
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      color: isUp ? Colors.greenAccent : Colors.redAccent,
+                      size: 16,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '%${change.abs().toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: isUp ? Colors.greenAccent : Colors.redAccent,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 14,
                       ),
                     ),
                   ],
@@ -277,18 +286,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(),
-          const SizedBox(height: 8),
+          // const Divider(), // Removed divider for cleaner look
           Text(
             title,
             style: GoogleFonts.poppins(
-              color: Colors.black54,
+              color: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.color?.withOpacity(0.6),
               fontSize: 14,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
@@ -299,54 +309,66 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  Widget _buildListItem(Favorite item) {
+  Widget _buildListItem(BuildContext context, Favorite item) {
     final data =
         _marketData[item.symbol] ?? {'price': '0.00', 'change_rate': 0.0};
     final change = (data['change_rate'] as num).toDouble();
     final isUp = change >= 0;
 
-    // Time Logic
+    // Time Logic (Mock or Real)
     String timeStr;
     final now = DateTime.now();
+    // Simplified logic for demo
     if (item.type == AssetType.CRYPTO) {
-      timeStr =
-          "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+      timeStr = "${now.hour}:${now.minute}";
     } else {
-      // Stock, Gold, Forex -> 15 min delay simulation
-      final delayed = now.subtract(const Duration(minutes: 15));
-      timeStr =
-          "${delayed.hour.toString().padLeft(2, '0')}:${delayed.minute.toString().padLeft(2, '0')}:${delayed.second.toString().padLeft(2, '0')}";
+      timeStr = "15dk Gecikmeli";
     }
 
     // Icon Logic
     IconData icon;
-    if (item.type == AssetType.CRYPTO)
-      icon = Icons.currency_bitcoin;
-    else if (item.type == AssetType.FOREX)
-      icon = Icons.attach_money;
-    else if (item.type == AssetType.GOLD)
-      icon = Icons.diamond;
-    else
-      icon = Icons.show_chart; // Stock
+    Color iconColor;
+    if (item.type == AssetType.CRYPTO) {
+      icon = Icons.currency_bitcoin_rounded;
+      iconColor = const Color(0xFFFBBC05);
+    } else if (item.type == AssetType.FOREX) {
+      icon = Icons.currency_exchange_rounded;
+      iconColor = const Color(0xFF34A853);
+    } else if (item.type == AssetType.GOLD) {
+      icon = Icons.diamond_outlined;
+      iconColor = const Color(0xFFEA4335);
+    } else {
+      icon = Icons.show_chart_rounded; // Stock
+      iconColor = const Color(0xFF4285F4);
+    }
+
+    // Brighten color for dark mode readiness
+    // Using base colors is fine as they are vibrant
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade100),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: Colors.grey[50],
-              shape: BoxShape.circle,
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: const Color(0xFF1A237E), size: 20),
+            child: Icon(icon, color: iconColor, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -374,13 +396,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Colors.black87,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
                 Text(
-                  'Veri: $timeStr',
+                  timeStr,
                   style: GoogleFonts.poppins(
-                    color: Colors.grey[400],
+                    color: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.color?.withOpacity(0.4),
                     fontSize: 11,
                   ),
                 ),
@@ -394,19 +418,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 '₺${data['price']}',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: Colors.black87,
+                  fontSize: 16,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
               ),
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isUp ? Colors.green.shade50 : Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(4),
+                  color: isUp
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '%${change.abs().toStringAsFixed(2)}', // Fixed Decimals
+                  '%${change.abs().toStringAsFixed(2)}',
                   style: GoogleFonts.poppins(
                     color: isUp ? Colors.green : Colors.red,
                     fontWeight: FontWeight.bold,
@@ -422,22 +448,36 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           Consumer<FavoriteProvider>(
             builder: (context, provider, child) {
               return IconButton(
-                icon: Icon(
-                  Icons.star,
-                  color: Colors.amber,
-                ), // Always amber in favorites screen
+                icon: Icon(Icons.star_rounded, color: const Color(0xFFFFB300)),
                 onPressed: () {
                   provider.toggleFavorite(item);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('${item.symbol} favorilerden çıkarıldı'),
                       duration: const Duration(seconds: 1),
+                      backgroundColor: Colors.red[700],
+                      behavior: SnackBarBehavior.floating,
+                      content: Row(
+                        children: [
+                          const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${item.symbol} favorilerden çıkarıldı',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                iconSize: 22,
+                iconSize: 24,
               );
             },
           ),
