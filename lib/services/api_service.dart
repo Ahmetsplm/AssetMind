@@ -63,15 +63,45 @@ class ApiService {
     'LTCUSDT',
     'SHIBUSDT',
     'ATOMUSDT',
+    // Expanded List
+    'UNIUSDT',
+    'XLMUSDT',
+    'BCHUSDT',
+    'NEARUSDT',
+    'FILUSDT',
+    'HBARUSDT',
+    'APTUSDT',
+    'ICPUSDT',
+    'LDOUSDT',
+    'ARBUSDT',
+    'VETUSDT',
+    'QNTUSDT',
+    'MKRUSDT',
+    'GRTUSDT',
+    'AAVEUSDT',
+    'OPUSDT',
+    'ALGOUSDT',
+    'STXUSDT',
+    'EGLDUSDT',
+    'SANDUSDT',
+    'THETAUSDT',
+    'FTMUSDT',
+    'EOSUSDT',
+    'MANAUSDT',
+    'XTZUSDT',
+    'AXSUSDT',
+    'CAKEUSDT',
+    'NEOUSDT',
+    'KAVAUSDT',
+    'RUNEUSDT',
+    'FLOWUSDT',
+    'CHZUSDT',
   ];
 
   static const List<String> _whitelistForex = [
-    'USD',
-    'EUR',
-    'GBP',
-    'CHF',
-    'CAD',
-    'JPY',
+    'USD', 'EUR', 'GBP', 'CHF', 'CAD', 'JPY',
+    // Expanded List
+    'AUD', 'SEK', 'NOK', 'DKK', 'SAR', 'RUB', 'CNY', 'AZN', 'BGN',
   ];
 
   // --- CONFIG ---
@@ -124,8 +154,9 @@ class ApiService {
 
   /// 3. FETCH: BIST & Gold (Yahoo Chart)
   Future<void> fetchBist() async {
-    // Add Gold Ounce to fetch list
-    final List<String> targets = List.from(_whitelistBist)..add("GC=F");
+    // Add Gold & Metals to fetch list
+    final List<String> targets = List.from(_whitelistBist)
+      ..addAll(["GC=F", "SI=F", "PL=F", "PA=F"]);
 
     // Yahoo v8 Parallel Fetch
     await Future.wait(
@@ -205,13 +236,120 @@ class ApiService {
       // Calculate EUR/USD parity for information? Not needed for now.
     }
 
-    // Fallback/Secondary: If we wanted other currencies, we could still use Frankfurter here.
-    // But for now, these two are the critical ones.
+    // Fallback/Secondary: Fetch other currencies using Frankfurter
+    await _fetchFrankfurterForex();
 
     // Now that we have fresh USD, recalculate Gold
     _calculateGold();
 
     await _saveCache();
+  }
+
+  /// Fetch non-USD/EUR currencies from Frankfurter (GBP, CHF, CAD, JPY)
+  Future<void> _fetchFrankfurterForex() async {
+    try {
+      // 1. Define targets (excluding USD, EUR which are handled by Yahoo)
+      // We need TRY to calculate cross rates (Base is EUR)
+      const targets = [
+        "TRY",
+        "GBP",
+        "CHF",
+        "CAD",
+        "JPY",
+        "AUD",
+        "SEK",
+        "NOK",
+        "DKK",
+        "SAR",
+        "RUB",
+        "CNY",
+        "AZN",
+        "BGN",
+      ];
+      final symbolsStr = targets.join(",");
+
+      // 2. Fetch Latest
+      final latestUrl = Uri.parse("$_frankfurterBaseUrl?to=$symbolsStr");
+      final latestResp = await http.get(latestUrl);
+
+      if (latestResp.statusCode != 200) return;
+
+      final latestJson = jsonDecode(latestResp.body);
+      final Map<String, dynamic> latestRates = latestJson['rates'];
+      final String dateStr = latestJson['date'];
+
+      // Calculate Today's Cross Rates (X/TRY)
+      // EUR/TRY is known (latestRates['TRY'])
+      // EUR/X is known (latestRates['X'])
+      // X/TRY = (EUR/TRY) / (EUR/X)
+      // We assume EUR base = 1
+
+      final double eurTryToday = (latestRates['TRY'] as num).toDouble();
+
+      // 3. Determine Previous Working Day
+      DateTime date = DateTime.parse(dateStr);
+      DateTime prevDate = date.subtract(const Duration(days: 1));
+
+      // Simple loop to skip weekends (Sat=6, Sun=7)
+      while (prevDate.weekday >= 6) {
+        prevDate = prevDate.subtract(const Duration(days: 1));
+      }
+
+      final String prevDateStr =
+          "${prevDate.year}-${prevDate.month.toString().padLeft(2, '0')}-${prevDate.day.toString().padLeft(2, '0')}";
+
+      // 4. Fetch Previous
+      final prevUrl = Uri.parse(
+        "https://api.frankfurter.app/$prevDateStr?to=$symbolsStr",
+      );
+      final prevResp = await http.get(prevUrl);
+
+      Map<String, dynamic> prevRates = {};
+      if (prevResp.statusCode == 200) {
+        prevRates = jsonDecode(prevResp.body)['rates'];
+      }
+
+      // 5. Calculate and Update Cache for each target
+      final currencies = [
+        "GBP",
+        "CHF",
+        "CAD",
+        "JPY",
+        "AUD",
+        "SEK",
+        "NOK",
+        "DKK",
+        "SAR",
+        "RUB",
+        "CNY",
+        "AZN",
+        "BGN",
+      ];
+
+      for (var curr in currencies) {
+        if (latestRates.containsKey(curr)) {
+          // Calculate Today
+          final double eurXToday = (latestRates[curr] as num).toDouble();
+          final double priceToday = eurTryToday / eurXToday;
+
+          // Calculate Change
+          double change = 0.0;
+          if (prevRates.isNotEmpty &&
+              prevRates.containsKey(curr) &&
+              prevRates.containsKey('TRY')) {
+            final double eurTryPrev = (prevRates['TRY'] as num).toDouble();
+            final double eurXPrev = (prevRates[curr] as num).toDouble();
+            final double pricePrev = eurTryPrev / eurXPrev;
+
+            change = ((priceToday - pricePrev) / pricePrev) * 100;
+          }
+
+          _updateCache("$curr/TRY", priceToday, change);
+        }
+      }
+    } catch (e) {
+      print("Frankfurter Fetch Error: $e");
+    }
   }
 
   // --- PRIVATE HELPERS ---
@@ -242,27 +380,44 @@ class ApiService {
   }
 
   void _calculateGold() {
-    // Needs GC=F and USD/TRY
-    if (_cache.containsKey('GC=F') && _cachedUsdTry != null) {
-      final ons = _cache['GC=F']!; // AssetCacheModel
-      final double gramPrice = (ons.price / 31.1035) * _cachedUsdTry!;
+    if (_cachedUsdTry == null) return;
 
-      // Change percent is assumed same as Ounce
+    // 1. GOLD (GC=F)
+    if (_cache.containsKey('GC=F')) {
+      final ons = _cache['GC=F']!;
+      final double gramPrice = (ons.price / 31.1035) * _cachedUsdTry!;
       final double chg = ons.change;
 
-      print(
-        "GOLD CALC: Ounce=${ons.price} USD=${_cachedUsdTry} Gram=$gramPrice Change=$chg",
-      );
+      _updateCache("Gram Altın", gramPrice, chg);
+      _updateCache("Çeyrek Altın", gramPrice * 1.608, chg);
+      _updateCache("Yarım Altın", gramPrice * 3.216, chg);
+      _updateCache("Tam Altın", gramPrice * 6.432, chg);
+      _updateCache("Cumhuriyet Altın", gramPrice * 6.672, chg);
+      _updateCache("Ons Altın", ons.price * _cachedUsdTry!, chg);
+    }
 
-      _updateCache("GRAM", gramPrice, chg);
-      _updateCache("CEYREK", gramPrice * 1.608, chg);
-      _updateCache("YARIM", gramPrice * 3.216, chg);
-      _updateCache("TAM", gramPrice * 6.432, chg);
-      _updateCache("CUMHURIYET", gramPrice * 6.672, chg);
-    } else {
-      print(
-        "GOLD CALC FAIL: CC=F present? ${_cache.containsKey('GC=F')} UsdTry: $_cachedUsdTry",
-      );
+    // 2. SILVER (SI=F)
+    if (_cache.containsKey('SI=F')) {
+      final ons = _cache['SI=F']!;
+      final double gram = (ons.price / 31.1035) * _cachedUsdTry!;
+      _updateCache("Ons Gümüş", ons.price * _cachedUsdTry!, ons.change);
+      _updateCache("Gram Gümüş", gram, ons.change);
+    }
+
+    // 3. PLATINUM (PL=F)
+    if (_cache.containsKey('PL=F')) {
+      final ons = _cache['PL=F']!;
+      final double gram = (ons.price / 31.1035) * _cachedUsdTry!;
+      _updateCache("Ons Platin", ons.price * _cachedUsdTry!, ons.change);
+      _updateCache("Gram Platin", gram, ons.change);
+    }
+
+    // 4. PALLADIUM (PA=F)
+    if (_cache.containsKey('PA=F')) {
+      final ons = _cache['PA=F']!;
+      final double gram = (ons.price / 31.1035) * _cachedUsdTry!;
+      _updateCache("Ons Paladyum", ons.price * _cachedUsdTry!, ons.change);
+      _updateCache("Gram Paladyum", gram, ons.change);
     }
   }
 
@@ -318,7 +473,7 @@ class ApiService {
     add("XU100.IS", "BIST 100");
     add("USD/TRY", "Dolar");
     add("EUR/TRY", "Euro");
-    add("GRAM", "Gram Altın");
+    add("Gram Altın", "Gram Altın");
 
     return list;
   }
@@ -374,7 +529,23 @@ class ApiService {
               !e.key.contains(".IS") &&
               !e.key.contains("=") &&
               !e.key.contains("/TRY") &&
-              !["GRAM", "CEYREK", "YARIM", "TAM", "CUMHURIYET"].contains(e.key),
+              !e.key.contains("Altın") &&
+              !e.key.contains("Gümüş") &&
+              !e.key.contains("Platin") &&
+              !e.key.contains("Paladyum") &&
+              !e.key.contains("_") && // Kill all legacy keys like PALADYUM_ONS
+              !e.key.contains("PALADYUM") &&
+              !e.key.contains("PLATIN") &&
+              !e.key.contains("GUMUS") &&
+              !e.key.contains("_TL") && // Legacy
+              ![
+                "GRAM",
+                "CEYREK",
+                "YARIM",
+                "TAM",
+                "CUMHURIYET",
+                "ONS",
+              ].contains(e.key), // Legacy Upper
         )
         .map(
           (e) => {
@@ -434,12 +605,28 @@ class ApiService {
         }
         break;
       case AssetType.GOLD:
-        for (var s in ["GRAM", "CEYREK", "YARIM", "TAM", "CUMHURIYET"]) {
+        final metals = [
+          {'key': 'Gram Altın', 'name': 'Altın'},
+          {'key': 'Çeyrek Altın', 'name': 'Altın'},
+          {'key': 'Yarım Altın', 'name': 'Altın'},
+          {'key': 'Tam Altın', 'name': 'Altın'},
+          {'key': 'Cumhuriyet Altın', 'name': 'Altın'},
+          {'key': 'Ons Altın', 'name': 'Altın'},
+          {'key': 'Gram Gümüş', 'name': 'Gümüş'},
+          {'key': 'Ons Gümüş', 'name': 'Gümüş'},
+          {'key': 'Gram Platin', 'name': 'Platin'},
+          {'key': 'Ons Platin', 'name': 'Platin'},
+          {'key': 'Gram Paladyum', 'name': 'Paladyum'},
+          {'key': 'Ons Paladyum', 'name': 'Paladyum'},
+        ];
+
+        for (var m in metals) {
+          final s = m['key']!;
           final d = _cache[s];
           if (d != null)
             results.add({
               'symbol': s,
-              'name': s,
+              'name': m['name'],
               'price': d.price,
               'change': d.change,
             });
@@ -505,34 +692,74 @@ class ApiService {
     final List<Map<String, dynamic>> results = [];
 
     for (var s in symbols) {
-      // s is likely a string symbol
-      final String sym = s.toString();
+      final String inputSym = s.toString();
+      String? foundKey;
       AssetCacheModel? item;
 
-      // 1. Try Direct
-      if (_cache.containsKey(sym)) {
-        item = _cache[sym];
+      // Helper to find key case-insensitively if direct match fails
+      String? findCaseInsensitive(String target) {
+        try {
+          return _cache.keys.firstWhere(
+            (k) => k.toLowerCase() == target.toLowerCase(),
+          );
+        } catch (_) {
+          return null;
+        }
       }
-      // 2. Try .IS (Stock)
-      else if (_cache.containsKey("$sym.IS")) {
-        item = _cache["$sym.IS"];
+
+      // 1. Try Direct Match
+      if (_cache.containsKey(inputSym)) {
+        foundKey = inputSym;
+        item = _cache[inputSym];
       }
-      // 3. Try /TRY (Forex)
-      else if (_cache.containsKey("$sym/TRY")) {
-        item = _cache["$sym/TRY"];
+      // 2. Try .IS
+      else if (_cache.containsKey("$inputSym.IS")) {
+        foundKey = inputSym; // Keep original for stocks usually
+        item = _cache["$inputSym.IS"];
       }
-      // 4. Try Yahoo (Forex generic, e.g. USD) -> USD/TRY, EUR/TRY keys are standardized in fetchForex
-      // But if user saved "USD", we look for "USD/TRY"
+      // 3. Try /TRY
+      else if (_cache.containsKey("$inputSym/TRY")) {
+        foundKey = "$inputSym/TRY";
+        item = _cache["$inputSym/TRY"];
+      }
+      // 4. Legacy / Logic Mapping
+      else {
+        // Map Legacy -> New Cache Key
+        String targetKey = inputSym;
+        if (inputSym == 'GRAM')
+          targetKey = 'Gram Altın';
+        else if (inputSym == 'CEYREK')
+          targetKey = 'Çeyrek Altın';
+        else if (inputSym == 'YARIM')
+          targetKey = 'Yarım Altın';
+        else if (inputSym == 'TAM')
+          targetKey = 'Tam Altın';
+        else if (inputSym == 'CUMHURIYET')
+          targetKey = 'Cumhuriyet Altın';
+        else if (inputSym == 'ONS')
+          targetKey = 'Ons Altın';
+        // Handle potential UPPERCASE versions from UI (e.g. CEYREK ALTIN)
+        else {
+          // Try to find a loosely matching key in cache (e.g. "ÇEYREK ALTIN" -> "Çeyrek Altın")
+          final possible = findCaseInsensitive(inputSym);
+          if (possible != null) targetKey = possible;
+        }
+
+        if (_cache.containsKey(targetKey)) {
+          foundKey = targetKey; // Use the CLEAN name
+          item = _cache[targetKey];
+        }
+      }
 
       if (item != null) {
         results.add({
-          'symbol': sym,
-          'price': item.price.toStringAsFixed(2), // Formatted for display
-          'change_rate': item.change, // Double for logic
+          // CRITICAL: Return the FOUND key (Clean Name) if available, otherwise input
+          'symbol': foundKey ?? inputSym,
+          'price': item.price.toStringAsFixed(2),
+          'change_rate': item.change,
         });
       } else {
-        // Add zero/empty if not found to prevent null errors in UI
-        results.add({'symbol': sym, 'price': "0.00", 'change_rate': 0.0});
+        results.add({'symbol': inputSym, 'price': "0.00", 'change_rate': 0.0});
       }
     }
     return results;

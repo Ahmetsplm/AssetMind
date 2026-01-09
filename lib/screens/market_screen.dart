@@ -165,7 +165,12 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   AssetType _determineTypeFromSummary(String symbol) {
-    if (symbol.contains('Altın')) return AssetType.GOLD;
+    if (symbol.contains('Altın') ||
+        symbol.contains('Gümüş') ||
+        symbol.contains('Platin') ||
+        symbol.contains('Paladyum') ||
+        symbol == 'GRAM')
+      return AssetType.GOLD;
     if (symbol.contains('Dolar') ||
         symbol.contains('Euro') ||
         symbol.contains('USD') ||
@@ -178,7 +183,6 @@ class _MarketScreenState extends State<MarketScreen> {
     if (displaySymbol == 'BIST 100') return 'XU100';
     if (displaySymbol == 'Dolar') return 'USD/TRY';
     if (displaySymbol == 'Euro') return 'EUR/TRY';
-    if (displaySymbol == 'Gram Altın') return 'GRAM';
     return displaySymbol;
   }
 
@@ -453,9 +457,5 @@ class _MarketScreenState extends State<MarketScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildPlaceholderView() {
-    return const Center(child: Text('Bu liste yakında eklenecek.'));
   }
 }

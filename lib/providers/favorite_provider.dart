@@ -18,7 +18,14 @@ class FavoriteProvider extends ChangeNotifier {
   String _canonical(String s) {
     if (s == 'USD' || s == 'Dolar') return 'USD/TRY';
     if (s == 'EUR' || s == 'Euro') return 'EUR/TRY';
-    if (s == 'Gram Altın') return 'GRAM';
+    // Remove legacy GRAM mapping
+    // Don't force uppercase for Metals (which contain spaces or are mixed case)
+    if (s.contains('Altın') ||
+        s.contains('Gümüş') ||
+        s.contains('Platin') ||
+        s.contains('Paladyum')) {
+      return s;
+    }
     return s.toUpperCase();
   }
 

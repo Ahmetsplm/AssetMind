@@ -132,6 +132,31 @@ class _AssetListScreenState extends State<AssetListScreen> {
                     },
                   ),
           ),
+
+          // Warning Banner
+          if (widget.type != AssetType.CRYPTO)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: Colors.grey[900],
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    "Fiyatları 15 dk. gecikmeli görmektesiniz.",
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -171,7 +196,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
-            '₺${item['price']}',
+            '₺${(item['price'] as num).toDouble().toStringAsFixed(2)}',
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -186,7 +211,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              '%${change.abs()}',
+              '%${change.abs().toStringAsFixed(2)}',
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: isUp ? Colors.green : Colors.red,

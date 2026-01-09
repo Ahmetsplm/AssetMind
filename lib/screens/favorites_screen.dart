@@ -354,7 +354,23 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.symbol,
+                  (item.symbol == 'USD/TRY')
+                      ? 'USD'
+                      : (item.symbol == 'EUR/TRY')
+                      ? 'EUR'
+                      : (item.symbol == 'GRAM')
+                      ? 'Gram Altın'
+                      : (item.symbol == 'CEYREK')
+                      ? 'Çeyrek Altın'
+                      : (item.symbol == 'YARIM')
+                      ? 'Yarım Altın'
+                      : (item.symbol == 'TAM')
+                      ? 'Tam Altın'
+                      : (item.symbol == 'CUMHURIYET')
+                      ? 'Cumhuriyet Altın'
+                      : (item.symbol == 'ONS')
+                      ? 'Ons Altın'
+                      : item.symbol,
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,

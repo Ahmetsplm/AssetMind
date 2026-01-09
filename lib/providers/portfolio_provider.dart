@@ -5,6 +5,8 @@ import '../models/holding.dart';
 import '../models/transaction.dart';
 import '../services/api_service.dart';
 
+enum SortOption { valueDesc, valueAsc, nameAsc }
+
 class PortfolioProvider extends ChangeNotifier {
   List<Portfolio> _portfolios = [];
   Portfolio? _selectedPortfolio;
@@ -16,6 +18,13 @@ class PortfolioProvider extends ChangeNotifier {
   Portfolio? get selectedPortfolio => _selectedPortfolio;
   List<Holding> get holdings => _holdings;
   bool get isLoading => _isLoading;
+  SortOption _sortOption = SortOption.valueDesc;
+  SortOption get sortOption => _sortOption;
+
+  void setSortOption(SortOption option) {
+    _sortOption = option;
+    notifyListeners();
+  }
 
   // Stats
   double get totalPortfolioValue => _holdings.fold(0, (sum, h) {

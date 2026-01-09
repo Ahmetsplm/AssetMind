@@ -58,7 +58,7 @@ class AssetTypeSelectionScreen extends StatelessWidget {
                 crossAxisCount: 2, // 2 Columns
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 0.9, // Square-ish
+                childAspectRatio: 0.8, // Taller cards to fill screen
                 children: [
                   _buildCategoryCard(
                     context,
@@ -71,7 +71,7 @@ class AssetTypeSelectionScreen extends StatelessWidget {
                   _buildCategoryCard(
                     context,
                     title: 'Değerli Madenler',
-                    subtitle: 'Altın, gümüş, platin',
+                    subtitle: 'ALtın,Gümüş ve diğer değerli madenler',
                     icon: Icons.hexagon_outlined,
                     color: Colors.redAccent,
                     type: AssetType.GOLD,
@@ -175,6 +175,8 @@ class AssetTypeSelectionScreen extends StatelessWidget {
     );
   }
 
+  // ... (Portfolio Selector remains same)
+
   Widget _buildCategoryCard(
     BuildContext context, {
     required String title,
@@ -193,41 +195,43 @@ class AssetTypeSelectionScreen extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade100),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(10), // ~0.04 opacity
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.grey.withAlpha(20),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center, // Center Horizontally
+          mainAxisAlignment: MainAxisAlignment.center, // Center Vertically
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: color.withAlpha(25), // ~0.1 opacity
+                color: color.withAlpha(20),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 32),
+              child: Icon(icon, color: color, size: 36),
             ),
-            const Spacer(),
+            const SizedBox(height: 16),
             Text(
               title,
+              textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
                 color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               subtitle,
+              textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: Colors.grey[600],
