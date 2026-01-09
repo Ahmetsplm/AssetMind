@@ -6,6 +6,7 @@ import 'screens/home_screen.dart';
 
 import 'providers/favorite_provider.dart';
 import 'providers/portfolio_provider.dart';
+import 'providers/market_provider.dart';
 
 void main() async {
   runApp(const MyApp());
@@ -23,6 +24,14 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => PortfolioProvider()..loadPortfolios(),
+        ),
+        ChangeNotifierProvider(
+          // MarketProvider must be EAGER to run background timers
+          lazy: false,
+          create: (_) {
+            print("MARKET PROVIDER INIT STARTED");
+            return MarketProvider()..init();
+          },
         ),
       ],
       child: MaterialApp(

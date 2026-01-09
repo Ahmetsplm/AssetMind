@@ -1,472 +1,228 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/holding.dart';
+
+// Helper Model for Cache
+class AssetCacheModel {
+  final double price;
+  final double change;
+  final String lastUpdated;
+
+  AssetCacheModel({
+    required this.price,
+    required this.change,
+    required this.lastUpdated,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'price': price,
+    'change': change,
+    'lastUpdated': lastUpdated,
+  };
+
+  factory AssetCacheModel.fromJson(Map<String, dynamic> json) {
+    return AssetCacheModel(
+      price: (json['price'] as num).toDouble(),
+      change: (json['change'] as num).toDouble(),
+      lastUpdated: json['lastUpdated'] ?? '',
+    );
+  }
+}
+
+// AssetType is imported from holding.dart
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
 
-  // URL'ler
+  // --- WHITELISTS (Production Rules) ---
+  static const List<String> _whitelistBist = [
+    'AKBNK.IS', 'ALARK.IS', 'ARCLK.IS', 'ASELS.IS', 'BIMAS.IS', 'EREGL.IS',
+    'FROTO.IS', 'GARAN.IS', 'HEKTS.IS', 'ISCTR.IS', 'KCHOL.IS', 'KOZAL.IS',
+    'PETKM.IS', 'SAHOL.IS', 'SISE.IS', 'TCELL.IS', 'THYAO.IS', 'TOASO.IS',
+    'TUPRS.IS', 'YKBNK.IS', 'PGSUS.IS', 'KONTR.IS', 'GESAN.IS', 'ASTOR.IS',
+    'XU100.IS', // Endeks (Display: BIST 100)
+  ];
+
+  static const List<String> _whitelistCrypto = [
+    'BTCUSDT',
+    'ETHUSDT',
+    'BNBUSDT',
+    'SOLUSDT',
+    'XRPUSDT',
+    'ADAUSDT',
+    'DOGEUSDT',
+    'AVAXUSDT',
+    'TRXUSDT',
+    'LINKUSDT',
+    'MATICUSDT',
+    'DOTUSDT',
+    'LTCUSDT',
+    'SHIBUSDT',
+    'ATOMUSDT',
+  ];
+
+  static const List<String> _whitelistForex = [
+    'USD',
+    'EUR',
+    'GBP',
+    'CHF',
+    'CAD',
+    'JPY',
+  ];
+
+  // --- CONFIG ---
   static const String _binance24hrUrl =
       "https://api.binance.com/api/v3/ticker/24hr";
   static const String _frankfurterBaseUrl =
       "https://api.frankfurter.app/latest";
-
-  // Yahoo Headers
   static const Map<String, String> _headers = {
     "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
   };
+  static const String _cacheKey = "asset_mind_rich_cache_v1";
 
-  // Cache
-  double? _cachedUsdTry;
+  // --- STATE ---
+  /// In-memory cache: Symbol -> Model
+  final Map<String, AssetCacheModel> _cache = {};
+  double? _cachedUsdTry; // Helper for conversions
 
-  // Önbellek (Kısa süreli)
-  final Map<String, Map<String, dynamic>> _memoryCache = {};
-  DateTime? _lastCacheTime;
+  // --- PUBLIC API ---
 
-  // --- PUBLIC METHODS (UI CONSUMERS) ---
-
-  /// 1. VARLIK FİYATLARINI GETİR (PortfolioProvider için)
-  Future<Map<String, double>> getCurrentPrices(List<String> symbols) async {
-    final Map<String, double> prices = {};
-    if (symbols.isEmpty) return prices;
-
-    // A. Önce Dolar Kurunu Garantile (Frankfurter)
-    await _ensureUsdRate();
-
-    // B. Sembolleri Ayır
-    final yahooSymbols = <String>[];
-    final binanceSymbols = <String>[];
-    final specialSymbols = <String>{
-      "GRAM",
-      "CEYREK",
-      "YARIM",
-      "TAM",
-      "CUMHURIYET",
-    };
-
-    for (var s in symbols) {
-      if (specialSymbols.contains(s)) continue; // Bunlar hesaplanacak
-      if (s == "USDTRY" || s == "EURTRY")
-        continue; // Frankfurter'den bakacağız veya Yahoo fallback
-
-      if (s.endsWith(".IS") ||
-          s.contains("=") ||
-          !s.contains(RegExp(r'[A-Z]'))) {
-        yahooSymbols.add(s);
-      } else {
-        // Varsayım: Uzantısı yoksa ve standartsa Kriptodur (veya Yahoo da olabilir ama Binance daha hızlı)
-        // Kullanıcı hisse eklerken .IS eklemiş olmalı.
-        if (s.contains(".")) {
-          yahooSymbols.add(s);
-        } else {
-          binanceSymbols.add(s);
-        }
-      }
-    }
-
-    // C. Paralel İstekler
-    await Future.wait([
-      _fetchYahooChartBatchInto(yahooSymbols, prices),
-      _fetchBinanceBatchInto(binanceSymbols, prices),
-    ]);
-
-    // D. Dolar/Euro Ekle
-    if (_cachedUsdTry != null) {
-      prices["USDTRY"] = _cachedUsdTry!;
-      // Euro'yu Frankfurter cache'den alabilirdik ama basitçe hesaplayalım veya Yahoo'dan geleni koruyalım
-      // Eğer Yahoo'dan EURTRY geldiyse kalsın, gelmediyse Frankfurter oranını kullanabiliriz.
-    }
-
-    // E. Altın Hesapla (Eğer talep edildiyse)
-    if (_cachedUsdTry != null && prices.containsKey("GC=F")) {
-      final onsPrice = prices["GC=F"]!;
-      final gramTl = (onsPrice / 31.1035) * _cachedUsdTry!;
-
-      if (symbols.contains("GRAM")) prices["GRAM"] = gramTl;
-      if (symbols.contains("CEYREK")) prices["CEYREK"] = gramTl * 1.63;
-      if (symbols.contains("YARIM")) prices["YARIM"] = gramTl * 3.26;
-      if (symbols.contains("TAM")) prices["TAM"] = gramTl * 6.52;
-      if (symbols.contains("CUMHURIYET")) prices["CUMHURIYET"] = gramTl * 6.70;
-    }
-
-    return prices;
-  }
-
-  /// 2. PİYASA ÖZETİ (HomeScreen için)
-  Future<List<Map<String, dynamic>>> getMarketSummary() async {
-    await _ensureUsdRate();
-
-    // Kritik verileri çek: BIST 100, Altın Ons, Dolar, Euro
-    // Dolar/Euro için Yahoo Chart kullanalım ki "değişim oranı" da gelsin.
-
-    final targets = ["XU100.IS", "GC=F", "TRY=X", "EURTRY=X"];
-    final Map<String, Map<String, dynamic>> rawData = {};
-
-    // Tek tek çekelim (Güvenli Mod)
-    await Future.wait(
-      targets.map((t) async {
-        final data = await _fetchSingleYahooChart(t);
-        if (data != null) rawData[t] = data;
-      }),
-    );
-
-    // BIST 100 Düzeltmesi (Format)
-    if (rawData.containsKey("XU100.IS")) {
-      if (rawData["XU100.IS"]!['price'] > 50000) {
-        rawData["XU100.IS"]!['price'] = rawData["XU100.IS"]!['price'] / 100;
-      }
-    }
-
-    // TRY=X Yahoo'da "1 USD kaç TRY" değil bazen ters gelebilir, kontrol et.
-    // Genelde 30-40 bandındaysa doğrudur. 0.02 ise terstir.
-    if (rawData.containsKey("TRY=X")) {
-      double p = rawData["TRY=X"]!['price'];
-      if (p < 1.0) {
-        rawData["TRY=X"]!['price'] = 1.0 / p;
-        rawData["TRY=X"]!['change'] =
-            -rawData["TRY=X"]!['change']; // Ters çevir
-      }
-    }
-
-    // Gram Altın Hesapla
-    double gramVal = 0.0;
-    double gramChange = 0.0;
-
-    if (rawData.containsKey("GC=F") && _cachedUsdTry != null) {
-      double ons = rawData["GC=F"]!['price'];
-      double onsChg = rawData["GC=F"]!['change'];
-
-      gramVal = (ons / 31.1035) * _cachedUsdTry!;
-
-      // Gram değişimi ≈ Ons Değişimi + Dolar Değişimi (Basit yaklaşım)
-      double usdChg = rawData.containsKey("TRY=X")
-          ? rawData["TRY=X"]!['change']
-          : 0.0;
-      gramChange = onsChg + usdChg;
-    }
-
-    return [
-      {
-        'symbol': 'BIST 100', // UI bunu XU100.IS olarak bilmez, display name
-        'value': rawData["XU100.IS"]?['price'] ?? 0.0,
-        'change_rate': rawData["XU100.IS"]?['change'] ?? 0.0,
-        'is_rising': (rawData["XU100.IS"]?['change'] ?? 0) >= 0,
-      },
-      {
-        'symbol': 'Dolar',
-        'value': rawData["TRY=X"]?['price'] ?? _cachedUsdTry ?? 0.0,
-        'change_rate': rawData["TRY=X"]?['change'] ?? 0.0,
-        'is_rising': (rawData["TRY=X"]?['change'] ?? 0) >= 0,
-      },
-      {
-        'symbol': 'Euro',
-        'value': rawData["EURTRY=X"]?['price'] ?? 0.0,
-        'change_rate': rawData["EURTRY=X"]?['change'] ?? 0.0,
-        'is_rising': (rawData["EURTRY=X"]?['change'] ?? 0) >= 0,
-      },
-      {
-        'symbol': 'Gram Altın',
-        'value': gramVal,
-        'change_rate': gramChange,
-        'is_rising': gramChange >= 0,
-      },
-    ];
-  }
-
-  /// 3. PİYASA HAREKETLERİ (BIST & KRİPTO)
-  Future<List<Map<String, dynamic>>> getStockMovers({
-    bool isRising = true,
-  }) async {
-    // Sabit bir BIST 30 listesinden çekip sıralayacağız (Yahoo Chart ile)
-    final symbols = [
-      "THYAO.IS",
-      "GARAN.IS",
-      "AKBNK.IS",
-      "EREGL.IS",
-      "TUPRS.IS",
-      "KCHOL.IS",
-      "BIMAS.IS",
-      "SISE.IS",
-      "ASELS.IS",
-      "SASA.IS",
-      "HEKTS.IS",
-      "YKBNK.IS",
-      "ISCTR.IS",
-      "SAHOL.IS",
-      "PETKM.IS",
-      "FROTO.IS",
-      "TOASO.IS",
-      "PGSUS.IS",
-      "KONTR.IS",
-      "GESAN.IS",
-    ];
-
-    List<Map<String, dynamic>> items = [];
-
-    // Paralel çek
-    await Future.wait(
-      symbols.map((s) async {
-        final d = await _fetchSingleYahooChart(s);
-        if (d != null) {
-          items.add({
-            'symbol': s.replaceAll(".IS", ""), // UI'da temiz görünsün
-            'price': d['price'],
-            'change': d['change'],
-            'name': s, // Full sembol lazım olabilir
-          });
-        }
-      }),
-    );
-
-    // Sırala
-    items.sort((a, b) => b['change'].compareTo(a['change'])); // Azalan
-
-    if (isRising) {
-      return items.where((i) => i['change'] > 0).take(5).toList();
-    } else {
-      items = items.reversed.toList(); // Artan (En çok düşen en başta)
-      return items.where((i) => i['change'] < 0).take(5).toList();
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getCryptoMovers({
-    bool isRising = true,
-  }) async {
+  /// 1. Initialize Cache from Disk
+  Future<void> init() async {
     try {
-      final response = await http.get(Uri.parse(_binance24hrUrl));
-      if (response.statusCode == 200) {
-        List<dynamic> all = jsonDecode(response.body);
-        var usdtPairs = all
-            .where((t) => t['symbol'].toString().endsWith("USDT"))
-            .toList();
-
-        // Hacim filtresi (Çok düşük hacimlileri ele)
-        usdtPairs = usdtPairs.where((t) {
-          double vol = double.tryParse(t['quoteVolume'].toString()) ?? 0;
-          return vol > 1000000; // 1M USDT altı hacimliler spekülatif olabilir
-        }).toList();
-
-        // Model Map'e çevir
-        List<Map<String, dynamic>> items = [];
-        await _ensureUsdRate();
-
-        for (var t in usdtPairs) {
-          double chg = double.tryParse(t['priceChangePercent'].toString()) ?? 0;
-          double price = double.tryParse(t['lastPrice'].toString()) ?? 0;
-          if (_cachedUsdTry != null) price *= _cachedUsdTry!; // TL çevir
-
-          items.add({
-            'symbol': t['symbol'].toString().replaceAll("USDT", ""),
-            'price': price,
-            'change': chg,
-            'name': t['symbol'],
-          });
-        }
-
-        // Sırala
-        items.sort((a, b) => b['change'].compareTo(a['change']));
-
-        if (isRising) {
-          return items.where((i) => i['change'] > 0).take(5).toList();
-        } else {
-          return items.reversed.where((i) => i['change'] < 0).take(5).toList();
-        }
+      final prefs = await SharedPreferences.getInstance();
+      final String? jsonString = prefs.getString(_cacheKey);
+      if (jsonString != null) {
+        final Map<String, dynamic> decoded = jsonDecode(jsonString);
+        decoded.forEach((key, value) {
+          _cache[key] = AssetCacheModel.fromJson(value);
+        });
+      }
+      // Restore USDTRY specific helper if available in cache for logic needs
+      if (_cache.containsKey('USD/TRY')) {
+        _cachedUsdTry = _cache['USD/TRY']!.price;
       }
     } catch (e) {
-      print("Binance Movers Err: $e");
+      print("Cache Load Error: $e");
     }
-    return [];
   }
 
-  /// 4. VARLIK EKLEME LİSTESİ (Discovery)
-  Future<List<Map<String, dynamic>>> getAssetsByType(AssetType type) async {
-    await _ensureUsdRate();
-    final List<Map<String, dynamic>> results = [];
+  /// 2. Get Data (Directly from Cache)
+  Map<String, double> get cachedPrices {
+    return _cache.map((key, value) => MapEntry(key, value.price));
+  }
 
-    switch (type) {
-      case AssetType.STOCK:
-        // Popüler BIST Hisseleri
-        final symbols = [
-          "THYAO.IS",
-          "GARAN.IS",
-          "AKBNK.IS",
-          "EREGL.IS",
-          "ASELS.IS",
-          "BIMAS.IS",
-          "SISE.IS",
-          "KCHOL.IS",
-          "TUPRS.IS",
-          "SASA.IS",
-          "HEKTS.IS",
-          "FROTO.IS",
-        ];
-        await Future.wait(
-          symbols.map((s) async {
-            final d = await _fetchSingleYahooChart(s);
-            if (d != null) {
-              results.add({
-                'symbol': s, // .IS kalsın ki kaydederken doğru olsun
-                'name': s.replaceAll(".IS", ""),
-                'price': d['price'],
-                'change': d['change'],
-              });
-            }
-          }),
-        );
-        break;
+  // Safe Accessor for UI
+  AssetCacheModel? getAsset(String symbol) => _cache[symbol];
 
-      case AssetType.CRYPTO:
-        // Top 20 Binance (Hacme göre)
-        try {
-          final response = await http.get(Uri.parse(_binance24hrUrl));
-          if (response.statusCode == 200) {
-            List<dynamic> all = jsonDecode(response.body);
-            final usdt = all
-                .where((t) => t['symbol'].toString().endsWith("USDT"))
-                .toList();
-            usdt.sort((a, b) {
-              double v1 = double.tryParse(a['quoteVolume'].toString()) ?? 0;
-              double v2 = double.tryParse(b['quoteVolume'].toString()) ?? 0;
-              return v2.compareTo(v1); // Desc
-            });
+  bool get isCacheEmpty => _cache.isEmpty;
 
-            for (var t in usdt.take(20)) {
-              double p = double.tryParse(t['lastPrice'].toString()) ?? 0;
-              if (_cachedUsdTry != null) p *= _cachedUsdTry!;
-              double c =
-                  double.tryParse(t['priceChangePercent'].toString()) ?? 0;
-              String s = t['symbol'].toString().replaceAll("USDT", "");
-              results.add({
-                'symbol': s,
-                'name': t['symbol'], // Full symbol
-                'price': p,
-                'change': c,
-              });
-            }
+  /// 3. FETCH: BIST & Gold (Yahoo Chart)
+  Future<void> fetchBist() async {
+    // Add Gold Ounce to fetch list
+    final List<String> targets = List.from(_whitelistBist)..add("GC=F");
+
+    // Yahoo v8 Parallel Fetch
+    await Future.wait(
+      targets.map((s) async {
+        await _fetchYahooSingle(s);
+      }),
+    );
+
+    // Calculate Gold Types if data exists
+    _calculateGold();
+
+    await _saveCache();
+  }
+
+  /// 4. FETCH: Crypto (Binance)
+  Future<void> fetchCrypto() async {
+    try {
+      // Fetch all tickers (~2MB json, fast enough) or usage specific endpoint?
+      // Since we whitelist only ~20, let's filter the big list or use parallel.
+      // Parallel logic is safer for bandwidth if whitelist small.
+      // BUT Binance 24hr is one request. Let's do huge request, filter local.
+      final response = await http.get(Uri.parse(_binance24hrUrl));
+      if (response.statusCode == 200) {
+        final List<dynamic> all = jsonDecode(response.body);
+
+        await _ensureUsdRate(); // Need USD for conversion
+        if (_cachedUsdTry == null) return; // Cannot convert without USD
+
+        for (var item in all) {
+          final String symbol = item['symbol'];
+          if (_whitelistCrypto.contains(symbol)) {
+            final double priceUsd =
+                double.tryParse(item['lastPrice'].toString()) ?? 0.0;
+            final double change =
+                double.tryParse(item['priceChangePercent'].toString()) ?? 0.0;
+
+            final double priceTl = priceUsd * _cachedUsdTry!;
+            final String simpleSymbol = symbol.replaceAll(
+              "USDT",
+              "",
+            ); // BTCUSDT -> BTC
+
+            _updateCache(simpleSymbol, priceTl, change);
           }
-        } catch (_) {}
-        break;
-
-      case AssetType.GOLD:
-        // Ons çek, hesapla
-        final d = await _fetchSingleYahooChart("GC=F");
-        if (d != null && _cachedUsdTry != null) {
-          double ons = d['price'];
-          double onsChg = d['change'];
-          double gram = (ons / 31.1035) * _cachedUsdTry!;
-
-          results.add({
-            'symbol': 'ONS',
-            'name': 'Ons Altın (\$)',
-            'price': ons,
-            'change': onsChg,
-          });
-          results.add({
-            'symbol': 'GRAM',
-            'name': 'Gram Altın',
-            'price': gram,
-            'change': onsChg,
-          });
-          results.add({
-            'symbol': 'CEYREK',
-            'name': 'Çeyrek Altın',
-            'price': gram * 1.63,
-            'change': onsChg,
-          });
-          results.add({
-            'symbol': 'YARIM',
-            'name': 'Yarım Altın',
-            'price': gram * 3.26,
-            'change': onsChg,
-          });
-          results.add({
-            'symbol': 'TAM',
-            'name': 'Tam Altın',
-            'price': gram * 6.52,
-            'change': onsChg,
-          });
-          results.add({
-            'symbol': 'CUMHURIYET',
-            'name': 'Cumhuriyet',
-            'price': gram * 6.70,
-            'change': onsChg,
-          });
         }
-        break;
-
-      case AssetType.FOREX:
-        // Bazı majörler
-        final list = [
-          "USDTRY",
-          "EURTRY",
-          "GBPTRY",
-          "CHFTRY",
-          "JPYTRY",
-        ]; // Frankfurter'de JPYTRY yoksa USD üzerinden çevrilir ama simülasyon yapalım
-        // Frankfurter sadece Price verir, Change vermez. Yahoo Chart'tan çekelim ki değişim de gelsin.
-        // TRY=X, EURTRY=X
-        final yahooMap = {
-          "USDTRY": "TRY=X",
-          "EURTRY": "EURTRY=X",
-          "GBPTRY": "GBPTRY=X",
-          "CHFTRY": "CHFTRY=X",
-          "JPYTRY": "JPYTRY=X", // Yahoo'da var
-        };
-
-        await Future.wait(
-          list.map((code) async {
-            String ySymbol = yahooMap[code] ?? code;
-            final d = await _fetchSingleYahooChart(ySymbol);
-            if (d != null) {
-              double price = d['price'];
-              if (code == "USDTRY" && price < 1)
-                price = 1 / price; // Ters gelirse
-
-              results.add({
-                'symbol': code,
-                'name': code,
-                'price': price,
-                'change': d['change'],
-              });
-            } else if (code == "USDTRY" && _cachedUsdTry != null) {
-              // Fallback
-              results.add({
-                'symbol': 'USDTRY',
-                'name': 'Dolar',
-                'price': _cachedUsdTry,
-                'change': 0.0,
-              });
-            }
-          }),
-        );
-        break;
+        await _saveCache();
+      }
+    } catch (e) {
+      print("Binance Fetch Error: $e");
     }
-    return results;
+  }
+
+  /// 5. FETCH: Forex (Frankfurter)
+  Future<void> fetchForex() async {
+    try {
+      final String toSyms = _whitelistForex.where((x) => x != "USD").join(',');
+      // Base USD -> we get 1 USD = X TRY, 1 USD = Y EUR.
+      // We need X/TRY.
+      final url = Uri.parse("$_frankfurterBaseUrl?from=USD&to=TRY,$toSyms");
+
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final rates = data['rates'];
+
+        final double usdTry = (rates['TRY'] as num).toDouble();
+        _cachedUsdTry = usdTry;
+
+        // USD Special
+        // Calculate change for USD? Yahoo might be better for change.
+        // For now, assume 0 for Frankfurter or fetch history?
+        // User agreed: "if hist unavailable, set to 0".
+        _updateCache("USD/TRY", usdTry, 0.0);
+
+        for (var cur in _whitelistForex) {
+          if (cur == "USD") continue; // Handled
+          if (cur == "TRY") continue;
+
+          if (rates.containsKey(cur)) {
+            final double usdToCur = (rates[cur] as num)
+                .toDouble(); // 1 USD = ? EUR
+            // 1 EUR = ? USD -> 1/usdToCur
+            // 1 EUR in TL = (1/usdToCur) * USDTRY
+            final double priceTl = (1.0 / usdToCur) * usdTry;
+            _updateCache("$cur/TRY", priceTl, 0.0);
+          }
+        }
+        await _saveCache();
+      }
+    } catch (e) {
+      print("Forex Fetch Error: $e");
+    }
   }
 
   // --- PRIVATE HELPERS ---
 
-  Future<void> _ensureUsdRate() async {
-    if (_cachedUsdTry != null) return;
-    try {
-      final url = Uri.parse("$_frankfurterBaseUrl?from=USD&to=TRY");
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _cachedUsdTry = (data['rates']['TRY'] as num).toDouble();
-      }
-    } catch (e) {
-      print("Frankfurter Err: $e");
-      _cachedUsdTry = 34.0; // Fail-safe
-    }
-  }
-
-  // Yahoo Chart v8 Single Fetch
-  Future<Map<String, dynamic>?> _fetchSingleYahooChart(String symbol) async {
+  Future<void> _fetchYahooSingle(String symbol) async {
     try {
       final url = Uri.parse(
         "https://query1.finance.yahoo.com/v8/finance/chart/$symbol?interval=1d&range=1d",
@@ -480,61 +236,250 @@ class ApiService {
         double current = (meta['regularMarketPrice'] as num).toDouble();
         double prev = (meta['chartPreviousClose'] as num).toDouble();
 
-        double chg = 0.0;
-        if (prev > 0) chg = ((current - prev) / prev) * 100;
+        double change = 0.0;
+        if (prev > 0) change = ((current - prev) / prev) * 100;
 
-        return {'price': current, 'change': chg};
+        // BIST 100 Fix
+        if (symbol == "XU100.IS" && current > 50000) current /= 100;
+
+        _updateCache(symbol, current, change);
       }
     } catch (_) {}
-    return null;
   }
 
-  Future<void> _fetchYahooChartBatchInto(
-    List<String> symbols,
-    Map<String, double> results,
-  ) async {
-    await Future.wait(
-      symbols.map((s) async {
-        final d = await _fetchSingleYahooChart(s);
-        if (d != null) results[s] = d['price'];
-      }),
+  void _calculateGold() {
+    // Needs GC=F and USD/TRY
+    if (_cache.containsKey('GC=F') && _cachedUsdTry != null) {
+      final ons = _cache['GC=F']!; // AssetCacheModel
+      final double gramPrice = (ons.price / 31.1035) * _cachedUsdTry!;
+
+      // Change percent is assumed same as Ounce
+      final double chg = ons.change;
+
+      _updateCache("GRAM", gramPrice, chg);
+      _updateCache("CEYREK", gramPrice * 1.63, chg);
+      _updateCache("YARIM", gramPrice * 3.26, chg);
+      _updateCache("TAM", gramPrice * 6.52, chg);
+      _updateCache("CUMHURIYET", gramPrice * 6.70, chg);
+    }
+  }
+
+  Future<void> _ensureUsdRate() async {
+    if (_cachedUsdTry != null) return;
+    // Check cache first
+    if (_cache.containsKey("USD/TRY")) {
+      _cachedUsdTry = _cache["USD/TRY"]!.price;
+      return;
+    }
+    // Else fetch simple
+    await fetchForex();
+  }
+
+  void _updateCache(String symbol, double price, double change) {
+    _cache[symbol] = AssetCacheModel(
+      price: price,
+      change: change,
+      lastUpdated: DateTime.now().toIso8601String(),
     );
   }
 
-  Future<void> _fetchBinanceBatchInto(
-    List<String> symbols,
-    Map<String, double> results,
-  ) async {
-    if (symbols.isEmpty) return;
-    // Optimization: Fetch all 24hr once if list is long, or specific pairs if short?
-    // Binance 24hr endpoint is huge. Better use `ticker/price` for specific symbols batch.
-    // But user might want change rate? getCurrentPrices assumes only Price is needed for Portfolio.
+  Future<void> _saveCache() async {
     try {
-      // Batch symbol param: ["BTCUSDT","ETHUSDT"]
-      final pairs = symbols.map((s) => "${s.toUpperCase()}USDT").toList();
-      final String param = jsonEncode(pairs);
-      final url = Uri.parse(
-        "https://api.binance.com/api/v3/ticker/price?symbols=$param",
-      );
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
-        for (var item in data) {
-          final p = double.tryParse(item['price'].toString()) ?? 0.0;
-          // Map back to original symbol
-          final sym = item['symbol'].toString().replaceAll("USDT", "");
-          if (_cachedUsdTry != null) {
-            results[sym] = p * _cachedUsdTry!;
-          } else {
-            results[sym] = p; // Fallback USD
-          }
-        }
-      }
-    } catch (_) {}
+      final prefs = await SharedPreferences.getInstance();
+      final String jsonString = jsonEncode(_cache);
+      await prefs.setString(_cacheKey, jsonString);
+    } catch (e) {
+      print("Save Cache Error: $e");
+    }
   }
 
-  // -- Legacy/Unused Placeholders --
+  // --- UI PROVIDERS (Read from Cache) ---
+  // Just simple accessors now, logic is in Fetchers
+
+  Future<List<Map<String, dynamic>>> getMarketSummary() async {
+    // Return specific keys for Home Screen
+    final List<Map<String, dynamic>> list = [];
+
+    // Helper
+    void add(String sym, String display) {
+      final item = _cache[sym] ?? _cache["$sym.IS"]; // Try both
+      if (item != null) {
+        list.add({
+          'symbol': display,
+          'value': item.price,
+          'change_rate': double.parse(item.change.toStringAsFixed(2)),
+          'is_rising': item.change >= 0,
+        });
+      }
+    }
+
+    add("XU100.IS", "BIST 100");
+    add("USD/TRY", "Dolar");
+    add("EUR/TRY", "Euro");
+    add("GRAM", "Gram Altın");
+
+    return list;
+  }
+
+  Future<List<Map<String, dynamic>>> getStockMovers({
+    bool isRising = true,
+  }) async {
+    // Filter cache for BIST symbols
+    final items = _cache.entries
+        .where((e) => e.key.endsWith(".IS") && e.key != "XU100.IS")
+        .map(
+          (e) => {
+            'symbol': e.key.replaceAll(".IS", ""),
+            'price': e.value.price,
+            'change': e.value.change,
+          },
+        )
+        .toList();
+
+    items.sort(
+      (a, b) => (b['change'] as double).compareTo(a['change'] as double),
+    );
+
+    if (isRising)
+      return items.where((i) => (i['change'] as double) > 0).take(5).toList();
+    return items.reversed
+        .where((i) => (i['change'] as double) < 0)
+        .take(5)
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getCryptoMovers({
+    bool isRising = true,
+  }) async {
+    // Filter cache for Crypto (Keys that are in whitelist without USDT suffix usually)
+    // In fetchCrypto we stored them as "BTC", "ETH" etc.
+    final items = _cache.entries
+        .where(
+          (e) =>
+              !e.key.contains(".IS") &&
+              !e.key.contains("=") &&
+              !e.key.contains("/TRY") &&
+              !["GRAM", "CEYREK", "YARIM", "TAM", "CUMHURIYET"].contains(e.key),
+        )
+        .map(
+          (e) => {
+            'symbol': e.key,
+            'price': e.value.price,
+            'change': e.value.change,
+          },
+        )
+        .toList();
+
+    items.sort(
+      (a, b) => (b['change'] as double).compareTo(a['change'] as double),
+    );
+
+    if (isRising)
+      return items.where((i) => (i['change'] as double) > 0).take(5).toList();
+    return items.reversed
+        .where((i) => (i['change'] as double) < 0)
+        .take(5)
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getAssetsByType(AssetType type) async {
+    final List<Map<String, dynamic>> results = [];
+
+    switch (type) {
+      case AssetType.STOCK:
+        for (var s in _whitelistBist) {
+          if (s == "XU100.IS") continue;
+          final d = _cache[s];
+          if (d != null) {
+            results.add({
+              'symbol': s,
+              'name': s.replaceAll(".IS", ""),
+              'price': d.price,
+              'change': d.change,
+            });
+          }
+        }
+        break;
+      case AssetType.CRYPTO:
+        for (var s in _whitelistCrypto) {
+          final outputSym = s.replaceAll("USDT", "");
+          final d = _cache[outputSym];
+          if (d != null) {
+            results.add({
+              'symbol': outputSym,
+              'name': s,
+              'price': d.price,
+              'change': d.change,
+            });
+          }
+        }
+        break;
+      case AssetType.GOLD:
+        for (var s in ["GRAM", "CEYREK", "YARIM", "TAM", "CUMHURIYET"]) {
+          final d = _cache[s];
+          if (d != null)
+            results.add({
+              'symbol': s,
+              'name': s,
+              'price': d.price,
+              'change': d.change,
+            });
+        }
+        break;
+      case AssetType.FOREX:
+        for (var s in _whitelistForex) {
+          if (s == "USD") {
+            final d = _cache["USD/TRY"];
+            if (d != null)
+              results.add({
+                'symbol': 'USD',
+                'name': 'Dolar',
+                'price': d.price,
+                'change': d.change,
+              });
+          } else {
+            final d = _cache["$s/TRY"];
+            if (d != null)
+              results.add({
+                'symbol': s,
+                'name': s,
+                'price': d.price,
+                'change': d.change,
+              });
+          }
+        }
+        break;
+    }
+    return results;
+  }
+
+  // --- COMPATIBILITY / PUBLIC ---
+  Future<Map<String, double>> getCurrentPrices(List<String> symbols) async {
+    // Actually this is what PortfolioProvider uses.
+    // It passes pure symbols e.g. "THYAO", "BTC", "GRAM".
+    // We try to match with keys.
+    final Map<String, double> map = {};
+    for (var s in symbols) {
+      // Direct match
+      if (_cache.containsKey(s)) {
+        map[s] = _cache[s]!.price;
+        continue;
+      }
+      // Try suffixes
+      if (_cache.containsKey("$s.IS")) {
+        map[s] = _cache["$s.IS"]!.price;
+        continue;
+      }
+      // Try prefixes
+      if (_cache.containsKey("$s/TRY")) {
+        map[s] = _cache["$s/TRY"]!.price;
+        continue;
+      }
+    }
+    return map;
+  }
+
+  // Cleanups
   Future<List<Map<String, dynamic>>> getFavoritesData(List<dynamic> f) async =>
       [];
   Future<Map<String, dynamic>?> getLatestPrice(String s, AssetType t) async =>
