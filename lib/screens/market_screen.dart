@@ -166,16 +166,30 @@ class _MarketScreenState extends State<MarketScreen> {
 
   AssetType _determineTypeFromSummary(String symbol) {
     if (symbol.contains('Altın')) return AssetType.GOLD;
-    if (symbol.contains('USD') || symbol.contains('EUR'))
+    if (symbol.contains('Dolar') ||
+        symbol.contains('Euro') ||
+        symbol.contains('USD') ||
+        symbol.contains('EUR'))
       return AssetType.FOREX;
     return AssetType.STOCK;
   }
 
+  String _getCanonicalSymbol(String displaySymbol) {
+    if (displaySymbol == 'BIST 100') return 'XU100';
+    if (displaySymbol == 'Dolar') return 'USD/TRY';
+    if (displaySymbol == 'Euro') return 'EUR/TRY';
+    if (displaySymbol == 'Gram Altın') return 'GRAM';
+    return displaySymbol;
+  }
+
   Widget _buildMarketCard(Map<String, dynamic> item) {
-    final bool isUp = item['is_rising']; // Logic already done in ApiService
+    final bool isUp = item['is_rising'];
     final Color color = isUp ? Colors.green : Colors.red;
-    final symbol = item['symbol'] as String;
-    final mappedSymbol = symbol == 'BIST 100' ? 'XU100' : symbol;
+    final symbol =
+        item['symbol'] as String; // e.g. "Dolar", "Gram Altın", "BIST 100"
+
+    // Use canonical symbol for matching in Favorites database
+    final mappedSymbol = _getCanonicalSymbol(symbol);
     final type = _determineTypeFromSummary(symbol);
 
     return Consumer<FavoriteProvider>(

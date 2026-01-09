@@ -255,10 +255,10 @@ class ApiService {
       );
 
       _updateCache("GRAM", gramPrice, chg);
-      _updateCache("CEYREK", gramPrice * 1.63, chg);
-      _updateCache("YARIM", gramPrice * 3.26, chg);
-      _updateCache("TAM", gramPrice * 6.52, chg);
-      _updateCache("CUMHURIYET", gramPrice * 6.70, chg);
+      _updateCache("CEYREK", gramPrice * 1.608, chg);
+      _updateCache("YARIM", gramPrice * 3.216, chg);
+      _updateCache("TAM", gramPrice * 6.432, chg);
+      _updateCache("CUMHURIYET", gramPrice * 6.672, chg);
     } else {
       print(
         "GOLD CALC FAIL: CC=F present? ${_cache.containsKey('GC=F')} UsdTry: $_cachedUsdTry",
@@ -499,8 +499,45 @@ class ApiService {
   }
 
   // Cleanups
-  Future<List<Map<String, dynamic>>> getFavoritesData(List<dynamic> f) async =>
-      [];
+  Future<List<Map<String, dynamic>>> getFavoritesData(
+    List<dynamic> symbols,
+  ) async {
+    final List<Map<String, dynamic>> results = [];
+
+    for (var s in symbols) {
+      // s is likely a string symbol
+      final String sym = s.toString();
+      AssetCacheModel? item;
+
+      // 1. Try Direct
+      if (_cache.containsKey(sym)) {
+        item = _cache[sym];
+      }
+      // 2. Try .IS (Stock)
+      else if (_cache.containsKey("$sym.IS")) {
+        item = _cache["$sym.IS"];
+      }
+      // 3. Try /TRY (Forex)
+      else if (_cache.containsKey("$sym/TRY")) {
+        item = _cache["$sym/TRY"];
+      }
+      // 4. Try Yahoo (Forex generic, e.g. USD) -> USD/TRY, EUR/TRY keys are standardized in fetchForex
+      // But if user saved "USD", we look for "USD/TRY"
+
+      if (item != null) {
+        results.add({
+          'symbol': sym,
+          'price': item.price.toStringAsFixed(2), // Formatted for display
+          'change_rate': item.change, // Double for logic
+        });
+      } else {
+        // Add zero/empty if not found to prevent null errors in UI
+        results.add({'symbol': sym, 'price': "0.00", 'change_rate': 0.0});
+      }
+    }
+    return results;
+  }
+
   Future<Map<String, dynamic>?> getLatestPrice(String s, AssetType t) async =>
       null;
 }

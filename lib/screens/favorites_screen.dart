@@ -125,13 +125,43 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildFavoritesList(List<Favorite> favorites) {
-    final xu100 = favorites.where((f) => f.symbol == 'XU100').firstOrNull;
-    final stocks = favorites
+    // Deduplicate logic for Display
+    final Set<String> seen = {};
+    final List<Favorite> uniqueFavorites = [];
+
+    // Helper must match Provider's logic implicitly
+    String canonical(String s) {
+      if (s == 'USD' || s == 'Dolar') return 'USD/TRY';
+      if (s == 'EUR' || s == 'Euro') return 'EUR/TRY';
+      if (s == 'Gram Altın') return 'GRAM';
+      return s.toUpperCase();
+    }
+
+    for (var f in favorites) {
+      final key = canonical(f.symbol);
+      if (!seen.contains(key)) {
+        seen.add(key);
+        uniqueFavorites.add(f);
+      }
+    }
+
+    final xu100 = uniqueFavorites.where((f) => f.symbol == 'XU100').firstOrNull;
+    final stocks = uniqueFavorites
         .where((f) => f.type == AssetType.STOCK && f.symbol != 'XU100')
         .toList();
-    final gold = favorites.where((f) => f.type == AssetType.GOLD).toList();
-    final forex = favorites.where((f) => f.type == AssetType.FOREX).toList();
-    final crypto = favorites.where((f) => f.type == AssetType.CRYPTO).toList();
+    final gold = uniqueFavorites
+        .where((f) => f.type == AssetType.GOLD)
+        .toList();
+    final forex = uniqueFavorites
+        .where((f) => f.type == AssetType.FOREX)
+        .toList();
+    final crypto = uniqueFavorites
+        .where((f) => f.type == AssetType.CRYPTO)
+        .toList();
+
+    // Note: display item.symbol might still be "USD" if it was old, but we mapped data in API service.
+    // _buildListItem uses item.symbol to fetch data. ApiService handles "USD".
+    // Perfect.
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 20),
@@ -162,8 +192,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildSpecialCard(Favorite item) {
-    final data = _marketData[item.symbol] ?? {'price': 0.0, 'change_rate': 0.0};
-    final change = data['change_rate'] as double;
+    final data =
+        _marketData[item.symbol] ?? {'price': '0.00', 'change_rate': 0.0};
+    final change = (data['change_rate'] as num).toDouble();
     final isUp = change >= 0;
 
     return Container(
@@ -229,7 +260,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '%${change.abs()}',
+                      '%${change.abs().toStringAsFixed(2)}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -269,9 +300,34 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildListItem(Favorite item) {
-    final data = _marketData[item.symbol] ?? {'price': 0.0, 'change_rate': 0.0};
-    final change = data['change_rate'] as double;
+    final data =
+        _marketData[item.symbol] ?? {'price': '0.00', 'change_rate': 0.0};
+    final change = (data['change_rate'] as num).toDouble();
     final isUp = change >= 0;
+
+    // Time Logic
+    String timeStr;
+    final now = DateTime.now();
+    if (item.type == AssetType.CRYPTO) {
+      timeStr =
+          "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+    } else {
+      // Stock, Gold, Forex -> 15 min delay simulation
+      final delayed = now.subtract(const Duration(minutes: 15));
+      timeStr =
+          "${delayed.hour.toString().padLeft(2, '0')}:${delayed.minute.toString().padLeft(2, '0')}:${delayed.second.toString().padLeft(2, '0')}";
+    }
+
+    // Icon Logic
+    IconData icon;
+    if (item.type == AssetType.CRYPTO)
+      icon = Icons.currency_bitcoin;
+    else if (item.type == AssetType.FOREX)
+      icon = Icons.attach_money;
+    else if (item.type == AssetType.GOLD)
+      icon = Icons.diamond;
+    else
+      icon = Icons.show_chart; // Stock
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -290,7 +346,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               color: Colors.grey[50],
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.star, color: const Color(0xFF1A237E), size: 20),
+            child: Icon(icon, color: const Color(0xFF1A237E), size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -306,7 +362,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ),
                 ),
                 Text(
-                  'Veri: 10:30',
+                  'Veri: $timeStr',
                   style: GoogleFonts.poppins(
                     color: Colors.grey[400],
                     fontSize: 11,
@@ -334,7 +390,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  '%${change.abs()}',
+                  '%${change.abs().toStringAsFixed(2)}', // Fixed Decimals
                   style: GoogleFonts.poppins(
                     color: isUp ? Colors.green : Colors.red,
                     fontWeight: FontWeight.bold,
