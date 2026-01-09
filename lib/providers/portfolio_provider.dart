@@ -319,7 +319,6 @@ class PortfolioProvider extends ChangeNotifier {
     );
 
     await db.insert('transactions', newTransaction.toMap());
-    await db.insert('transactions', newTransaction.toMap());
     await loadHoldings(); // Refresh holdings and stats
     await loadHistory();
   }
