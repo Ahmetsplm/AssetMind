@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AnimatedPriceWidget extends StatefulWidget {
   final double numericValue;
@@ -22,8 +21,6 @@ class _AnimatedPriceWidgetState extends State<AnimatedPriceWidget>
   late AnimationController _controller;
   late Animation<Color?> _colorAnimation;
 
-  double? _oldValue;
-
   @override
   void initState() {
     super.initState();
@@ -35,7 +32,6 @@ class _AnimatedPriceWidgetState extends State<AnimatedPriceWidget>
       begin: Colors.transparent,
       end: Colors.transparent, // Initial state
     ).animate(_controller);
-    _oldValue = widget.numericValue;
   }
 
   @override
@@ -47,7 +43,6 @@ class _AnimatedPriceWidgetState extends State<AnimatedPriceWidget>
       } else if (widget.numericValue < (oldWidget.numericValue)) {
         _animateColor(Colors.red);
       }
-      _oldValue = widget.numericValue;
     }
   }
 

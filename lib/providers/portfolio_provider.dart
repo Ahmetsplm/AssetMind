@@ -233,6 +233,9 @@ class PortfolioProvider extends ChangeNotifier {
   List<List<dynamic>> _historyPoints = [];
   List<List<dynamic>> get historyPoints => _historyPoints;
 
+  List<TransactionModel> _allTransactions = [];
+  List<TransactionModel> get allTransactions => _allTransactions;
+
   Future<void> loadHistory() async {
     if (_selectedPortfolio == null) return;
 
@@ -253,29 +256,32 @@ class PortfolioProvider extends ChangeNotifier {
       // Or just start from 0 at the first date?
     }
 
-    for (var t in transactions) {
-      final dynamic typeRaw = t['type'];
+    // Parse all transactions for list display (descending date usually better for list)
+    _allTransactions = transactions
+        .map((e) => TransactionModel.fromMap(e))
+        .toList();
+    // Sort descending for list view (newest first)
+    _allTransactions.sort((a, b) => b.date.compareTo(a.date));
+
+    // For chart (chronological)
+    final chronologicalTransactions = [..._allTransactions]
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    for (var t in chronologicalTransactions) {
+      final dynamic typeRaw = t.type; // t is now TransactionModel
       int typeIndex = 0;
 
-      if (typeRaw is int) {
-        typeIndex = typeRaw;
-      } else if (typeRaw is String) {
-        // Try parsing "0" or "1"
-        final parsed = int.tryParse(typeRaw);
-        if (parsed != null) {
-          typeIndex = parsed;
-        } else {
-          // Fallback for legacy "BUY"/"SELL" strings if they exist
-          if (typeRaw == 'SELL' || typeRaw == 'TransactionType.SELL')
-            typeIndex = 1;
-        }
+      if (t.type == TransactionType.BUY) {
+        typeIndex = 0;
+      } else {
+        typeIndex = 1;
       }
 
-      final amount = t['amount'] as double;
-      final price = t['price'] as double;
+      final amount = t.amount;
+      final price = t.price;
       final total = amount * price;
-      final dateStr = t['date'] as String;
-      final date = DateTime.parse(dateStr); // Database stores ISO string
+      // final dateStr = t['date'] as String; // No longer map
+      final date = t.date;
 
       // Enums: BUY=0, SELL=1
       if (typeIndex == 0) {

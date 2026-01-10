@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/portfolio_provider.dart';
 import '../services/portfolio_analyzer.dart';
+import '../screens/statistics_screen.dart';
 
 class AnalysisSheet extends StatelessWidget {
   const AnalysisSheet({super.key});
@@ -106,6 +107,52 @@ class AnalysisSheet extends StatelessWidget {
                     ],
                   ),
                 ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // Detailed Statistics Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close sheet
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const StatisticsScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).cardColor,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.color,
+                      padding: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: Theme.of(context).dividerColor),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.bar_chart_rounded),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Detaylı İstatistikleri Gör",
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 32),
