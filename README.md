@@ -15,7 +15,7 @@
 *   **Yerel Veritabanı**: Verileriniz cihazınızda `SQLite` ile güvenle saklanır, buluta gönderilmez.
 *   **Yedekleme & Geri Yükleme**: Verilerinizi JSON formatında dışa aktarıp dilediğiniz zaman geri yükleyebilirsiniz.
 
-## 🛠 Kullanılan Teknolojiler
+## Kullanılan Teknolojiler
 
 Bu proje, modern Flutter geliştirme pratikleri ve güçlü kütüphaneler kullanılarak inşa edilmiştir:
 
