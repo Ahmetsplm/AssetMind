@@ -1,3 +1,4 @@
+import 'package:showcaseview/showcaseview.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -24,19 +25,27 @@ class _MarketScreenState extends State<MarketScreen> {
   bool _isStockRising = true;
   bool _isCryptoRising = true;
 
+  final GlobalKey _oneKey = GlobalKey();
+  final GlobalKey _twoKey = GlobalKey();
+  final GlobalKey _threeKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     return Consumer<MarketProvider>(
       builder: (context, marketProvider, child) {
-        return DefaultTabController(
-          length: 2,
-          child: Scaffold(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            appBar: _buildAppBar(context),
-            body: TabBarView(
-              children: [_buildMarketTab(context), const NewsScreen()],
-            ),
-          ),
+        return ShowCaseWidget(
+          builder: (context) {
+            return DefaultTabController(
+              length: 2,
+              child: Scaffold(
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                appBar: _buildAppBar(context),
+                body: TabBarView(
+                  children: [_buildMarketTab(context), const NewsScreen()],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -60,12 +69,14 @@ class _MarketScreenState extends State<MarketScreen> {
       actions: [
         IconButton(
           icon: Icon(
-            Icons.search_rounded,
+            Icons.help_outline_rounded,
             color: Theme.of(context).iconTheme.color,
             size: 28,
           ),
           onPressed: () {
-            // Future search implementation
+            ShowCaseWidget.of(
+              context,
+            ).startShowCase([_oneKey, _twoKey, _threeKey]);
           },
         ),
         const SizedBox(width: 8),
@@ -132,12 +143,18 @@ class _MarketScreenState extends State<MarketScreen> {
 
           // BIST Movers Header
           SliverToBoxAdapter(
-            child: _buildSectionHeader(
-              context,
-              'BIST 100', // Cleaner title
-              'Piyasa Hareketleri',
-              _isStockRising,
-              (val) => setState(() => _isStockRising = val),
+            child: Showcase(
+              key: _twoKey,
+              title: 'Hisse Senetleri',
+              description:
+                  'BIST 100 endeksindeki en çok yükselen ve düşen hisseleri buradan takip edebilirsiniz.',
+              child: _buildSectionHeader(
+                context,
+                'BIST 100', // Cleaner title
+                'Piyasa Hareketleri',
+                _isStockRising,
+                (val) => setState(() => _isStockRising = val),
+              ),
             ),
           ),
 
@@ -153,12 +170,18 @@ class _MarketScreenState extends State<MarketScreen> {
 
           // Crypto Movers Header
           SliverToBoxAdapter(
-            child: _buildSectionHeader(
-              context,
-              'Kripto Para',
-              'Anlık Değişimler',
-              _isCryptoRising,
-              (val) => setState(() => _isCryptoRising = val),
+            child: Showcase(
+              key: _threeKey,
+              title: 'Kripto Paralar',
+              description:
+                  'Kripto para piyasalarındaki anlık değişimleri buradan izleyebilirsiniz.',
+              child: _buildSectionHeader(
+                context,
+                'Kripto Para',
+                'Anlık Değişimler',
+                _isCryptoRising,
+                (val) => setState(() => _isCryptoRising = val),
+              ),
             ),
           ),
 
@@ -461,82 +484,88 @@ class _MarketScreenState extends State<MarketScreen> {
 
   Widget _buildCategorySelector(BuildContext context) {
     final categories = ['Özet', 'BIST', 'Kripto', 'Döviz'];
-    return SizedBox(
-      height: 45,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final isSelected = _selectedCategoryIndex == index && index == 0;
+    return Showcase(
+      key: _oneKey,
+      title: 'Kategoriler',
+      description:
+          'Piyasa verilerini bu kategorilere göre filtreleyebilirsiniz.',
+      child: SizedBox(
+        height: 45,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: categories.length,
+          itemBuilder: (context, index) {
+            final isSelected = _selectedCategoryIndex == index && index == 0;
 
-          Color bgColor = isSelected
-              ? Theme.of(context).primaryColor
-              : Theme.of(context).cardColor;
-          Color textColor = isSelected
-              ? Colors.white
-              : Theme.of(context).textTheme.bodyMedium!.color!;
+            Color bgColor = isSelected
+                ? Theme.of(context).primaryColor
+                : Theme.of(context).cardColor;
+            Color textColor = isSelected
+                ? Colors.white
+                : Theme.of(context).textTheme.bodyMedium!.color!;
 
-          if (!isSelected) {
-            // Slight differentiation for non-selected
-            bgColor = Theme.of(context).dividerColor.withOpacity(0.1);
-          }
+            if (!isSelected) {
+              // Slight differentiation for non-selected
+              bgColor = Theme.of(context).dividerColor.withOpacity(0.1);
+            }
 
-          return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: () {
-                if (index == 0) {
-                  setState(() => _selectedCategoryIndex = 0);
-                } else {
-                  AssetType type;
-                  if (index == 1)
-                    type = AssetType.STOCK;
-                  else if (index == 2)
-                    type = AssetType.CRYPTO;
-                  else
-                    type = AssetType.FOREX;
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: GestureDetector(
+                onTap: () {
+                  if (index == 0) {
+                    setState(() => _selectedCategoryIndex = 0);
+                  } else {
+                    AssetType type;
+                    if (index == 1)
+                      type = AssetType.STOCK;
+                    else if (index == 2)
+                      type = AssetType.CRYPTO;
+                    else
+                      type = AssetType.FOREX;
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AssetListScreen(type: type),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AssetListScreen(type: type),
+                      ),
+                    );
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(25),
+                    border: isSelected
+                        ? null
+                        : Border.all(
+                            color: Theme.of(
+                              context,
+                            ).dividerColor.withOpacity(0.1),
+                          ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    categories[index],
+                    style: GoogleFonts.poppins(
+                      color: textColor,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                      fontSize: 14,
                     ),
-                  );
-                }
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(25),
-                  border: isSelected
-                      ? null
-                      : Border.all(
-                          color: Theme.of(
-                            context,
-                          ).dividerColor.withOpacity(0.1),
-                        ),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  categories[index],
-                  style: GoogleFonts.poppins(
-                    color: textColor,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                    fontSize: 14,
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

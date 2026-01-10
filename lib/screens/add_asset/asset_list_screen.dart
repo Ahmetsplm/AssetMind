@@ -1,3 +1,4 @@
+import 'package:showcaseview/showcaseview.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -28,6 +29,8 @@ class _AssetListScreenState extends State<AssetListScreen> {
   bool _isLoading = true;
   Timer? _debounce;
   Timer? _refreshTimer;
+
+  final GlobalKey _searchKey = GlobalKey();
 
   @override
   void initState() {
@@ -109,139 +112,153 @@ class _AssetListScreenState extends State<AssetListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          _getTitle(),
-          style: GoogleFonts.poppins(
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: Theme.of(context).iconTheme,
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.info_outline_rounded),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                style: GoogleFonts.poppins(
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Varlık ara...',
-                  hintStyle: GoogleFonts.poppins(
-                    color: Theme.of(context).disabledColor,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 16,
-                  ),
-                  border: InputBorder.none,
-                ),
+    return ShowCaseWidget(
+      builder: (context) {
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            title: Text(
+              _getTitle(),
+              style: GoogleFonts.poppins(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
             ),
+            centerTitle: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: Theme.of(context).iconTheme,
+            actions: [
+              IconButton(
+                onPressed: () {
+                  ShowCaseWidget.of(context).startShowCase([_searchKey]);
+                },
+                icon: const Icon(Icons.help_outline_rounded),
+              ),
+            ],
           ),
-
-          Expanded(
-            child: _isLoading
-                ? ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 0,
-                      vertical: 8,
+          body: Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Showcase(
+                  key: _searchKey,
+                  title: 'Arama',
+                  description: 'İstediğiniz varlığı buradan arayabilirsiniz.',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    itemCount: 10,
-                    separatorBuilder: (_, __) => const SizedBox(height: 0),
-                    itemBuilder: (_, __) => const SkeletonListItem(),
-                  )
-                : AnimationLimiter(
-                    child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                    child: TextField(
+                      controller: _searchController,
+                      style: GoogleFonts.poppins(
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
                       ),
-                      itemCount: _filteredAssets.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final item = _filteredAssets[index];
-                        return AnimationConfiguration.staggeredList(
-                          position: index,
-                          duration: const Duration(milliseconds: 375),
-                          child: SlideAnimation(
-                            verticalOffset: 50.0,
-                            child: FadeInAnimation(
-                              child: _buildListItem(context, item),
-                            ),
-                          ),
-                        );
-                      },
+                      decoration: InputDecoration(
+                        hintText: 'Varlık ara...',
+                        hintStyle: GoogleFonts.poppins(
+                          color: Theme.of(context).disabledColor,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 16,
+                        ),
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
-          ),
+                ),
+              ),
 
-          // Warning Banner
-          if (widget.type != AssetType.CRYPTO)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: Theme.of(context).cardColor,
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      color: Colors.orange,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        "Piyasa verileri 15 dakika gecikmeli olabilir.",
-                        style: GoogleFonts.poppins(
-                          color: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium?.color?.withOpacity(0.7),
-                          fontSize: 12,
+              Expanded(
+                child: _isLoading
+                    ? ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 0,
+                          vertical: 8,
+                        ),
+                        itemCount: 10,
+                        separatorBuilder: (_, __) => const SizedBox(height: 0),
+                        itemBuilder: (_, __) => const SkeletonListItem(),
+                      )
+                    : AnimationLimiter(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          itemCount: _filteredAssets.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final item = _filteredAssets[index];
+                            return AnimationConfiguration.staggeredList(
+                              position: index,
+                              duration: const Duration(milliseconds: 375),
+                              child: SlideAnimation(
+                                verticalOffset: 50.0,
+                                child: FadeInAnimation(
+                                  child: _buildListItem(context, item),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                    ),
-                  ],
-                ),
               ),
-            ),
-        ],
-      ),
+
+              // Warning Banner
+              if (widget.type != AssetType.CRYPTO)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  color: Theme.of(context).cardColor,
+                  child: SafeArea(
+                    top: false,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.orange,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            "Piyasa verileri 15 dakika gecikmeli olabilir.",
+                            style: GoogleFonts.poppins(
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
