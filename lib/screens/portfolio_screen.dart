@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/portfolio_provider.dart';
@@ -590,7 +591,13 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   Widget _buildAssetCategories(BuildContext context) {
     return Consumer<PortfolioProvider>(
       builder: (context, provider, child) {
-        if (provider.isLoading) return const SizedBox();
+        if (provider.isLoading) {
+          return _buildSkeletonLoading(context);
+        }
+
+        if (provider.activeHoldingsCount == 0) {
+          return _buildEmptyState(context);
+        }
 
         final stockCount = provider.getCountByType(AssetType.STOCK);
         final goldCount = provider.getCountByType(AssetType.GOLD);
@@ -950,6 +957,71 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSkeletonLoading(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      children: List.generate(3, (index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Shimmer.fromColors(
+            baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+            highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
+            child: Container(
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 40),
+          TweenAnimationBuilder(
+            tween: Tween<double>(begin: 0.8, end: 1.0),
+            duration: const Duration(seconds: 2),
+            curve: Curves.elasticOut,
+            builder: (context, double value, child) {
+              return Transform.scale(scale: value, child: child);
+            },
+            child: Icon(
+              Icons.sentiment_dissatisfied_rounded,
+              size: 80,
+              color: Theme.of(context).disabledColor.withOpacity(0.5),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            "Portföyün Boş",
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Henüz hiç varlık eklemedin.\n'Portföyüm' sekmesinden ekleyebilirsin.",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Theme.of(context).disabledColor,
+            ),
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
     );
   }
 

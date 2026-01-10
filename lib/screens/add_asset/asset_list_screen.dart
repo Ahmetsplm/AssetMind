@@ -9,6 +9,7 @@ import '../../models/favorite.dart';
 import '../../providers/favorite_provider.dart';
 import 'add_transaction_screen.dart';
 import '../../widgets/skeleton_list_item.dart';
+import '../../widgets/animated_price_widget.dart';
 
 class AssetListScreen extends StatefulWidget {
   final AssetType type;
@@ -24,17 +25,36 @@ class _AssetListScreenState extends State<AssetListScreen> {
   List<Map<String, dynamic>> _filteredAssets = [];
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
+  Timer? _debounce;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadAssets();
     _searchController.addListener(_onSearchChanged);
+
+    // Auto-Refresh for live updates
+    if (widget.type == AssetType.CRYPTO) {
+      _refreshTimer = Timer.periodic(
+        const Duration(seconds: 5),
+        (_) => _loadAssets(),
+      );
+    } else if (widget.type == AssetType.STOCK ||
+        widget.type == AssetType.FOREX ||
+        widget.type == AssetType.GOLD) {
+      // Slower refresh for others
+      _refreshTimer = Timer.periodic(
+        const Duration(seconds: 15),
+        (_) => _loadAssets(),
+      );
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -43,13 +63,21 @@ class _AssetListScreenState extends State<AssetListScreen> {
     if (mounted) {
       setState(() {
         _assets = data;
-        _filteredAssets = data;
+        // Re-apply filter if searching
+        if (_searchController.text.isNotEmpty) {
+          final query = _searchController.text.toLowerCase();
+          _filteredAssets = _assets.where((item) {
+            final symbol = item['symbol'].toString().toLowerCase();
+            final name = item['name'].toString().toLowerCase();
+            return symbol.contains(query) || name.contains(query);
+          }).toList();
+        } else {
+          _filteredAssets = data;
+        }
         _isLoading = false;
       });
     }
   }
-
-  Timer? _debounce;
 
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
@@ -280,8 +308,10 @@ class _AssetListScreenState extends State<AssetListScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
-              '₺${(item['price'] as num).toDouble().toStringAsFixed(2)}',
+            AnimatedPriceWidget(
+              numericValue: (item['price'] as num).toDouble(),
+              displayString:
+                  '₺${(item['price'] as num).toDouble().toStringAsFixed(2)}',
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,

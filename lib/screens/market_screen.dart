@@ -9,6 +9,7 @@ import '../models/holding.dart'; // For AssetType
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'add_asset/asset_list_screen.dart';
 import 'news_screen.dart';
+import '../widgets/animated_price_widget.dart';
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -399,8 +400,17 @@ class _MarketScreenState extends State<MarketScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item['value'].toString(),
+                  AnimatedPriceWidget(
+                    numericValue:
+                        (item['raw_value'] as num?)?.toDouble() ??
+                        double.tryParse(
+                          item['value']
+                              .toString()
+                              .replaceAll('.', '')
+                              .replaceAll(',', '.'),
+                        ) ??
+                        0.0,
+                    displayString: item['value'].toString(),
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -607,8 +617,17 @@ class _MarketScreenState extends State<MarketScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                item['price'],
+              AnimatedPriceWidget(
+                numericValue:
+                    (item['raw_price'] as num?)?.toDouble() ??
+                    double.tryParse(
+                      item['price']
+                          .toString()
+                          .replaceAll('.', '')
+                          .replaceAll(',', '.'),
+                    ) ??
+                    0.0,
+                displayString: item['price'].toString(),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,

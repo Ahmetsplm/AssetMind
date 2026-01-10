@@ -464,6 +464,7 @@ class ApiService {
         list.add({
           'symbol': display,
           'value': item.price.toStringAsFixed(2),
+          'raw_value': item.price,
           'change_rate': item.change.toStringAsFixed(2),
           'is_rising': item.change >= 0,
         });
@@ -489,6 +490,7 @@ class ApiService {
           (e) => {
             'symbol': e.key.replaceAll(".IS", ""),
             'price': e.value.price.toStringAsFixed(2),
+            'raw_price': e.value.price,
             'change': e.value.change.toStringAsFixed(2),
             'raw_change': e.value.change,
             'time': timeStr,
@@ -551,6 +553,7 @@ class ApiService {
           (e) => {
             'symbol': e.key,
             'price': e.value.price.toStringAsFixed(2),
+            'raw_price': e.value.price,
             'change': e.value.change.toStringAsFixed(2),
             'raw_change': e.value.change,
             'time': timeStr,
