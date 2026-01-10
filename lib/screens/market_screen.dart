@@ -10,6 +10,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'add_asset/asset_list_screen.dart';
 import 'news_screen.dart';
 import '../widgets/animated_price_widget.dart';
+import '../widgets/tech_analysis_button.dart';
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -672,6 +673,8 @@ class _MarketScreenState extends State<MarketScreen> {
               );
             },
           ),
+          const SizedBox(width: 8), // Spacing
+          TechAnalysisButton(symbol: symbol, type: type),
         ],
       ),
     );

@@ -6,6 +6,7 @@ import '../../providers/portfolio_provider.dart';
 import '../../models/holding.dart';
 import '../add_asset/asset_list_screen.dart';
 import 'asset_detail_screen.dart';
+import '../../widgets/tech_analysis_button.dart';
 
 class CategoryDetailScreen extends StatelessWidget {
   final AssetType type;
@@ -219,30 +220,42 @@ class CategoryDetailScreen extends StatelessWidget {
             fontSize: 12,
           ),
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (!isClosed) ...[
-              Text(
-                '₺${NumberFormat('#,##0.00', 'tr_TR').format(holding.quantity * curPrice)}',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-            ] else ...[
-              Text(
-                'Kâr: ₺${NumberFormat('#,##0.00', 'tr_TR').format(holding.totalRealizedProfit)}',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: holding.totalRealizedProfit >= 0
-                      ? Colors.green
-                      : Colors.red,
-                ),
-              ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (!isClosed) ...[
+                  Text(
+                    '₺${NumberFormat('#,##0.00', 'tr_TR').format(holding.quantity * curPrice)}',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                ] else ...[
+                  Text(
+                    'Kâr: ₺${NumberFormat('#,##0.00', 'tr_TR').format(holding.totalRealizedProfit)}',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: holding.totalRealizedProfit >= 0
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (!isClosed &&
+                (holding.type == AssetType.STOCK ||
+                    holding.type == AssetType.CRYPTO)) ...[
+              const SizedBox(width: 8),
+              const SizedBox(width: 8),
+              TechAnalysisButton(symbol: holding.symbol, type: holding.type),
             ],
           ],
         ),

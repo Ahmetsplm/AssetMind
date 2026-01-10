@@ -420,7 +420,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(
-                "AssetMind, tüm yatırımlarınızı tek bir yerden takip etmenizi sağlayan kapsamlı bir portföy yönetim aracıdır. Türk Hisse Senetleri, Döviz, Altın ve Kripto paralarınızı anlık verilerle izleyin.",
+                "AssetMind; Türk Hisse Senetleri, Döviz, Altın ve Kripto paralarınızı tek bir yerden takip etmenizi sağlar.\n\n⚠️ Veri Politikası:\n• Kripto paralar anlık (canlı) verilerdir.\n• Borsa İstanbul, Altın ve Döviz verileri 15 dakika gecikmelidir.\n\nUygulama içerisindeki veriler bilgilendirme amaçlıdır, yatırım tavsiyesi değildir.",
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   color: Theme.of(

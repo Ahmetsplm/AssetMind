@@ -10,6 +10,7 @@ import '../../providers/favorite_provider.dart';
 import 'add_transaction_screen.dart';
 import '../../widgets/skeleton_list_item.dart';
 import '../../widgets/animated_price_widget.dart';
+import '../../widgets/tech_analysis_button.dart';
 
 class AssetListScreen extends StatefulWidget {
   final AssetType type;
@@ -304,35 +305,45 @@ class _AssetListScreenState extends State<AssetListScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedPriceWidget(
-              numericValue: (item['price'] as num).toDouble(),
-              displayString:
-                  '₺${(item['price'] as num).toDouble().toStringAsFixed(2)}',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: trendColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                '%${change.abs().toStringAsFixed(2)}',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: trendColor,
-                  fontWeight: FontWeight.bold,
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                AnimatedPriceWidget(
+                  numericValue: (item['price'] as num).toDouble(),
+                  displayString:
+                      '₺${(item['price'] as num).toDouble().toStringAsFixed(2)}',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
                 ),
-              ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: trendColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '%${change.abs().toStringAsFixed(2)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: trendColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(width: 8),
+            TechAnalysisButton(symbol: item['symbol'], type: widget.type),
           ],
         ),
       ),
