@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
 import '../models/portfolio.dart';
 import '../models/holding.dart';
 import '../models/transaction.dart';
 import '../services/api_service.dart';
+
+enum SortOption { valueDesc, valueAsc, nameAsc }
 
 class PortfolioProvider extends ChangeNotifier {
   List<Portfolio> _portfolios = [];
@@ -11,23 +14,51 @@ class PortfolioProvider extends ChangeNotifier {
   List<Holding> _holdings = [];
   Map<String, double> _assetPrices = {};
   bool _isLoading = false;
+  bool _isPrivacyMode = false;
 
   List<Portfolio> get portfolios => _portfolios;
   Portfolio? get selectedPortfolio => _selectedPortfolio;
   List<Holding> get holdings => _holdings;
   bool get isLoading => _isLoading;
+  bool get isPrivacyMode => _isPrivacyMode;
+  SortOption _sortOption = SortOption.valueDesc;
+  SortOption get sortOption => _sortOption;
+
+  int get activeHoldingsCount => _holdings.where((h) => h.quantity > 0).length;
+
+  PortfolioProvider() {
+    _loadPrivacyMode();
+  }
+
+  Future<void> _loadPrivacyMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isPrivacyMode = prefs.getBool('privacy_mode') ?? false;
+    notifyListeners();
+  }
+
+  Future<void> togglePrivacyMode() async {
+    _isPrivacyMode = !_isPrivacyMode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('privacy_mode', _isPrivacyMode);
+    notifyListeners();
+  }
+
+  void setSortOption(SortOption option) {
+    _sortOption = option;
+    notifyListeners();
+  }
 
   // Stats
   double get totalPortfolioValue => _holdings.fold(0, (sum, h) {
-    if (h.quantity <= 0) return sum; // Skip closed positions
-    final price = _assetPrices[h.symbol] ?? h.averageCost;
-    return sum + (h.quantity * price);
-  });
+        if (h.quantity <= 0) return sum; // Skip closed positions
+        final price = _assetPrices[h.symbol] ?? h.averageCost;
+        return sum + (h.quantity * price);
+      });
 
   double get totalPortfolioCost => _holdings.fold(0, (sum, h) {
-    if (h.quantity <= 0) return sum;
-    return sum + (h.quantity * h.averageCost);
-  });
+        if (h.quantity <= 0) return sum;
+        return sum + (h.quantity * h.averageCost);
+      });
 
   double get totalProfitLoss => totalPortfolioValue - totalPortfolioCost;
 
@@ -83,13 +114,24 @@ class PortfolioProvider extends ChangeNotifier {
     _portfolios = result.map((e) => Portfolio.fromMap(e)).toList();
 
     if (_portfolios.isNotEmpty) {
-      if (_selectedPortfolio == null) {
-        _selectedPortfolio = _portfolios.firstWhere(
-          (p) => p.isDefault,
-          orElse: () => _portfolios.first,
-        );
+      // Check if current selection is still valid
+      if (_selectedPortfolio != null) {
+        final stillExists =
+            _portfolios.any((p) => p.id == _selectedPortfolio!.id);
+        if (!stillExists) {
+          _selectedPortfolio = null; // Invalidate if not found
+        }
       }
+
+      _selectedPortfolio ??= _portfolios.firstWhere(
+        (p) => p.isDefault,
+        orElse: () => _portfolios.first,
+      );
       await loadHoldings();
+    } else {
+      _selectedPortfolio = null; // No portfolios available
+      _holdings = [];
+      notifyListeners();
     }
     notifyListeners();
   }
@@ -114,11 +156,57 @@ class PortfolioProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String _selectedCurrency = 'TRY';
+  String get selectedCurrency => _selectedCurrency;
+
+  String get currencySymbol {
+    switch (_selectedCurrency) {
+      case 'USD':
+        return '\$';
+      case 'EUR':
+        return '€';
+      default:
+        return '₺';
+    }
+  }
+
+  void toggleCurrency() {
+    if (_selectedCurrency == 'TRY') {
+      _selectedCurrency = 'USD';
+    } else if (_selectedCurrency == 'USD') {
+      _selectedCurrency = 'EUR';
+    } else {
+      _selectedCurrency = 'TRY';
+    }
+    notifyListeners();
+  }
+
+  double getConversionRate() {
+    if (_selectedCurrency == 'TRY') return 1.0;
+    final rateSym = _selectedCurrency == 'USD' ? 'USD/TRY' : 'EUR/TRY';
+    return _assetPrices[rateSym] ?? 1.0;
+  }
+
+  double get displayedTotalValue => totalPortfolioValue / getConversionRate();
+  double get displayedTotalCost => totalPortfolioCost / getConversionRate();
+  double get displayedTotalProfitLoss => totalProfitLoss / getConversionRate();
+
   Future<void> _fetchPrices() async {
-    if (_holdings.isEmpty) return;
-    final symbols = _holdings.map((e) => e.symbol).toList();
-    final api = ApiService(); // Or inject
+    // Always include currencies for conversion
+    final List<String> symbols = _holdings.map((e) => e.symbol).toList();
+    if (!symbols.contains('USD/TRY')) symbols.add('USD/TRY');
+    if (!symbols.contains('EUR/TRY')) symbols.add('EUR/TRY');
+
+    final api = ApiService();
     _assetPrices = await api.getCurrentPrices(symbols);
+    // Ensure we fetch if not in cache (getCurrentPrices usually reads cache or fetches if missing?
+    // Actually getCurrentPrices in ApiService might need valid cache.
+    // MarketProvider fetches these separately. ApiService.fetchForex() usually handles it.
+    // We should trigger a fetch if they are missing/zero.
+    if (_assetPrices['USD/TRY'] == null || _assetPrices['USD/TRY'] == 0) {
+      await api.fetchForex();
+      _assetPrices = await api.getCurrentPrices(symbols);
+    }
   }
 
   Future<void> addPortfolio(String name) async {
@@ -142,9 +230,110 @@ class PortfolioProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> renamePortfolio(int portfolioId, String newName) async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Update name in DB
+    await db.update(
+      'portfolios',
+      {'name': newName},
+      where: 'id = ?',
+      whereArgs: [portfolioId],
+    );
+
+    // Update local state
+    final index = _portfolios.indexWhere((p) => p.id == portfolioId);
+    if (index != -1) {
+      final old = _portfolios[index];
+      _portfolios[index] = Portfolio(
+        id: old.id,
+        name: newName,
+        isDefault: old.isDefault,
+        creationDate: old.creationDate,
+      );
+
+      // If renamed portfolio is selected, update selected reference
+      if (_selectedPortfolio?.id == portfolioId) {
+        _selectedPortfolio = _portfolios[index];
+      }
+
+      notifyListeners();
+    }
+  }
+
+  List<List<dynamic>> _historyPoints = [];
+  List<List<dynamic>> get historyPoints => _historyPoints;
+
+  List<TransactionModel> _allTransactions = [];
+  List<TransactionModel> get allTransactions => _allTransactions;
+
+  Future<void> loadHistory() async {
+    if (_selectedPortfolio == null) return;
+
+    final db = await DatabaseHelper.instance.database;
+    final transactions = await db.query(
+      'transactions',
+      where: 'holding_id IN (SELECT id FROM holdings WHERE portfolio_id = ?)',
+      whereArgs: [_selectedPortfolio!.id],
+      orderBy: 'date ASC',
+    );
+
+    double cumulativeValue = 0;
+    List<List<dynamic>> points = [];
+
+    // Initial point
+    if (transactions.isNotEmpty) {
+      // Add a starting point just before the first transaction?
+      // Or just start from 0 at the first date?
+    }
+
+    // Parse all transactions for list display (descending date usually better for list)
+    _allTransactions =
+        transactions.map((e) => TransactionModel.fromMap(e)).toList();
+    // Sort descending for list view (newest first)
+    _allTransactions.sort((a, b) => b.date.compareTo(a.date));
+
+    // For chart (chronological)
+    final chronologicalTransactions = [..._allTransactions]
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    for (var t in chronologicalTransactions) {
+      int typeIndex = 0;
+
+      if (t.type == TransactionType.BUY) {
+        typeIndex = 0;
+      } else {
+        typeIndex = 1;
+      }
+
+      final amount = t.amount;
+      final price = t.price;
+      final total = amount * price;
+      // final dateStr = t['date'] as String; // No longer map
+      final date = t.date;
+
+      // Enums: BUY=0, SELL=1
+      if (typeIndex == 0) {
+        // BUY
+        cumulativeValue += total;
+      } else {
+        // SELL
+        cumulativeValue -= total;
+      }
+
+      // Ensure positive only?
+      if (cumulativeValue < 0) cumulativeValue = 0;
+
+      points.add([date.millisecondsSinceEpoch.toDouble(), cumulativeValue]);
+    }
+    _historyPoints = points;
+    notifyListeners();
+  }
+
   void selectPortfolio(Portfolio portfolio) {
     _selectedPortfolio = portfolio;
-    loadHoldings(); // This notifies listeners
+    loadHoldings();
+    loadHistory(); // Load history when selected
   }
 
   // Add Transaction (Buy Logic)
@@ -178,7 +367,7 @@ class PortfolioProvider extends ChangeNotifier {
         final totalQuantity = existingHolding.quantity + transaction.amount;
         final totalCost =
             (existingHolding.quantity * existingHolding.averageCost) +
-            (transaction.amount * transaction.price);
+                (transaction.amount * transaction.price);
         newAverageCost = totalCost / totalQuantity;
         newQuantity = totalQuantity;
       } else {
@@ -192,7 +381,7 @@ class PortfolioProvider extends ChangeNotifier {
         // Calculate Realized Profit
         final realizedProfitFromThisSale =
             (transaction.price - existingHolding.averageCost) *
-            transaction.amount;
+                transaction.amount;
         newRealizedProfit += realizedProfitFromThisSale;
       }
 
@@ -245,5 +434,6 @@ class PortfolioProvider extends ChangeNotifier {
 
     await db.insert('transactions', newTransaction.toMap());
     await loadHoldings(); // Refresh holdings and stats
+    await loadHistory();
   }
 }

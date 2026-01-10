@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/portfolio_provider.dart';
@@ -18,12 +18,9 @@ class AssetDetailScreen extends StatelessWidget {
     return Consumer<PortfolioProvider>(
       builder: (context, provider, child) {
         // Find the updated holding from the list to ensure we show latest data
-        // If it's become closed (quantity 0), it might be in the full list
-        // holding.id should verify it.
         final currentHolding = provider.holdings.firstWhere(
           (h) => h.id == holding.id,
-          orElse: () =>
-              holding, // Fallback if not found (shouldn't happen if logic correct)
+          orElse: () => holding,
         );
 
         // Fetch price for P/L calculation
@@ -34,70 +31,110 @@ class AssetDetailScreen extends StatelessWidget {
         final totalCost = currentHolding.quantity * currentHolding.averageCost;
         final unrealizedPL = currentValue - totalCost;
         final plRate = totalCost > 0 ? (unrealizedPL / totalCost) * 100 : 0;
+        final isProfit = unrealizedPL >= 0;
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             elevation: 0,
-            iconTheme: const IconThemeData(color: Colors.black),
+            iconTheme: Theme.of(context).iconTheme,
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   currentHolding.symbol,
-                  style: const TextStyle(
-                    color: Colors.black,
+                  style: GoogleFonts.poppins(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   "Detay & İşlemler",
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  style: GoogleFonts.poppins(
+                    color: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.remove_red_eye),
-                onPressed: () {},
-              ),
-            ],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Info Card
-                _buildInfoRow(
-                  "Tutar",
-                  '₺${NumberFormat('#,##0.00', 'tr_TR').format(currentValue)}',
-                  true,
-                ),
-                _buildInfoRow("Adet", '${currentHolding.quantity}', false),
-                _buildInfoRow(
-                  "Alış Maliyeti",
-                  '₺${NumberFormat('#,##0.00', 'tr_TR').format(currentHolding.averageCost)}',
-                  false,
-                ),
-                _buildInfoRow(
-                  "Güncel Fiyat",
-                  '₺${NumberFormat('#,##0.00', 'tr_TR').format(currentPrice)}',
-                  true,
-                ), // Mocked for now
-                const Divider(height: 24),
-                _buildInfoRow(
-                  "Toplam Kâr/Zarar (₺)",
-                  '₺${NumberFormat('#,##0.00', 'tr_TR').format(unrealizedPL)}',
-                  true,
-                  color: unrealizedPL >= 0 ? Colors.green : Colors.red,
-                ),
-                _buildInfoRow(
-                  "Toplam Kâr/Zarar (%)",
-                  '%${plRate.toStringAsFixed(2)}',
-                  true,
-                  color: unrealizedPL >= 0 ? Colors.green : Colors.red,
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color:
+                          Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildInfoRow(
+                        context,
+                        "Tutar",
+                        '₺${NumberFormat('#,##0.00', 'tr_TR').format(currentValue)}',
+                        true,
+                        null,
+                      ),
+                      _buildInfoRow(
+                        context,
+                        "Adet",
+                        '${currentHolding.quantity}',
+                        false,
+                        null,
+                      ),
+                      _buildInfoRow(
+                        context,
+                        "Alış Maliyeti",
+                        '₺${NumberFormat('#,##0.00', 'tr_TR').format(currentHolding.averageCost)}',
+                        false,
+                        null,
+                      ),
+                      _buildInfoRow(
+                        context,
+                        "Güncel Fiyat",
+                        '₺${NumberFormat('#,##0.00', 'tr_TR').format(currentPrice)}',
+                        true,
+                        null,
+                      ),
+                      Divider(
+                        height: 24,
+                        color: Theme.of(context)
+                            .dividerColor
+                            .withValues(alpha: 0.2),
+                      ),
+                      _buildInfoRow(
+                        context,
+                        "Toplam Kâr/Zarar (₺)",
+                        '₺${NumberFormat('#,##0.00', 'tr_TR').format(unrealizedPL)}',
+                        true,
+                        isProfit ? Colors.green : Colors.red,
+                      ),
+                      _buildInfoRow(
+                        context,
+                        "Toplam Kâr/Zarar (%)",
+                        '%${plRate.toStringAsFixed(2)}',
+                        true,
+                        isProfit ? Colors.green : Colors.red,
+                      ),
+                    ],
+                  ),
                 ),
 
                 const SizedBox(height: 24),
@@ -108,31 +145,36 @@ class AssetDetailScreen extends StatelessWidget {
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[200],
-                      foregroundColor: Colors.black,
+                      backgroundColor: Theme.of(context).cardColor,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.color,
                       elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withValues(alpha: 0.2),
+                        ),
+                      ),
                     ),
                     onPressed: () {
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
-                          ),
-                        ),
+                        backgroundColor: Colors.transparent,
                         builder: (context) => AddTransactionScreen(
                           symbol: currentHolding.symbol,
                           name: "Varlık", // Simplified
-                          initialPrice:
-                              currentHolding.averageCost, // Simplified
+                          initialPrice: currentHolding.averageCost,
                           type: currentHolding.type,
                         ),
                       );
                     },
-                    child: const Text(
+                    child: Text(
                       "Yeni İşlem Ekle",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -140,9 +182,13 @@ class AssetDetailScreen extends StatelessWidget {
                 const SizedBox(height: 32),
 
                 // Transaction History
-                const Text(
+                Text(
                   "İşlemler",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
                 ),
                 const SizedBox(height: 16),
 
@@ -152,17 +198,26 @@ class AssetDetailScreen extends StatelessWidget {
                   ),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
+                      return Center(
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      );
                     }
                     final transactions = snapshot.data!;
 
                     if (transactions.isEmpty) {
-                      return const Text("İşlem geçmişi bulunamadı.");
+                      return Text(
+                        "İşlem geçmişi bulunamadı.",
+                        style: GoogleFonts.poppins(
+                          color: Theme.of(context).disabledColor,
+                        ),
+                      );
                     }
 
                     return Column(
                       children: transactions
-                          .map((t) => _buildTransactionItem(t))
+                          .map((t) => _buildTransactionItem(context, t))
                           .toList(),
                     );
                   },
@@ -170,20 +225,31 @@ class AssetDetailScreen extends StatelessWidget {
 
                 const SizedBox(height: 32),
 
-                // If closed, maybe show closed summary better
                 if (currentHolding.quantity == 0)
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.red[50],
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      "Bu pozisyon kapanmıştır. Toplam Realize Kâr: ₺${NumberFormat('#,##0.00', 'tr_TR').format(currentHolding.totalRealizedProfit)}",
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            "Bu pozisyon kapanmıştır.\nToplam Realize Kâr: ₺${NumberFormat('#,##0.00', 'tr_TR').format(currentHolding.totalRealizedProfit)}",
+                            style: GoogleFonts.poppins(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],
@@ -195,23 +261,32 @@ class AssetDetailScreen extends StatelessWidget {
   }
 
   Widget _buildInfoRow(
+    BuildContext context,
     String label,
     String value,
-    bool isBold, {
-    Color? color,
-  }) {
+    bool isBold,
+    Color? color, // Positional -> Named if possible, but keeping logic
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 14)),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+            ),
+          ),
           Text(
             value,
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: color ?? Colors.black,
+              color: color ?? Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
         ],
@@ -219,37 +294,57 @@ class AssetDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionItem(TransactionModel t) {
+  Widget _buildTransactionItem(BuildContext context, TransactionModel t) {
     final isBuy = t.type == TransactionType.BUY;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: isBuy ? Colors.green[100] : Colors.red[100],
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isBuy
+                  ? Colors.green.withValues(alpha: 0.1)
+                  : Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Icon(
-              isBuy ? Icons.arrow_upward : Icons.arrow_downward,
+              isBuy ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
               color: isBuy ? Colors.green : Colors.red,
-              size: 16,
+              size: 20,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 isBuy ? "Alış" : "Satış",
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
               ),
               Text(
                 DateFormat('dd MMM yyyy').format(t.date),
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                ),
               ),
             ],
           ),
@@ -259,11 +354,19 @@ class AssetDetailScreen extends StatelessWidget {
             children: [
               Text(
                 '₺${NumberFormat('#,##0.00', 'tr_TR').format(t.amount * t.price)}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
               ),
               Text(
-                "${t.amount} ${isBuy ? 'Lot' : 'Lot'}", // Simplified unit
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                "${t.amount} Adet",
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                ),
               ),
             ],
           ),

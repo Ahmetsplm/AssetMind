@@ -1,10 +1,17 @@
+import 'package:showcaseview/showcaseview.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../providers/favorite_provider.dart';
+import '../providers/market_provider.dart';
 import '../models/favorite.dart';
 import '../models/holding.dart'; // For AssetType
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'add_asset/asset_list_screen.dart';
+import 'news_screen.dart';
+import '../widgets/animated_price_widget.dart';
+import '../widgets/tech_analysis_button.dart';
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -14,174 +21,371 @@ class MarketScreen extends StatefulWidget {
 }
 
 class _MarketScreenState extends State<MarketScreen> {
-  final ApiService _api = ApiService();
   int _selectedCategoryIndex = 0; // 0: Özet, 1: BIST, 2: Kripto, 3: Döviz
   bool _isStockRising = true;
   bool _isCryptoRising = true;
 
+  final GlobalKey _oneKey = GlobalKey();
+  final GlobalKey _twoKey = GlobalKey();
+  final GlobalKey _threeKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          'Piyasalar',
+    return Consumer<MarketProvider>(
+      builder: (context, marketProvider, child) {
+        return ShowCaseWidget(
+          builder: (context) {
+            return DefaultTabController(
+              length: 2,
+              child: Scaffold(
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                appBar: _buildAppBar(context),
+                body: TabBarView(
+                  children: [_buildMarketTab(context), const NewsScreen()],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppBar(
+      title: Text(
+        'Piyasalar',
+        style: GoogleFonts.poppins(
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+          fontWeight: FontWeight.bold,
+          fontSize: 24,
+        ),
+      ),
+      backgroundColor: Theme.of(
+        context,
+      ).scaffoldBackgroundColor, // Ensure solid background for TabBar
+      elevation: 0,
+      centerTitle: false,
+      actions: [
+        IconButton(
+          icon: Icon(
+            Icons.help_outline_rounded,
+            color: Theme.of(context).iconTheme.color,
+            size: 28,
+          ),
+          onPressed: () {
+            ShowCaseWidget.of(
+              context,
+            ).startShowCase([_oneKey, _twoKey, _threeKey]);
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
+      bottom: TabBar(
+        labelColor: Theme.of(context).primaryColor,
+        unselectedLabelColor: Theme.of(context).disabledColor,
+        indicatorColor: Theme.of(context).primaryColor,
+        indicatorWeight: 3,
+        labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        tabs: const [
+          Tab(text: "Piyasa"),
+          Tab(text: "Haberler"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMarketTab(BuildContext context) {
+    final api = ApiService();
+    final summaryData = api.getMarketSummarySync();
+
+    return AnimationLimiter(
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // Category Selector
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: _buildCategorySelector(context),
+            ),
+          ),
+
+          // Horizontal Summary List
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: SizedBox(
+                height: 150, // Slightly taller for premium look
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
+                  itemCount: summaryData.length,
+                  itemBuilder: (context, index) {
+                    final item = summaryData[index];
+                    return AnimationConfiguration.staggeredList(
+                      position: index,
+                      duration: const Duration(milliseconds: 375),
+                      child: SlideAnimation(
+                        horizontalOffset: 50.0,
+                        child: FadeInAnimation(
+                          child: _buildMarketCard(context, item),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+
+          // BIST Movers Header
+          SliverToBoxAdapter(
+            child: Showcase(
+              key: _twoKey,
+              title: 'Hisse Senetleri',
+              description:
+                  'BIST 100 endeksindeki en çok yükselen ve düşen hisseleri buradan takip edebilirsiniz.',
+              child: _buildSectionHeader(
+                context,
+                'BIST 100',
+                'Piyasa Hareketleri',
+                _isStockRising,
+                (val) => setState(() => _isStockRising = val),
+              ),
+            ),
+          ),
+
+          // BIST Movers List (Sliver)
+          _buildSliverList(
+            context,
+            api.getStockMoversSync(isRising: _isStockRising),
+            false,
+            AssetType.STOCK,
+          ),
+
+          SliverToBoxAdapter(child: const SizedBox(height: 24)),
+
+          // Crypto Movers Header
+          SliverToBoxAdapter(
+            child: Showcase(
+              key: _threeKey,
+              title: 'Kripto Paralar',
+              description:
+                  'Kripto para piyasalarındaki anlık değişimleri buradan izleyebilirsiniz.',
+              child: _buildSectionHeader(
+                context,
+                'Kripto Para',
+                'Anlık Değişimler',
+                _isCryptoRising,
+                (val) => setState(() => _isCryptoRising = val),
+              ),
+            ),
+          ),
+
+          // Crypto Movers List (Sliver)
+          _buildSliverList(
+            context,
+            api.getCryptoMoversSync(isRising: _isCryptoRising),
+            true,
+            AssetType.CRYPTO,
+          ),
+
+          SliverToBoxAdapter(child: const SizedBox(height: 30)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title,
+    String subtitle,
+    bool isRising,
+    Function(bool) onToggle,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Row(
+              children: [
+                _buildToggleButton(
+                  context,
+                  'Yükselen',
+                  isRising,
+                  () => onToggle(true),
+                  Colors.green,
+                ),
+                _buildToggleButton(
+                  context,
+                  'Düşen',
+                  !isRising,
+                  () => onToggle(false),
+                  Colors.red,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleButton(
+    BuildContext context,
+    String text,
+    bool isActive,
+    VoidCallback onTap,
+    Color activeColor,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive
+              ? activeColor.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          text,
           style: GoogleFonts.poppins(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
+            color: isActive
+                ? activeColor
+                : Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
           ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildCategorySelector(),
-          Expanded(
-            child: _selectedCategoryIndex == 0
-                ? _buildSummaryView()
-                : _buildPlaceholderView(),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildCategorySelector() {
-    final categories = ['Özet', 'BIST', 'Kripto', 'Döviz'];
-    return SizedBox(
-      height: 60,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final isSelected = _selectedCategoryIndex == index;
-          return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: ChoiceChip(
-              label: Text(categories[index]),
-              selected: isSelected,
-              onSelected: (selected) =>
-                  setState(() => _selectedCategoryIndex = index),
-              backgroundColor: Colors.grey[200],
-              selectedColor: Colors.black,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
-                fontWeight: FontWeight.w600,
+  Widget _buildSliverList(
+    BuildContext context,
+    List<Map<String, dynamic>> data,
+    bool isCrypto,
+    AssetType type,
+  ) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          return AnimationConfiguration.staggeredList(
+            position: index,
+            duration: const Duration(milliseconds: 375),
+            child: SlideAnimation(
+              verticalOffset: 50.0,
+              child: FadeInAnimation(
+                child: _buildListItem(context, data[index], isCrypto, type),
               ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide.none,
-              ),
-              showCheckmark: false,
             ),
           );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSummaryView() {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: SizedBox(
-              height: 140,
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _api.getMarketSummary(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (!snapshot.hasData) return const SizedBox();
-
-                  return ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: snapshot.data!.length,
-                    itemBuilder: (context, index) {
-                      final item = snapshot.data![index];
-                      return _buildMarketCard(item);
-                    },
-                  );
-                },
-              ),
-            ),
-          ),
-
-          _buildMoversSection(
-            title: 'Piyasa Hareketleri - BIST',
-            isRising: _isStockRising,
-            onToggle: (val) => setState(() => _isStockRising = val),
-            future: _api.getStockMovers(isRising: _isStockRising),
-            type: AssetType.STOCK, // Assuming BIST Movers are Stocks
-          ),
-
-          const SizedBox(height: 20),
-
-          _buildMoversSection(
-            title: 'Piyasa Hareketleri - Kripto',
-            isRising: _isCryptoRising,
-            onToggle: (val) => setState(() => _isCryptoRising = val),
-            future: _api.getCryptoMovers(isRising: _isCryptoRising),
-            isCrypto: true,
-            type: AssetType.CRYPTO,
-          ),
-
-          const SizedBox(height: 30),
-        ],
+        }, childCount: data.length),
       ),
     );
   }
 
   AssetType _determineTypeFromSummary(String symbol) {
-    if (symbol.contains('Altın')) return AssetType.GOLD;
-    if (symbol.contains('USD') || symbol.contains('EUR'))
+    if (symbol.contains('Altın') ||
+        symbol.contains('Gümüş') ||
+        symbol.contains('Platin') ||
+        symbol.contains('Paladyum') ||
+        symbol == 'GRAM') {
+      return AssetType.GOLD;
+    }
+    if (symbol.contains('Dolar') ||
+        symbol.contains('Euro') ||
+        symbol.contains('USD') ||
+        symbol.contains('EUR')) {
       return AssetType.FOREX;
-    return AssetType.STOCK; // Default for BIST 100
+    }
+    return AssetType.STOCK;
   }
 
-  Widget _buildMarketCard(Map<String, dynamic> item) {
-    final bool isUp = item['is_rising'];
-    final Color color = isUp ? Colors.green : Colors.red;
-    final symbol = item['symbol'] as String;
-    // Special case for 'BIST 100' card, mapped to XU100 internally for favorites logic if needed,
-    // but the prompt says "BIST 100" so let's stick to the display symbol or a mapped key.
-    // Let's use the symbol string as ID.
-    final type = _determineTypeFromSummary(symbol);
+  String _getCanonicalSymbol(String displaySymbol) {
+    if (displaySymbol == 'BIST 100') return 'XU100';
+    if (displaySymbol == 'Dolar') return 'USD/TRY';
+    if (displaySymbol == 'Euro') return 'EUR/TRY';
+    return displaySymbol;
+  }
 
-    // Actually, prompt said "XU100" in favorites. Let's map "BIST 100" -> "XU100" for consistency.
-    final mappedSymbol = symbol == 'BIST 100' ? 'XU100' : symbol;
+  Widget _buildMarketCard(BuildContext context, Map<String, dynamic> item) {
+    final bool isUp = item['is_rising'];
+    final Color trendColor = isUp ? Colors.green : Colors.red;
+    final symbol = item['symbol'] as String;
+
+    final mappedSymbol = _getCanonicalSymbol(symbol);
+    final type = _determineTypeFromSummary(symbol);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Consumer<FavoriteProvider>(
       builder: (context, favoriteProvider, child) {
         final isFav = favoriteProvider.isFavorite(mappedSymbol);
 
         return Container(
-          width: 150,
-          margin: const EdgeInsets.only(right: 12),
+          width: 160,
+          margin: const EdgeInsets.only(right: 16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            // Slight gradient for depth
+            gradient: isDark
+                ? const LinearGradient(
+                    colors: [Color(0xFF1E1E1E), Color(0xFF252525)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : const LinearGradient(
+                    colors: [Colors.white, Color(0xFFF8F9FA)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: const Color.fromRGBO(0, 0, 0, 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
             ],
+            border: isDark ? Border.all(color: Colors.white10) : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,10 +397,12 @@ class _MarketScreenState extends State<MarketScreen> {
                   Expanded(
                     child: Text(
                       symbol,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black54,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -208,9 +414,11 @@ class _MarketScreenState extends State<MarketScreen> {
                       );
                     },
                     child: Icon(
-                      isFav ? Icons.star : Icons.star_border,
-                      size: 20,
-                      color: isFav ? Colors.amber : Colors.grey[400],
+                      isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                      size: 22,
+                      color: isFav
+                          ? const Color(0xFFFFB300)
+                          : Theme.of(context).disabledColor,
                     ),
                   ),
                 ],
@@ -218,32 +426,53 @@ class _MarketScreenState extends State<MarketScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item['value'].toString(),
-                    style: const TextStyle(
+                  AnimatedPriceWidget(
+                    numericValue: (item['raw_value'] as num?)?.toDouble() ??
+                        double.tryParse(
+                          item['value']
+                              .toString()
+                              .replaceAll('.', '')
+                              .replaceAll(',', '.'),
+                        ) ??
+                        0.0,
+                    displayString: item['value'].toString(),
+                    style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
-                      color: Colors.black87,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        isUp ? Icons.arrow_upward : Icons.arrow_downward,
-                        size: 14,
-                        color: color,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '%${item['change_rate']}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: color,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: trendColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isUp
+                              ? Icons.trending_up_rounded
+                              : Icons.trending_down_rounded,
+                          size: 14,
+                          color: trendColor,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          '%${item['change_rate']}',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            color: trendColor,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -254,119 +483,138 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Widget _buildMoversSection({
-    required String title,
-    required bool isRising,
-    required Function(bool) onToggle,
-    required Future<List<Map<String, dynamic>>> future,
-    bool isCrypto = false,
-    required AssetType type,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        ),
-        Padding(
+  Widget _buildCategorySelector(BuildContext context) {
+    final categories = ['Özet', 'BIST', 'Kripto', 'Döviz'];
+    return Showcase(
+      key: _oneKey,
+      title: 'Kategoriler',
+      description:
+          'Piyasa verilerini bu kategorilere göre filtreleyebilirsiniz.',
+      child: SizedBox(
+        height: 45,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              _buildToggleButton('Yükselen', isRising, () => onToggle(true)),
-              const SizedBox(width: 12),
-              _buildToggleButton('Düşen', !isRising, () => onToggle(false)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        FutureBuilder<List<Map<String, dynamic>>>(
-          future: future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.all(20),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            if (!snapshot.hasData) return const SizedBox();
+          itemCount: categories.length,
+          itemBuilder: (context, index) {
+            final isSelected = _selectedCategoryIndex == index && index == 0;
 
-            return ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) {
-                final item = snapshot.data![index];
-                return _buildListItem(item, isCrypto, type);
-              },
+            Color bgColor = isSelected
+                ? Theme.of(context).primaryColor
+                : Theme.of(context).cardColor;
+            Color textColor = isSelected
+                ? Colors.white
+                : Theme.of(context).textTheme.bodyMedium!.color!;
+
+            if (!isSelected) {
+              // Slight differentiation for non-selected
+              bgColor = Theme.of(context).dividerColor.withValues(alpha: 0.1);
+            }
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: GestureDetector(
+                onTap: () {
+                  if (index == 0) {
+                    setState(() => _selectedCategoryIndex = 0);
+                  } else {
+                    AssetType type;
+                    if (index == 1) {
+                      type = AssetType.STOCK;
+                    } else if (index == 2)
+                      type = AssetType.CRYPTO;
+                    else
+                      type = AssetType.FOREX;
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AssetListScreen(type: type),
+                      ),
+                    );
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(25),
+                    border: isSelected
+                        ? null
+                        : Border.all(
+                            color: Theme.of(
+                              context,
+                            ).dividerColor.withValues(alpha: 0.1),
+                          ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    categories[index],
+                    style: GoogleFonts.poppins(
+                      color: textColor,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
             );
           },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildToggleButton(String text, bool isActive, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.white : Colors.grey[200],
-          borderRadius: BorderRadius.circular(20),
-          border: isActive ? Border.all(color: Colors.grey.shade300) : null,
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: const Color.fromRGBO(0, 0, 0, 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isActive ? Colors.black : Colors.black54,
-            fontWeight: FontWeight.w600,
-          ),
         ),
       ),
     );
   }
 
   Widget _buildListItem(
+    BuildContext context,
     Map<String, dynamic> item,
     bool isCrypto,
     AssetType type,
   ) {
-    final double change = item['change'];
-    final bool isUp = change >= 0;
+    final double rawChange = item['raw_change'];
+    final bool isUp = rawChange >= 0;
     final symbol = item['symbol'] as String;
+    final String timeStr = item['time'] ?? '';
+
+    final trendColor = isUp ? Colors.green : Colors.red;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: Colors.grey[100],
-              shape: BoxShape.circle,
+              color: isCrypto
+                  ? const Color(0xFFFBBC05).withValues(alpha: 0.1)
+                  : const Color(0xFF4285F4).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
-              isCrypto ? Icons.currency_bitcoin : Icons.show_chart,
-              color: Colors.black87,
+              isCrypto
+                  ? Icons.currency_bitcoin_rounded
+                  : Icons.show_chart_rounded,
+              color:
+                  isCrypto ? const Color(0xFFFBBC05) : const Color(0xFF4285F4),
+              size: 24,
             ),
           ),
           const SizedBox(width: 16),
@@ -376,39 +624,55 @@ class _MarketScreenState extends State<MarketScreen> {
               children: [
                 Text(
                   symbol,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
                     fontSize: 16,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
-                Text(
-                  '10:07:39',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                ),
+                if (timeStr.isNotEmpty)
+                  Text(
+                    timeStr,
+                    style: GoogleFonts.poppins(
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                  ),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                '${item['price']}',
-                style: const TextStyle(
+              AnimatedPriceWidget(
+                numericValue: (item['raw_price'] as num?)?.toDouble() ??
+                    double.tryParse(
+                      item['price']
+                          .toString()
+                          .replaceAll('.', '')
+                          .replaceAll(',', '.'),
+                    ) ??
+                    0.0,
+                displayString: item['price'].toString(),
+                style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
               ),
               Container(
                 margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isUp ? Colors.green.shade50 : Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(4),
+                  color: trendColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '%${change.abs()}',
-                  style: TextStyle(
-                    color: isUp ? Colors.green : Colors.red,
+                  '%${item['change']}',
+                  style: GoogleFonts.poppins(
+                    color: trendColor,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
@@ -416,7 +680,7 @@ class _MarketScreenState extends State<MarketScreen> {
               ),
             ],
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Consumer<FavoriteProvider>(
             builder: (context, favoriteProvider, child) {
               final isFav = favoriteProvider.isFavorite(symbol);
@@ -427,18 +691,19 @@ class _MarketScreenState extends State<MarketScreen> {
                   );
                 },
                 child: Icon(
-                  isFav ? Icons.star : Icons.star_border,
-                  color: isFav ? Colors.amber : Colors.grey[400],
+                  isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                  color: isFav
+                      ? const Color(0xFFFFB300)
+                      : Theme.of(context).disabledColor,
+                  size: 24,
                 ),
               );
             },
           ),
+          const SizedBox(width: 8), // Spacing
+          TechAnalysisButton(symbol: symbol, type: type),
         ],
       ),
     );
-  }
-
-  Widget _buildPlaceholderView() {
-    return const Center(child: Text('Bu liste yakında eklenecek.'));
   }
 }

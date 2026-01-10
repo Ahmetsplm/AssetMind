@@ -6,6 +6,7 @@ import '../../providers/portfolio_provider.dart';
 import '../../models/holding.dart';
 import '../add_asset/asset_list_screen.dart';
 import 'asset_detail_screen.dart';
+import '../../widgets/tech_analysis_button.dart';
 
 class CategoryDetailScreen extends StatelessWidget {
   final AssetType type;
@@ -20,37 +21,58 @@ class CategoryDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           title,
           style: GoogleFonts.poppins(
-            color: Colors.black,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             fontWeight: FontWeight.bold,
+            fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.white,
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: Theme.of(context).iconTheme,
       ),
       body: Consumer<PortfolioProvider>(
         builder: (context, provider, child) {
           final allHoldings = provider.getHoldingsByType(type);
-          final activeHoldings = allHoldings
-              .where((h) => h.quantity > 0)
-              .toList();
-          final closedHoldings = allHoldings
-              .where((h) => h.quantity <= 0)
-              .toList();
+          final activeHoldings =
+              allHoldings.where((h) => h.quantity > 0).toList();
+          final closedHoldings =
+              allHoldings.where((h) => h.quantity <= 0).toList();
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
               if (activeHoldings.isEmpty && closedHoldings.isEmpty)
-                const Center(
+                Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: Text("Bu kategoride varlık bulunmuyor."),
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.hourglass_empty_rounded,
+                          size: 64,
+                          color: Theme.of(context).disabledColor,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Bu kategoride varlık bulunmuyor.",
+                          style: GoogleFonts.poppins(
+                            color: Theme.of(
+                              context,
+                            )
+                                .textTheme
+                                .bodyMedium
+                                ?.color
+                                ?.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -60,20 +82,29 @@ class CategoryDetailScreen extends StatelessWidget {
 
               if (closedHoldings.isNotEmpty) ...[
                 const SizedBox(height: 24),
-                const Row(
+                Row(
                   children: [
-                    Expanded(child: Divider()),
+                    Expanded(
+                      child: Divider(color: Theme.of(context).dividerColor),
+                    ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
                         "Kapanan Pozisyonlar",
-                        style: TextStyle(color: Colors.grey),
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                        ),
                       ),
                     ),
-                    Expanded(child: Divider()),
+                    Expanded(
+                      child: Divider(color: Theme.of(context).dividerColor),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 ...closedHoldings.map(
                   (h) =>
                       _buildHoldingItem(context, h, provider, isClosed: true),
@@ -93,12 +124,17 @@ class CategoryDetailScreen extends StatelessWidget {
             MaterialPageRoute(builder: (_) => AssetListScreen(type: type)),
           );
         },
-        label: const Text(
+        label: Text(
           "Yeni Varlık Ekle",
-          style: TextStyle(color: Colors.white),
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        icon: const Icon(Icons.add, color: Colors.white),
-        backgroundColor: const Color(0xFF1A237E),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        backgroundColor: Theme.of(context).primaryColor,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -109,44 +145,37 @@ class CategoryDetailScreen extends StatelessWidget {
     PortfolioProvider provider, {
     bool isClosed = false,
   }) {
-    // Need current price for calc
-    // In a real app we'd map this better, but let's access via provider helper or api
-    // Simply recalculate here for display
-    // Note: Provider doesn't expose price map directly publicly easily but we can access via holding extensions if we did that
-    // Or just look up from provider if we expose it.
-    // Let's assume provider has loaded prices.
+    // Current Price Logic Reuse
+    double curPrice = 0;
+    if (!isClosed) {
+      curPrice = provider.getCurrentPrice(holding.symbol);
+      if (curPrice == 0) curPrice = holding.averageCost;
+    }
 
-    // For now, since we don't have public access to price map in provider easily without getter,
-    // let's rely on cached avgCost if closed, or fetch via a hacked way or update provider.
-    // Actually, let's just use what we have.
-    // IF active, we want Current Value.
-    // We can assume loadHoldings fetched prices.
-
-    // Quick fix: Add public lookup to provider or calculate P/L
-    // Since we can't easily change provider signature mid-build without planning,
-    // let's assume we can calculate a rough Estimate or use avgCost as placeholder if price missing.
-    // Ideally we should have `currentPrice` on the Holding model or updated in memory.
-
-    // Let's USE Average Cost as Current Price for Closed positions (P/L is realized).
-    // For Active, we normally need the price map.
-
-    // Workaround: We will update PortfolioProvider to expose price helper or just ignore live price update here for a second
-    // but the prompt demands it.
-    // Actually `PortfolioProvider` has `_assetPrices` but it's private.
-    // Let's pretend we can't see live price for a second or...
-
-    // Better: I'll use a standard ListTile and user can click to see details.
-    // OR: I can modify Provider to check price.
-
-    return Card(
-      elevation: 0,
-      color: isClosed ? Colors.grey[50] : Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isClosed
+            ? Theme.of(context).disabledColor.withValues(alpha: 0.05)
+            : Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: isClosed
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).dividerColor.withValues(alpha: isClosed ? 0.05 : 0.1),
+        ),
+      ),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         onTap: () {
           Navigator.push(
             context,
@@ -156,58 +185,79 @@ class CategoryDetailScreen extends StatelessWidget {
           );
         },
         leading: Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isClosed ? Colors.grey[300] : Colors.blue[50],
-            borderRadius: BorderRadius.circular(8),
+            color: isClosed
+                ? Theme.of(context).disabledColor.withValues(alpha: 0.1)
+                : Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Text(
             holding.symbol.substring(0, 1),
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontWeight: FontWeight.bold,
-              color: isClosed ? Colors.grey : const Color(0xFF1A237E),
+              fontSize: 18,
+              color: isClosed
+                  ? Theme.of(context).disabledColor
+                  : Theme.of(context).primaryColor,
             ),
           ),
         ),
         title: Text(
           holding.symbol,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: isClosed
+                ? Theme.of(context).disabledColor
+                : Theme.of(context).textTheme.bodyLarge?.color,
+          ),
         ),
-        subtitle: Text(isClosed ? "Kapandı" : "${holding.quantity} Adet"),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        subtitle: Text(
+          isClosed ? "Kapandı" : "${holding.quantity} Adet",
+          style: GoogleFonts.poppins(
+            color: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+            fontSize: 12,
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Active: Show Current Value (Qty * CurrentPrice)
-            // Closed: Show Profit/Loss (Total Realized) because qty is 0
-            if (!isClosed) ...[
-              Builder(
-                builder: (context) {
-                  double curPrice = provider.getCurrentPrice(holding.symbol);
-                  if (curPrice == 0) curPrice = holding.averageCost;
-                  final val = holding.quantity * curPrice;
-
-                  return Text(
-                    '₺${NumberFormat('#,##0.00', 'tr_TR').format(val)}',
-                    style: const TextStyle(
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (!isClosed) ...[
+                  Text(
+                    '₺${NumberFormat('#,##0.00', 'tr_TR').format(holding.quantity * curPrice)}',
+                    style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      fontSize: 16,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
-                  );
-                },
-              ),
-            ] else ...[
-              // For Closed, the quantity is 0, so cost/val is 0. Show Realized Profit as main stat?
-              // Or just keep the subtitle.
-              Text(
-                'Kâr: ₺${NumberFormat('#,##0.00', 'tr_TR').format(holding.totalRealizedProfit)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: holding.totalRealizedProfit >= 0
-                      ? Colors.green
-                      : Colors.red,
-                ),
-              ),
+                  ),
+                ] else ...[
+                  Text(
+                    'Kâr: ₺${NumberFormat('#,##0.00', 'tr_TR').format(holding.totalRealizedProfit)}',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: holding.totalRealizedProfit >= 0
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (!isClosed &&
+                (holding.type == AssetType.STOCK ||
+                    holding.type == AssetType.CRYPTO)) ...[
+              const SizedBox(width: 8),
+              const SizedBox(width: 8),
+              TechAnalysisButton(symbol: holding.symbol, type: holding.type),
             ],
           ],
         ),
