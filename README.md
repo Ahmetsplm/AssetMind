@@ -2,9 +2,8 @@
 
 **AssetMind**, modern yatırımcılar için tasarlanmış kapsamlı bir kişisel finans ve portföy takip uygulamasıdır. Flutter ile geliştirilen bu uygulama, hisse senetleri (BIST), kripto paralar, döviz ve emtia varlıklarınızı tek bir yerden yönetmenizi, analiz etmenizi ve takip etmenizi sağlar.
 
-![AssetMind Banner](assets/banner.png) <!-- Varsayılan bir banner placeholder -->
 
-## 🚀 Özellikler
+## Özellikler
 
 *   **Çoklu Varlık Desteği**: BIST Hisseleri, Kripto Paralar, Döviz ve Altın/Emtia takibi.
 *   **Akıllı Portföy Analizi**: Portföy çeşitliliğinizi, risk dağılımınızı ve performansınızı puanlayan yapay zeka destekli analiz motoru.
@@ -29,7 +28,7 @@ Bu proje, modern Flutter geliştirme pratikleri ve güçlü kütüphaneler kulla
 *   **Shared Preferences**: Ayarların kaydedilmesi.
 *   **Http & Webfeed**: Ağ istekleri ve RSS ayrıştırma.
 
-## 📦 Kurulum
+## Kurulum
 
 Projeyi yerel ortamınızda çalıştırmak için aşağıdaki adımları izleyin:
 
@@ -48,12 +47,5 @@ Projeyi yerel ortamınızda çalıştırmak için aşağıdaki adımları izleyi
     ```bash
     flutter run
     ```
-
-## 📱 Ekran Görüntüleri
-
-| Ana Sayfa | Piyasa | Analiz | Varlık Ekleme |
-|-----------|--------|--------|---------------|
-| ![Home](assets/ss_home.png) | ![Market](assets/ss_market.png) | ![Analysis](assets/ss_analysis.png) | ![Add](assets/ss_add.png) |
-
 ---
 *AssetMind, finansal kararlarınızda size yardımcı olmayı amaçlar ancak bir yatırım tavsiyesi aracı değildir.*
