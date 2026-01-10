@@ -125,11 +125,57 @@ class PortfolioProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String _selectedCurrency = 'TRY';
+  String get selectedCurrency => _selectedCurrency;
+
+  String get currencySymbol {
+    switch (_selectedCurrency) {
+      case 'USD':
+        return '\$';
+      case 'EUR':
+        return '€';
+      default:
+        return '₺';
+    }
+  }
+
+  void toggleCurrency() {
+    if (_selectedCurrency == 'TRY') {
+      _selectedCurrency = 'USD';
+    } else if (_selectedCurrency == 'USD') {
+      _selectedCurrency = 'EUR';
+    } else {
+      _selectedCurrency = 'TRY';
+    }
+    notifyListeners();
+  }
+
+  double getConversionRate() {
+    if (_selectedCurrency == 'TRY') return 1.0;
+    final rateSym = _selectedCurrency == 'USD' ? 'USD/TRY' : 'EUR/TRY';
+    return _assetPrices[rateSym] ?? 1.0;
+  }
+
+  double get displayedTotalValue => totalPortfolioValue / getConversionRate();
+  double get displayedTotalCost => totalPortfolioCost / getConversionRate();
+  double get displayedTotalProfitLoss => totalProfitLoss / getConversionRate();
+
   Future<void> _fetchPrices() async {
-    if (_holdings.isEmpty) return;
-    final symbols = _holdings.map((e) => e.symbol).toList();
-    final api = ApiService(); // Or inject
+    // Always include currencies for conversion
+    final List<String> symbols = _holdings.map((e) => e.symbol).toList();
+    if (!symbols.contains('USD/TRY')) symbols.add('USD/TRY');
+    if (!symbols.contains('EUR/TRY')) symbols.add('EUR/TRY');
+
+    final api = ApiService();
     _assetPrices = await api.getCurrentPrices(symbols);
+    // Ensure we fetch if not in cache (getCurrentPrices usually reads cache or fetches if missing?
+    // Actually getCurrentPrices in ApiService might need valid cache.
+    // MarketProvider fetches these separately. ApiService.fetchForex() usually handles it.
+    // We should trigger a fetch if they are missing/zero.
+    if (_assetPrices['USD/TRY'] == null || _assetPrices['USD/TRY'] == 0) {
+      await api.fetchForex();
+      _assetPrices = await api.getCurrentPrices(symbols);
+    }
   }
 
   Future<void> addPortfolio(String name) async {

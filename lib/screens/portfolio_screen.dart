@@ -194,10 +194,11 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           );
         }
 
-        final totalValue = provider.totalPortfolioValue;
-        final totalPL = provider.totalProfitLoss;
+        final totalValue = provider.displayedTotalValue;
+        final totalPL = provider.displayedTotalProfitLoss;
         final plRate = provider.totalProfitLossRate;
         final isProfit = totalPL >= 0;
+        final currencySymbol = provider.currencySymbol;
 
         // Data for chart
         final Map<AssetType, double> data = provider.valueByType;
@@ -312,7 +313,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '₺${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
+                          '$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
                           style: GoogleFonts.poppins(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -386,7 +387,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                               _buildStatRow(
                                 context,
                                 "Net Kâr/Zarar",
-                                '${isProfit ? '+' : ''}₺${NumberFormat('#,##0.00', 'tr_TR').format(totalPL)}',
+                                '${isProfit ? '+' : ''}$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(totalPL)}',
                                 isProfit
                                     ? (isCustom
                                           ? Colors.white
@@ -423,20 +424,58 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               Positioned(
                 top: 12,
                 right: 12,
-                child: IconButton(
-                  icon: Icon(
-                    Icons.edit_rounded,
-                    color: subTextColor.withOpacity(0.5),
-                    size: 20,
-                  ),
-                  onPressed: () => _showCardStylePicker(context),
-                  tooltip: "Kart Stilini Düzenle",
+                child: Row(
+                  children: [
+                    _buildCurrencyToggle(context, provider, subTextColor),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(
+                        Icons.edit_rounded,
+                        color: subTextColor.withOpacity(0.5),
+                        size: 20,
+                      ),
+                      onPressed: () => _showCardStylePicker(context),
+                      tooltip: "Kart Stilini Düzenle",
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCurrencyToggle(
+    BuildContext context,
+    PortfolioProvider provider,
+    Color color,
+  ) {
+    return GestureDetector(
+      onTap: () => provider.toggleCurrency(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.swap_horiz_rounded, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              provider.selectedCurrency,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
