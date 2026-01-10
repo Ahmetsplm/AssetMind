@@ -11,6 +11,7 @@ import 'portfolio/category_detail_screen.dart';
 import '../theme/app_theme.dart';
 import '../providers/theme_provider.dart';
 import '../models/portfolio.dart';
+import '../widgets/analysis_sheet.dart';
 
 class PortfolioScreen extends StatefulWidget {
   const PortfolioScreen({super.key});
@@ -103,6 +104,36 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                       tooltip: "Portföy Adını Değiştir",
                     ),
                 ],
+              ),
+            ),
+            // ANALYSIS BUTTON
+            Container(
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(5),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.analytics_rounded,
+                  color: Theme.of(context).primaryColor,
+                ),
+                tooltip: "Portföy Analizi",
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    isScrollControlled: true,
+                    builder: (context) => const AnalysisSheet(),
+                  );
+                },
               ),
             ),
             Container(
