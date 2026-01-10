@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:ui' as ui;
+import 'package:flutter/services.dart';
 import 'market_screen.dart';
 import 'favorites_screen.dart';
 import 'add_asset/asset_type_selection_screen.dart';
@@ -113,7 +114,10 @@ class _HomeScreenState extends State<HomeScreen> {
         : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5);
 
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _currentIndex = index);
+      },
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.all(10),

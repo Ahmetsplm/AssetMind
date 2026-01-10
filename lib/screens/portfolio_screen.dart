@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // For HapticFeedback
 import 'package:shimmer/shimmer.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +22,8 @@ class PortfolioScreen extends StatefulWidget {
 }
 
 class _PortfolioScreenState extends State<PortfolioScreen> {
+  int touchedIndex = -1;
+
   @override
   void initState() {
     super.initState();
@@ -106,6 +109,35 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                 ],
               ),
             ),
+            // PRIVACY TOGGLE BUTTON
+            Container(
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(5),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: Icon(
+                  provider.isPrivacyMode
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  color: Theme.of(context).primaryColor,
+                  size: 22,
+                ),
+                tooltip: "Gizlilik Modu",
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  provider.togglePrivacyMode();
+                },
+              ),
+            ),
             // ANALYSIS BUTTON
             Container(
               margin: const EdgeInsets.only(right: 12),
@@ -127,6 +159,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                 ),
                 tooltip: "Portföy Analizi",
                 onPressed: () {
+                  HapticFeedback.lightImpact();
                   showModalBottomSheet(
                     context: context,
                     backgroundColor: Colors.transparent,
@@ -343,15 +376,25 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          '$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
+                        provider.isPrivacyMode
+                            ? Text(
+                                '****',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                  letterSpacing: 4,
+                                ),
+                              )
+                            : Text(
+                                '$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -370,8 +413,54 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                             children: [
                               PieChart(
                                 PieChartData(
-                                  sections: sections,
-                                  centerSpaceRadius: 45,
+                                  pieTouchData: PieTouchData(
+                                    touchCallback:
+                                        (FlTouchEvent event, pieTouchResponse) {
+                                          setState(() {
+                                            if (!event
+                                                    .isInterestedForInteractions ||
+                                                pieTouchResponse == null ||
+                                                pieTouchResponse
+                                                        .touchedSection ==
+                                                    null) {
+                                              touchedIndex = -1;
+                                              return;
+                                            }
+                                            touchedIndex = pieTouchResponse
+                                                .touchedSection!
+                                                .touchedSectionIndex;
+                                          });
+                                        },
+                                  ),
+                                  sections: sections
+                                      .asMap()
+                                      .map<int, PieChartSectionData>((
+                                        index,
+                                        data,
+                                      ) {
+                                        final isTouched = index == touchedIndex;
+                                        final double fontSize = isTouched
+                                            ? 16.0
+                                            : 0.0;
+                                        final double radius = isTouched
+                                            ? 30.0
+                                            : 20.0;
+
+                                        return MapEntry(
+                                          index,
+                                          data.copyWith(
+                                            radius: radius,
+                                            titleStyle: TextStyle(
+                                              fontSize: fontSize,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        );
+                                      })
+                                      .values
+                                      .toList(),
+                                  centerSpaceRadius: 40,
                                   sectionsSpace: 4,
                                   startDegreeOffset: -90,
                                 ),
@@ -782,6 +871,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                   total,
                   c['icon'],
                   c['color'],
+                  isPrivacyMode: provider.isPrivacyMode,
                 ),
               )
               .toList(),
@@ -799,367 +889,452 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     double value,
     double total,
     IconData icon,
-    Color color,
-  ) {
-    final percent = total > 0 ? (value / total) * 100 : 0;
-    // Brighten color for dark mode slightly to pop?
+    Color color, {
+    required bool isPrivacyMode,
+  }) {
+    final double percentage = total > 0 ? (value / total) * 100 : 0;
     Color displayColor = color;
 
+    return _AnimatedCategoryCard(
+      type: type,
+      title: title,
+      subtitle: subtitle,
+      count: count,
+      value: value,
+      percentage: percentage,
+      icon: icon,
+      color: displayColor,
+      isPrivacyMode: isPrivacyMode,
+    );
+  }
+}
+
+void _showAddPortfolioDialog(BuildContext context, PortfolioProvider provider) {
+  final TextEditingController controller = TextEditingController();
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: Theme.of(context).cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        'Yeni Portföy',
+        style: GoogleFonts.poppins(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
+      ),
+      content: TextField(
+        controller: controller,
+        cursorColor: Theme.of(context).primaryColor,
+        decoration: InputDecoration(
+          hintText: 'Portföy Adı (Örn: Emeklilik)',
+          hintStyle: GoogleFonts.poppins(
+            color: Theme.of(context).disabledColor,
+          ),
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Theme.of(context).dividerColor),
+          ),
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Theme.of(context).primaryColor),
+          ),
+        ),
+        style: GoogleFonts.poppins(
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'İptal',
+            style: GoogleFonts.poppins(color: Theme.of(context).disabledColor),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            if (controller.text.isNotEmpty) {
+              provider.addPortfolio(controller.text);
+              Navigator.pop(context);
+            }
+          },
+          child: Text(
+            'Oluştur',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showCardStylePicker(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        title: Text(
+          "Kart Stili",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: GridView.builder(
+            shrinkWrap: true,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
+            itemCount: AppTheme.cardGradients.length,
+            itemBuilder: (context, index) {
+              final gradient = AppTheme.cardGradients[index];
+              return GestureDetector(
+                onTap: () {
+                  Provider.of<ThemeProvider>(
+                    context,
+                    listen: false,
+                  ).setCardStyle(index);
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: gradient,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child:
+                      index ==
+                          Provider.of<ThemeProvider>(context).cardStyleIndex
+                      ? const Icon(Icons.check, color: Colors.white)
+                      : null,
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    },
+  );
+}
+
+Widget _buildSkeletonLoading(BuildContext context) {
+  final bool isDark = Theme.of(context).brightness == Brightness.dark;
+  return Column(
+    children: List.generate(3, (index) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Shimmer.fromColors(
+          baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+          highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
+          child: Container(
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
+      );
+    }),
+  );
+}
+
+Widget _buildEmptyState(BuildContext context) {
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(height: 40),
+        TweenAnimationBuilder(
+          tween: Tween<double>(begin: 0.8, end: 1.0),
+          duration: const Duration(seconds: 2),
+          curve: Curves.elasticOut,
+          builder: (context, double value, child) {
+            return Transform.scale(scale: value, child: child);
+          },
+          child: Icon(
+            Icons.sentiment_dissatisfied_rounded,
+            size: 80,
+            color: Theme.of(context).disabledColor.withOpacity(0.5),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          "Portföyün Boş",
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "Henüz hiç varlık eklemedin.\n'Portföyüm' sekmesinden ekleyebilirsin.",
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: Theme.of(context).disabledColor,
+          ),
+        ),
+        const SizedBox(height: 40),
+      ],
+    ),
+  );
+}
+
+void _showRenamePortfolioDialog(
+  BuildContext context,
+  PortfolioProvider provider,
+  Portfolio portfolio,
+) {
+  final TextEditingController controller = TextEditingController(
+    text: portfolio.name,
+  );
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: Theme.of(context).cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        'Portföy Adını Düzenle',
+        style: GoogleFonts.poppins(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
+      ),
+      content: TextField(
+        controller: controller,
+        cursorColor: Theme.of(context).primaryColor,
+        decoration: InputDecoration(
+          hintText: 'Yeni İsim',
+          hintStyle: GoogleFonts.poppins(
+            color: Theme.of(context).disabledColor,
+          ),
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Theme.of(context).dividerColor),
+          ),
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Theme.of(context).primaryColor),
+          ),
+        ),
+        style: GoogleFonts.poppins(
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'İptal',
+            style: GoogleFonts.poppins(color: Theme.of(context).disabledColor),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            if (controller.text.isNotEmpty) {
+              provider.renamePortfolio(portfolio.id!, controller.text);
+              Navigator.pop(context);
+            }
+          },
+          child: Text(
+            'Kaydet',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _AnimatedCategoryCard extends StatefulWidget {
+  final AssetType type;
+  final String title;
+  final String subtitle;
+  final int count;
+  final double value;
+  final double percentage;
+  final IconData icon;
+  final Color color;
+  final bool isPrivacyMode;
+
+  const _AnimatedCategoryCard({
+    super.key,
+    required this.type,
+    required this.title,
+    required this.subtitle,
+    required this.count,
+    required this.value,
+    required this.percentage,
+    required this.icon,
+    required this.color,
+    required this.isPrivacyMode,
+  });
+
+  @override
+  State<_AnimatedCategoryCard> createState() => _AnimatedCategoryCardState();
+}
+
+class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
+    final subTextColor = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.color?.withOpacity(0.6);
+
     return GestureDetector(
-      onTap: () {
+      onTapDown: (_) {
+        HapticFeedback.lightImpact();
+        _controller.forward();
+      },
+      onTapUp: (_) {
+        _controller.reverse();
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => CategoryDetailScreen(type: type, title: title),
+            builder: (_) =>
+                CategoryDetailScreen(type: widget.type, title: widget.title),
           ),
         );
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(5),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Icon Container
-            Container(
-              height: 52,
-              width: 52,
-              decoration: BoxDecoration(
-                color: displayColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
+      onTapCancel: () => _controller.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(5),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              child: Icon(icon, color: displayColor, size: 28),
-            ),
-            const SizedBox(width: 16),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Icon Container
+              Container(
+                height: 52,
+                width: 52,
+                decoration: BoxDecoration(
+                  color: widget.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(widget.icon, color: widget.color, size: 28),
+              ),
+              const SizedBox(width: 16),
 
-            // Text Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Text Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.title,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        color: textColor,
+                      ),
+                    ),
+                    Text(
+                      "${widget.count} Varlık • ${widget.subtitle}",
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: subTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Value & Percentage
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                  widget.isPrivacyMode
+                      ? Text(
+                          "**** ",
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: textColor,
+                            letterSpacing: 2,
+                          ),
+                        )
+                      : Text(
+                          '₺${NumberFormat('#,##0.00', 'tr_TR').format(widget.value)}',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: textColor,
+                          ),
+                        ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
                     ),
-                  ),
-                  Text(
-                    "$count Varlık • $subtitle",
-                    style: GoogleFonts.poppins(
-                      color: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.color?.withOpacity(0.6),
-                      fontSize: 12,
+                    decoration: BoxDecoration(
+                      color: widget.color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+                    child: Text(
+                      widget.isPrivacyMode
+                          ? "%-.-"
+                          : '%${widget.percentage.toStringAsFixed(1)}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: widget.color,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-
-            // Value Info
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '₺${NumberFormat('#,##0.00', 'tr_TR').format(value)}',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: displayColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    "%${percent.toStringAsFixed(1)}",
-                    style: GoogleFonts.poppins(
-                      color: displayColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAddPortfolioDialog(
-    BuildContext context,
-    PortfolioProvider provider,
-  ) {
-    final TextEditingController controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Yeni Portföy',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
+            ],
           ),
         ),
-        content: TextField(
-          controller: controller,
-          cursorColor: Theme.of(context).primaryColor,
-          decoration: InputDecoration(
-            hintText: 'Portföy Adı (Örn: Emeklilik)',
-            hintStyle: GoogleFonts.poppins(
-              color: Theme.of(context).disabledColor,
-            ),
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).dividerColor),
-            ),
-            focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).primaryColor),
-            ),
-          ),
-          style: GoogleFonts.poppins(
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'İptal',
-              style: GoogleFonts.poppins(
-                color: Theme.of(context).disabledColor,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                provider.addPortfolio(controller.text);
-                Navigator.pop(context);
-              }
-            },
-            child: Text(
-              'Oluştur',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCardStylePicker(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Theme.of(context).cardColor,
-          title: Text(
-            "Kart Stili",
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: GridView.builder(
-              shrinkWrap: true,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: AppTheme.cardGradients.length,
-              itemBuilder: (context, index) {
-                final gradient = AppTheme.cardGradients[index];
-                return GestureDetector(
-                  onTap: () {
-                    Provider.of<ThemeProvider>(
-                      context,
-                      listen: false,
-                    ).setCardStyle(index);
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: gradient,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child:
-                        index ==
-                            Provider.of<ThemeProvider>(context).cardStyleIndex
-                        ? const Icon(Icons.check, color: Colors.white)
-                        : null,
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSkeletonLoading(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      children: List.generate(3, (index) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Shimmer.fromColors(
-            baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
-            highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
-            child: Container(
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 40),
-          TweenAnimationBuilder(
-            tween: Tween<double>(begin: 0.8, end: 1.0),
-            duration: const Duration(seconds: 2),
-            curve: Curves.elasticOut,
-            builder: (context, double value, child) {
-              return Transform.scale(scale: value, child: child);
-            },
-            child: Icon(
-              Icons.sentiment_dissatisfied_rounded,
-              size: 80,
-              color: Theme.of(context).disabledColor.withOpacity(0.5),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            "Portföyün Boş",
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Henüz hiç varlık eklemedin.\n'Portföyüm' sekmesinden ekleyebilirsin.",
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: Theme.of(context).disabledColor,
-            ),
-          ),
-          const SizedBox(height: 40),
-        ],
-      ),
-    );
-  }
-
-  void _showRenamePortfolioDialog(
-    BuildContext context,
-    PortfolioProvider provider,
-    Portfolio portfolio,
-  ) {
-    final TextEditingController controller = TextEditingController(
-      text: portfolio.name,
-    );
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Portföy Adını Düzenle',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-        ),
-        content: TextField(
-          controller: controller,
-          cursorColor: Theme.of(context).primaryColor,
-          decoration: InputDecoration(
-            hintText: 'Yeni İsim',
-            hintStyle: GoogleFonts.poppins(
-              color: Theme.of(context).disabledColor,
-            ),
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).dividerColor),
-            ),
-            focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).primaryColor),
-            ),
-          ),
-          style: GoogleFonts.poppins(
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'İptal',
-              style: GoogleFonts.poppins(
-                color: Theme.of(context).disabledColor,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                provider.renamePortfolio(portfolio.id!, controller.text);
-                Navigator.pop(context);
-              }
-            },
-            child: Text(
-              'Kaydet',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

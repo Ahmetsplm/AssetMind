@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
 import '../models/portfolio.dart';
 import '../models/holding.dart';
@@ -13,15 +14,34 @@ class PortfolioProvider extends ChangeNotifier {
   List<Holding> _holdings = [];
   Map<String, double> _assetPrices = {};
   bool _isLoading = false;
+  bool _isPrivacyMode = false;
 
   List<Portfolio> get portfolios => _portfolios;
   Portfolio? get selectedPortfolio => _selectedPortfolio;
   List<Holding> get holdings => _holdings;
   bool get isLoading => _isLoading;
+  bool get isPrivacyMode => _isPrivacyMode;
   SortOption _sortOption = SortOption.valueDesc;
   SortOption get sortOption => _sortOption;
 
   int get activeHoldingsCount => _holdings.where((h) => h.quantity > 0).length;
+
+  PortfolioProvider() {
+    _loadPrivacyMode();
+  }
+
+  Future<void> _loadPrivacyMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isPrivacyMode = prefs.getBool('privacy_mode') ?? false;
+    notifyListeners();
+  }
+
+  Future<void> togglePrivacyMode() async {
+    _isPrivacyMode = !_isPrivacyMode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('privacy_mode', _isPrivacyMode);
+    notifyListeners();
+  }
 
   void setSortOption(SortOption option) {
     _sortOption = option;
