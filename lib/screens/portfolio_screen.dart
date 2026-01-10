@@ -65,7 +65,11 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       style: GoogleFonts.poppins(
         fontSize: 14,
         fontWeight: FontWeight.w500,
-        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+        color: Theme.of(context)
+            .textTheme
+            .bodyMedium
+            ?.color
+            ?.withValues(alpha: 0.6),
       ),
     );
   }
@@ -305,7 +309,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         if (sections.isEmpty) {
           sections.add(
             PieChartSectionData(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               value: 1,
               radius: 20,
               showTitle: false,
@@ -321,17 +325,21 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         final Gradient backgroundGradient = isCustom
             ? AppTheme.cardGradients[styleIndex]
             : (isDark
-                  ? AppTheme.darkCardGradient
-                  : const LinearGradient(
-                      colors: [Colors.white, Color(0xFFFAFAFA)],
-                    ));
+                ? AppTheme.darkCardGradient
+                : const LinearGradient(
+                    colors: [Colors.white, Color(0xFFFAFAFA)],
+                  ));
 
         final Color textColor = isCustom
             ? Colors.white
             : Theme.of(context).textTheme.bodyLarge!.color!;
         final Color subTextColor = isCustom
             ? Colors.white70
-            : Theme.of(context).textTheme.bodyMedium!.color!.withOpacity(0.6);
+            : Theme.of(context)
+                .textTheme
+                .bodyMedium!
+                .color!
+                .withValues(alpha: 0.6);
 
         return Container(
           decoration: BoxDecoration(
@@ -341,22 +349,24 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               BoxShadow(
                 color: isCustom
                     ? AppTheme.cardGradients[styleIndex].colors.first
-                          .withOpacity(0.3)
+                        .withValues(alpha: 0.3)
                     : (isDark
-                          ? Colors.black.withOpacity(0.5)
-                          : const Color(0xFF1A237E).withOpacity(0.08)),
+                        ? Colors.black.withValues(alpha: 0.5)
+                        : const Color(0xFF1A237E).withValues(alpha: 0.08)),
                 blurRadius: 25,
                 offset: const Offset(0, 10),
               ),
               if (!isCustom)
                 BoxShadow(
-                  color: isDark ? Colors.white.withOpacity(0.02) : Colors.white,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.02)
+                      : Colors.white,
                   blurRadius: 0,
                   offset: const Offset(0, 0),
                 ),
             ],
             border: isDark && !isCustom
-                ? Border.all(color: Colors.white.withOpacity(0.1))
+                ? Border.all(color: Colors.white.withValues(alpha: 0.1))
                 : null,
           ),
           child: Stack(
@@ -398,7 +408,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    Divider(height: 1, color: subTextColor.withOpacity(0.2)),
+                    Divider(
+                        height: 1, color: subTextColor.withValues(alpha: 0.2)),
                     const SizedBox(height: 24),
 
                     // Chart & Stats Row
@@ -416,21 +427,20 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                                   pieTouchData: PieTouchData(
                                     touchCallback:
                                         (FlTouchEvent event, pieTouchResponse) {
-                                          setState(() {
-                                            if (!event
-                                                    .isInterestedForInteractions ||
-                                                pieTouchResponse == null ||
-                                                pieTouchResponse
-                                                        .touchedSection ==
-                                                    null) {
-                                              touchedIndex = -1;
-                                              return;
-                                            }
-                                            touchedIndex = pieTouchResponse
-                                                .touchedSection!
-                                                .touchedSectionIndex;
-                                          });
-                                        },
+                                      setState(() {
+                                        if (!event
+                                                .isInterestedForInteractions ||
+                                            pieTouchResponse == null ||
+                                            pieTouchResponse.touchedSection ==
+                                                null) {
+                                          touchedIndex = -1;
+                                          return;
+                                        }
+                                        touchedIndex = pieTouchResponse
+                                            .touchedSection!
+                                            .touchedSectionIndex;
+                                      });
+                                    },
                                   ),
                                   sections: sections
                                       .asMap()
@@ -439,12 +449,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                                         data,
                                       ) {
                                         final isTouched = index == touchedIndex;
-                                        final double fontSize = isTouched
-                                            ? 16.0
-                                            : 0.0;
-                                        final double radius = isTouched
-                                            ? 30.0
-                                            : 20.0;
+                                        final double fontSize =
+                                            isTouched ? 16.0 : 0.0;
+                                        final double radius =
+                                            isTouched ? 30.0 : 20.0;
 
                                         return MapEntry(
                                           index,
@@ -481,11 +489,11 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                                       style: GoogleFonts.poppins(
                                         color: isProfit
                                             ? (isCustom
-                                                  ? Colors.white
-                                                  : Colors.green)
+                                                ? Colors.white
+                                                : Colors.green)
                                             : (isCustom
-                                                  ? Colors.white
-                                                  : Colors.red),
+                                                ? Colors.white
+                                                : Colors.red),
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
@@ -510,15 +518,15 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                                 '${isProfit ? '+' : ''}$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(totalPL)}',
                                 isProfit
                                     ? (isCustom
-                                          ? Colors.white
-                                          : (isDark
-                                                ? Colors.greenAccent
-                                                : Colors.green))
+                                        ? Colors.white
+                                        : (isDark
+                                            ? Colors.greenAccent
+                                            : Colors.green))
                                     : (isCustom
-                                          ? Colors.white
-                                          : (isDark
-                                                ? Colors.redAccent
-                                                : Colors.red)),
+                                        ? Colors.white
+                                        : (isDark
+                                            ? Colors.redAccent
+                                            : Colors.red)),
                                 textColor,
                                 subTextColor,
                               ),
@@ -551,7 +559,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                     IconButton(
                       icon: Icon(
                         Icons.edit_rounded,
-                        color: subTextColor.withOpacity(0.5),
+                        color: subTextColor.withValues(alpha: 0.5),
                         size: 20,
                       ),
                       onPressed: () => _showCardStylePicker(context),
@@ -577,9 +585,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
@@ -1006,13 +1014,12 @@ void _showCardStylePicker(BuildContext context) {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 5,
                       ),
                     ],
                   ),
-                  child:
-                      index ==
+                  child: index ==
                           Provider.of<ThemeProvider>(context).cardStyleIndex
                       ? const Icon(Icons.check, color: Colors.white)
                       : null,
@@ -1064,7 +1071,7 @@ Widget _buildEmptyState(BuildContext context) {
           child: Icon(
             Icons.sentiment_dissatisfied_rounded,
             size: 80,
-            color: Theme.of(context).disabledColor.withOpacity(0.5),
+            color: Theme.of(context).disabledColor.withValues(alpha: 0.5),
           ),
         ),
         const SizedBox(height: 16),
@@ -1170,7 +1177,6 @@ class _AnimatedCategoryCard extends StatefulWidget {
   final bool isPrivacyMode;
 
   const _AnimatedCategoryCard({
-    super.key,
     required this.type,
     required this.title,
     required this.subtitle,
@@ -1215,7 +1221,7 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard>
     final textColor = Theme.of(context).textTheme.bodyLarge?.color;
     final subTextColor = Theme.of(
       context,
-    ).textTheme.bodyMedium?.color?.withOpacity(0.6);
+    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
 
     return GestureDetector(
       onTapDown: (_) {
@@ -1256,7 +1262,7 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard>
                 height: 52,
                 width: 52,
                 decoration: BoxDecoration(
-                  color: widget.color.withOpacity(0.1),
+                  color: widget.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(widget.icon, color: widget.color, size: 28),
@@ -1316,7 +1322,7 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: widget.color.withOpacity(0.1),
+                      color: widget.color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(

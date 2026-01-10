@@ -39,12 +39,10 @@ class CategoryDetailScreen extends StatelessWidget {
       body: Consumer<PortfolioProvider>(
         builder: (context, provider, child) {
           final allHoldings = provider.getHoldingsByType(type);
-          final activeHoldings = allHoldings
-              .where((h) => h.quantity > 0)
-              .toList();
-          final closedHoldings = allHoldings
-              .where((h) => h.quantity <= 0)
-              .toList();
+          final activeHoldings =
+              allHoldings.where((h) => h.quantity > 0).toList();
+          final closedHoldings =
+              allHoldings.where((h) => h.quantity <= 0).toList();
 
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -66,7 +64,11 @@ class CategoryDetailScreen extends StatelessWidget {
                           style: GoogleFonts.poppins(
                             color: Theme.of(
                               context,
-                            ).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                            )
+                                .textTheme
+                                .bodyMedium
+                                ?.color
+                                ?.withValues(alpha: 0.5),
                           ),
                         ),
                       ],
@@ -93,7 +95,7 @@ class CategoryDetailScreen extends StatelessWidget {
                           fontSize: 12,
                           color: Theme.of(
                             context,
-                          ).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                          ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                         ),
                       ),
                     ),
@@ -154,14 +156,14 @@ class CategoryDetailScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: isClosed
-            ? Theme.of(context).disabledColor.withOpacity(0.05)
+            ? Theme.of(context).disabledColor.withValues(alpha: 0.05)
             : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: isClosed
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
+                  color: Colors.black.withValues(alpha: 0.02),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -169,7 +171,7 @@ class CategoryDetailScreen extends StatelessWidget {
         border: Border.all(
           color: Theme.of(
             context,
-          ).dividerColor.withOpacity(isClosed ? 0.05 : 0.1),
+          ).dividerColor.withValues(alpha: isClosed ? 0.05 : 0.1),
         ),
       ),
       child: ListTile(
@@ -186,8 +188,8 @@ class CategoryDetailScreen extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isClosed
-                ? Theme.of(context).disabledColor.withOpacity(0.1)
-                : Theme.of(context).primaryColor.withOpacity(0.1),
+                ? Theme.of(context).disabledColor.withValues(alpha: 0.1)
+                : Theme.of(context).primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Text(
@@ -216,7 +218,7 @@ class CategoryDetailScreen extends StatelessWidget {
           style: GoogleFonts.poppins(
             color: Theme.of(
               context,
-            ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+            ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
             fontSize: 12,
           ),
         ),

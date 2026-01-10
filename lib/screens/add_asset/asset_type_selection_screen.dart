@@ -44,7 +44,7 @@ class AssetTypeSelectionScreen extends StatelessWidget {
               style: GoogleFonts.poppins(
                 color: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 fontSize: 14,
               ),
             ),
@@ -124,11 +124,11 @@ class AssetTypeSelectionScreen extends StatelessWidget {
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Theme.of(context).dividerColor.withOpacity(0.1),
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -218,11 +218,11 @@ class AssetTypeSelectionScreen extends StatelessWidget {
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Theme.of(context).dividerColor.withOpacity(0.1),
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -236,7 +236,7 @@ class AssetTypeSelectionScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 32),
@@ -259,7 +259,7 @@ class AssetTypeSelectionScreen extends StatelessWidget {
                 fontSize: 12,
                 color: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 fontWeight: FontWeight.w400,
               ),
               maxLines: 2,

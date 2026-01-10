@@ -35,7 +35,7 @@ class AnalysisSheet extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -78,7 +78,7 @@ class AnalysisSheet extends StatelessWidget {
                       strokeWidth: 12,
                       backgroundColor: Theme.of(
                         context,
-                      ).dividerColor.withOpacity(0.1),
+                      ).dividerColor.withValues(alpha: 0.1),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         _getColor(result.statusColor),
                       ),
@@ -173,7 +173,7 @@ class AnalysisSheet extends StatelessWidget {
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: _getTypeColor(rec.type).withOpacity(0.2),
+                          color: _getTypeColor(rec.type).withValues(alpha: 0.2),
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -188,7 +188,8 @@ class AnalysisSheet extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: _getTypeColor(rec.type).withOpacity(0.1),
+                              color: _getTypeColor(rec.type)
+                                  .withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(

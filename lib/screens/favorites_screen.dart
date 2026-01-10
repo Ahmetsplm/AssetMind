@@ -148,36 +148,29 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final stocks = uniqueFavorites
         .where((f) => f.type == AssetType.STOCK && f.symbol != 'XU100')
         .toList();
-    final gold = uniqueFavorites
-        .where((f) => f.type == AssetType.GOLD)
-        .toList();
-    final forex = uniqueFavorites
-        .where((f) => f.type == AssetType.FOREX)
-        .toList();
-    final crypto = uniqueFavorites
-        .where((f) => f.type == AssetType.CRYPTO)
-        .toList();
+    final gold =
+        uniqueFavorites.where((f) => f.type == AssetType.GOLD).toList();
+    final forex =
+        uniqueFavorites.where((f) => f.type == AssetType.FOREX).toList();
+    final crypto =
+        uniqueFavorites.where((f) => f.type == AssetType.CRYPTO).toList();
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 20),
       children: [
         if (xu100 != null) _buildSpecialCard(context, xu100),
-
         if (stocks.isNotEmpty) ...[
           _buildSectionHeader(context, 'Hisse Senetleri'),
           ...stocks.map((f) => _buildListItem(context, f)),
         ],
-
         if (gold.isNotEmpty) ...[
           _buildSectionHeader(context, 'Kıymetli Madenler'),
           ...gold.map((f) => _buildListItem(context, f)),
         ],
-
         if (forex.isNotEmpty) ...[
           _buildSectionHeader(context, 'Döviz'),
           ...forex.map((f) => _buildListItem(context, f)),
         ],
-
         if (crypto.isNotEmpty) ...[
           _buildSectionHeader(context, 'Kripto Paralar'),
           ...crypto.map((f) => _buildListItem(context, f)),
@@ -199,7 +192,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         gradient: LinearGradient(
           colors: [
             Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withOpacity(0.8),
+            Theme.of(context).primaryColor.withValues(alpha: 0.8),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -207,7 +200,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).primaryColor.withOpacity(0.3),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -253,8 +246,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: isUp
-                      ? Colors.greenAccent.withOpacity(0.2)
-                      : Colors.redAccent.withOpacity(0.2),
+                      ? Colors.greenAccent.withValues(alpha: 0.2)
+                      : Colors.redAccent.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -298,7 +291,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             style: GoogleFonts.poppins(
               color: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+              ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
               fontSize: 14,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
@@ -353,7 +346,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -365,7 +358,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: iconColor, size: 24),
@@ -379,20 +372,20 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   (item.symbol == 'USD/TRY')
                       ? 'USD'
                       : (item.symbol == 'EUR/TRY')
-                      ? 'EUR'
-                      : (item.symbol == 'GRAM')
-                      ? 'Gram Altın'
-                      : (item.symbol == 'CEYREK')
-                      ? 'Çeyrek Altın'
-                      : (item.symbol == 'YARIM')
-                      ? 'Yarım Altın'
-                      : (item.symbol == 'TAM')
-                      ? 'Tam Altın'
-                      : (item.symbol == 'CUMHURIYET')
-                      ? 'Cumhuriyet Altın'
-                      : (item.symbol == 'ONS')
-                      ? 'Ons Altın'
-                      : item.symbol,
+                          ? 'EUR'
+                          : (item.symbol == 'GRAM')
+                              ? 'Gram Altın'
+                              : (item.symbol == 'CEYREK')
+                                  ? 'Çeyrek Altın'
+                                  : (item.symbol == 'YARIM')
+                                      ? 'Yarım Altın'
+                                      : (item.symbol == 'TAM')
+                                          ? 'Tam Altın'
+                                          : (item.symbol == 'CUMHURIYET')
+                                              ? 'Cumhuriyet Altın'
+                                              : (item.symbol == 'ONS')
+                                                  ? 'Ons Altın'
+                                                  : item.symbol,
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -404,7 +397,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   style: GoogleFonts.poppins(
                     color: Theme.of(
                       context,
-                    ).textTheme.bodyMedium?.color?.withOpacity(0.4),
+                    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
                     fontSize: 11,
                   ),
                 ),
@@ -427,8 +420,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: isUp
-                      ? Colors.green.withOpacity(0.1)
-                      : Colors.red.withOpacity(0.1),
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(

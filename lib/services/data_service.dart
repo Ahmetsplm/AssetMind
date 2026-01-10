@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:sqflite/sqflite.dart';
 import '../database/database_helper.dart';
 
 class DataService {
@@ -95,7 +95,7 @@ class DataService {
 
       return true;
     } catch (e) {
-      print('Import Error: $e');
+      debugPrint('Import Error: $e');
       return false;
     }
   }

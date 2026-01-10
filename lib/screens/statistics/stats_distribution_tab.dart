@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../providers/portfolio_provider.dart';
 import '../../models/holding.dart';
 
@@ -15,9 +14,8 @@ class StatsDistributionTab extends StatelessWidget {
         final totalValue = provider.displayedTotalValue;
 
         // Calculate data
-        final holdings = provider.holdings
-            .where((h) => h.quantity > 0)
-            .toList();
+        final holdings =
+            provider.holdings.where((h) => h.quantity > 0).toList();
         final List<Map<String, dynamic>> distData = holdings.map((h) {
           final price = provider.getCurrentPrice(h.symbol);
           final val = h.quantity * price;
@@ -103,7 +101,7 @@ class StatsDistributionTab extends StatelessWidget {
                       value: percent / 100,
                       backgroundColor: Theme.of(
                         context,
-                      ).dividerColor.withOpacity(0.1),
+                      ).dividerColor.withValues(alpha: 0.1),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         _getColorForIndex(index, context),
                       ),

@@ -50,15 +50,15 @@ class PortfolioProvider extends ChangeNotifier {
 
   // Stats
   double get totalPortfolioValue => _holdings.fold(0, (sum, h) {
-    if (h.quantity <= 0) return sum; // Skip closed positions
-    final price = _assetPrices[h.symbol] ?? h.averageCost;
-    return sum + (h.quantity * price);
-  });
+        if (h.quantity <= 0) return sum; // Skip closed positions
+        final price = _assetPrices[h.symbol] ?? h.averageCost;
+        return sum + (h.quantity * price);
+      });
 
   double get totalPortfolioCost => _holdings.fold(0, (sum, h) {
-    if (h.quantity <= 0) return sum;
-    return sum + (h.quantity * h.averageCost);
-  });
+        if (h.quantity <= 0) return sum;
+        return sum + (h.quantity * h.averageCost);
+      });
 
   double get totalProfitLoss => totalPortfolioValue - totalPortfolioCost;
 
@@ -114,12 +114,10 @@ class PortfolioProvider extends ChangeNotifier {
     _portfolios = result.map((e) => Portfolio.fromMap(e)).toList();
 
     if (_portfolios.isNotEmpty) {
-      if (_selectedPortfolio == null) {
-        _selectedPortfolio = _portfolios.firstWhere(
+      _selectedPortfolio ??= _portfolios.firstWhere(
           (p) => p.isDefault,
           orElse: () => _portfolios.first,
         );
-      }
       await loadHoldings();
     }
     notifyListeners();
@@ -277,9 +275,8 @@ class PortfolioProvider extends ChangeNotifier {
     }
 
     // Parse all transactions for list display (descending date usually better for list)
-    _allTransactions = transactions
-        .map((e) => TransactionModel.fromMap(e))
-        .toList();
+    _allTransactions =
+        transactions.map((e) => TransactionModel.fromMap(e)).toList();
     // Sort descending for list view (newest first)
     _allTransactions.sort((a, b) => b.date.compareTo(a.date));
 
@@ -288,7 +285,6 @@ class PortfolioProvider extends ChangeNotifier {
       ..sort((a, b) => a.date.compareTo(b.date));
 
     for (var t in chronologicalTransactions) {
-      final dynamic typeRaw = t.type; // t is now TransactionModel
       int typeIndex = 0;
 
       if (t.type == TransactionType.BUY) {
@@ -358,7 +354,7 @@ class PortfolioProvider extends ChangeNotifier {
         final totalQuantity = existingHolding.quantity + transaction.amount;
         final totalCost =
             (existingHolding.quantity * existingHolding.averageCost) +
-            (transaction.amount * transaction.price);
+                (transaction.amount * transaction.price);
         newAverageCost = totalCost / totalQuantity;
         newQuantity = totalQuantity;
       } else {
@@ -372,7 +368,7 @@ class PortfolioProvider extends ChangeNotifier {
         // Calculate Realized Profit
         final realizedProfitFromThisSale =
             (transaction.price - existingHolding.averageCost) *
-            transaction.amount;
+                transaction.amount;
         newRealizedProfit += realizedProfitFromThisSale;
       }
 

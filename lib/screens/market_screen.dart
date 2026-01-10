@@ -97,8 +97,6 @@ class _MarketScreenState extends State<MarketScreen> {
 
   Widget _buildMarketTab(BuildContext context) {
     final api = ApiService();
-    // In a real app, this should be async/future builder or from provider
-    // Using Sync here as per existing pattern
     final summaryData = api.getMarketSummarySync();
 
     return AnimationLimiter(
@@ -150,7 +148,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   'BIST 100 endeksindeki en çok yükselen ve düşen hisseleri buradan takip edebilirsiniz.',
               child: _buildSectionHeader(
                 context,
-                'BIST 100', // Cleaner title
+                'BIST 100',
                 'Piyasa Hareketleri',
                 _isStockRising,
                 (val) => setState(() => _isStockRising = val),
@@ -228,7 +226,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   fontSize: 12,
                   color: Theme.of(
                     context,
-                  ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -239,7 +237,7 @@ class _MarketScreenState extends State<MarketScreen> {
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Theme.of(context).dividerColor.withOpacity(0.1),
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
               ),
             ),
             child: Row(
@@ -278,7 +276,9 @@ class _MarketScreenState extends State<MarketScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? activeColor.withOpacity(0.1) : Colors.transparent,
+          color: isActive
+              ? activeColor.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
@@ -288,7 +288,7 @@ class _MarketScreenState extends State<MarketScreen> {
                 ? activeColor
                 : Theme.of(
                     context,
-                  ).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
             fontWeight: FontWeight.w600,
             fontSize: 12,
           ),
@@ -327,13 +327,15 @@ class _MarketScreenState extends State<MarketScreen> {
         symbol.contains('Gümüş') ||
         symbol.contains('Platin') ||
         symbol.contains('Paladyum') ||
-        symbol == 'GRAM')
+        symbol == 'GRAM') {
       return AssetType.GOLD;
+    }
     if (symbol.contains('Dolar') ||
         symbol.contains('Euro') ||
         symbol.contains('USD') ||
-        symbol.contains('EUR'))
+        symbol.contains('EUR')) {
       return AssetType.FOREX;
+    }
     return AssetType.STOCK;
   }
 
@@ -378,7 +380,7 @@ class _MarketScreenState extends State<MarketScreen> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -400,7 +402,7 @@ class _MarketScreenState extends State<MarketScreen> {
                         fontSize: 14,
                         color: Theme.of(
                           context,
-                        ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                        ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -425,8 +427,7 @@ class _MarketScreenState extends State<MarketScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AnimatedPriceWidget(
-                    numericValue:
-                        (item['raw_value'] as num?)?.toDouble() ??
+                    numericValue: (item['raw_value'] as num?)?.toDouble() ??
                         double.tryParse(
                           item['value']
                               .toString()
@@ -448,7 +449,7 @@ class _MarketScreenState extends State<MarketScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: trendColor.withOpacity(0.1),
+                      color: trendColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -507,7 +508,7 @@ class _MarketScreenState extends State<MarketScreen> {
 
             if (!isSelected) {
               // Slight differentiation for non-selected
-              bgColor = Theme.of(context).dividerColor.withOpacity(0.1);
+              bgColor = Theme.of(context).dividerColor.withValues(alpha: 0.1);
             }
 
             return Padding(
@@ -518,9 +519,9 @@ class _MarketScreenState extends State<MarketScreen> {
                     setState(() => _selectedCategoryIndex = 0);
                   } else {
                     AssetType type;
-                    if (index == 1)
+                    if (index == 1) {
                       type = AssetType.STOCK;
-                    else if (index == 2)
+                    } else if (index == 2)
                       type = AssetType.CRYPTO;
                     else
                       type = AssetType.FOREX;
@@ -547,7 +548,7 @@ class _MarketScreenState extends State<MarketScreen> {
                         : Border.all(
                             color: Theme.of(
                               context,
-                            ).dividerColor.withOpacity(0.1),
+                            ).dividerColor.withValues(alpha: 0.1),
                           ),
                   ),
                   alignment: Alignment.center,
@@ -555,9 +556,8 @@ class _MarketScreenState extends State<MarketScreen> {
                     categories[index],
                     style: GoogleFonts.poppins(
                       color: textColor,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
                       fontSize: 14,
                     ),
                   ),
@@ -591,7 +591,7 @@ class _MarketScreenState extends State<MarketScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -604,17 +604,16 @@ class _MarketScreenState extends State<MarketScreen> {
             height: 48,
             decoration: BoxDecoration(
               color: isCrypto
-                  ? const Color(0xFFFBBC05).withOpacity(0.1)
-                  : const Color(0xFF4285F4).withOpacity(0.1),
+                  ? const Color(0xFFFBBC05).withValues(alpha: 0.1)
+                  : const Color(0xFF4285F4).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
               isCrypto
                   ? Icons.currency_bitcoin_rounded
                   : Icons.show_chart_rounded,
-              color: isCrypto
-                  ? const Color(0xFFFBBC05)
-                  : const Color(0xFF4285F4),
+              color:
+                  isCrypto ? const Color(0xFFFBBC05) : const Color(0xFF4285F4),
               size: 24,
             ),
           ),
@@ -637,7 +636,7 @@ class _MarketScreenState extends State<MarketScreen> {
                     style: GoogleFonts.poppins(
                       color: Theme.of(
                         context,
-                      ).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                      ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                       fontSize: 12,
                     ),
                   ),
@@ -648,8 +647,7 @@ class _MarketScreenState extends State<MarketScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               AnimatedPriceWidget(
-                numericValue:
-                    (item['raw_price'] as num?)?.toDouble() ??
+                numericValue: (item['raw_price'] as num?)?.toDouble() ??
                     double.tryParse(
                       item['price']
                           .toString()
@@ -668,7 +666,7 @@ class _MarketScreenState extends State<MarketScreen> {
                 margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: trendColor.withOpacity(0.1),
+                  color: trendColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(

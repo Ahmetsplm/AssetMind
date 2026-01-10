@@ -48,7 +48,6 @@ class _NewsScreenState extends State<NewsScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return RefreshIndicator(
       onRefresh: _refreshNews,
@@ -114,7 +113,8 @@ class _NewsScreenState extends State<NewsScreen>
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: Theme.of(context).dividerColor.withOpacity(0.1),
+                    color:
+                        Theme.of(context).dividerColor.withValues(alpha: 0.1),
                   ),
                 ),
                 child: InkWell(
@@ -153,7 +153,7 @@ class _NewsScreenState extends State<NewsScreen>
                                       .textTheme
                                       .bodyMedium
                                       ?.color
-                                      ?.withOpacity(0.5),
+                                      ?.withValues(alpha: 0.5),
                                 ),
                               ),
                             ],

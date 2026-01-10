@@ -153,7 +153,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -246,7 +246,11 @@ class _AssetListScreenState extends State<AssetListScreen> {
                             style: GoogleFonts.poppins(
                               color: Theme.of(
                                 context,
-                              ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                              )
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.color
+                                  ?.withValues(alpha: 0.7),
                               fontSize: 12,
                             ),
                           ),
@@ -273,7 +277,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -317,7 +321,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
             fontSize: 12,
             color: Theme.of(
               context,
-            ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+            ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -345,7 +349,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: trendColor.withOpacity(0.1),
+                    color: trendColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(

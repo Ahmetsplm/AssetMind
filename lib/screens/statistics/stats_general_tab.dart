@@ -177,7 +177,7 @@ class StatsGeneralTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(iconData ?? icon, color: iconColor, size: 24),
@@ -215,14 +215,15 @@ class StatsGeneralTab extends StatelessWidget {
   List<PieChartSectionData> _buildChartSections(PortfolioProvider provider) {
     List<PieChartSectionData> sections = [];
     final total = provider.displayedTotalValue;
-    if (total == 0)
+    if (total == 0) {
       return [
         PieChartSectionData(
           value: 1,
-          color: Colors.grey.withOpacity(0.1),
+          color: Colors.grey.withValues(alpha: 0.1),
           showTitle: false,
         ),
       ];
+    }
 
     void addSection(AssetType type, Color color) {
       final val = provider.getValueByType(type);

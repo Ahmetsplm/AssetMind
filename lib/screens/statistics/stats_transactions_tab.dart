@@ -74,7 +74,7 @@ class StatsTransactionsTab extends StatelessWidget {
                     Container(
                       height: 40,
                       width: 1,
-                      color: Colors.grey.withOpacity(0.2),
+                      color: Colors.grey.withValues(alpha: 0.2),
                     ),
                     _buildStatCol(
                       context,
@@ -130,8 +130,9 @@ class StatsTransactionsTab extends StatelessWidget {
                                 showTitles: true,
                                 getTitlesWidget: (value, meta) {
                                   // value is month index 1-12
-                                  if (value < 1 || value > 12)
+                                  if (value < 1 || value > 12) {
                                     return const SizedBox.shrink();
+                                  }
                                   final date = DateTime(2023, value.toInt());
                                   return Text(
                                     DateFormat.MMM('tr_TR').format(date),
@@ -209,8 +210,8 @@ class StatsTransactionsTab extends StatelessWidget {
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: isBuy
-                              ? Colors.green.withOpacity(0.1)
-                              : Colors.red.withOpacity(0.1),
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.red.withValues(alpha: 0.1),
                           child: Icon(
                             isBuy
                                 ? Icons.arrow_downward_rounded

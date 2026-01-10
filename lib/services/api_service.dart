@@ -629,35 +629,38 @@ class ApiService {
         for (var m in metals) {
           final s = m['key']!;
           final d = _cache[s];
-          if (d != null)
+          if (d != null) {
             results.add({
               'symbol': s,
               'name': m['name'],
               'price': d.price,
               'change': d.change,
             });
+          }
         }
         break;
       case AssetType.FOREX:
         for (var s in _whitelistForex) {
           if (s == "USD") {
             final d = _cache["USD/TRY"];
-            if (d != null)
+            if (d != null) {
               results.add({
                 'symbol': 'USD',
                 'name': 'Dolar',
                 'price': d.price,
                 'change': d.change,
               });
+            }
           } else {
             final d = _cache["$s/TRY"];
-            if (d != null)
+            if (d != null) {
               results.add({
                 'symbol': s,
                 'name': s,
                 'price': d.price,
                 'change': d.change,
               });
+            }
           }
         }
         break;
@@ -728,9 +731,9 @@ class ApiService {
       else {
         // Map Legacy -> New Cache Key
         String targetKey = inputSym;
-        if (inputSym == 'GRAM')
+        if (inputSym == 'GRAM') {
           targetKey = 'Gram Altın';
-        else if (inputSym == 'CEYREK')
+        } else if (inputSym == 'CEYREK')
           targetKey = 'Çeyrek Altın';
         else if (inputSym == 'YARIM')
           targetKey = 'Yarım Altın';

@@ -13,9 +13,8 @@ class StatsPerformanceTab extends StatelessWidget {
     return Consumer<PortfolioProvider>(
       builder: (context, provider, child) {
         // Calculate performance for each holding
-        final holdings = provider.holdings
-            .where((h) => h.quantity > 0)
-            .toList();
+        final holdings =
+            provider.holdings.where((h) => h.quantity > 0).toList();
 
         // Map holding to profit info
         final List<Map<String, dynamic>> performanceData = holdings.map((h) {
@@ -33,15 +32,13 @@ class StatsPerformanceTab extends StatelessWidget {
         }).toList();
 
         // Sort by Percent (Best first)
-        final bestList = [...performanceData]
-          ..sort(
+        final bestList = [...performanceData]..sort(
             (a, b) =>
                 (b['percent'] as double).compareTo(a['percent'] as double),
           );
 
         // Sort by Percent (Worst first - effectively reverse of best, but let's handle explicitly)
-        final worstList = [...performanceData]
-          ..sort(
+        final worstList = [...performanceData]..sort(
             (a, b) =>
                 (a['percent'] as double).compareTo(b['percent'] as double),
           );
@@ -170,7 +167,8 @@ class StatsPerformanceTab extends StatelessWidget {
                   ),
                   if (!isLast)
                     Divider(
-                      color: Theme.of(context).dividerColor.withOpacity(0.1),
+                      color:
+                          Theme.of(context).dividerColor.withValues(alpha: 0.1),
                       height: 1,
                     ),
                 ],

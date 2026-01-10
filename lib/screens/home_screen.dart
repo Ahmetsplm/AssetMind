@@ -35,11 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor.withOpacity(0.8),
+          color: Theme.of(context).cardColor.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   width: 0.5,
                 ),
                 borderRadius: BorderRadius.circular(30),
@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isSelected = _currentIndex == index;
     final color = isSelected
         ? Theme.of(context).primaryColor
-        : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5);
+        : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5);
 
     return GestureDetector(
       onTap: () {
@@ -129,7 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: EdgeInsets.all(isMain ? 8 : 0),
               decoration: isMain && isSelected
                   ? BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      color:
+                          Theme.of(context).primaryColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     )
                   : null,
