@@ -25,6 +25,7 @@ dependencies:
   webfeed_plus: ^1.1.2
   url_launcher: ^6.3.2
   cached_network_image: ^3.4.1
+  local_auth: ">=2.1.6 <2.3.0"
 
 dev_dependencies:
   flutter_test:

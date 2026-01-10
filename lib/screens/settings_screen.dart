@@ -3,8 +3,53 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 
-class SettingsScreen extends StatelessWidget {
+import '../services/auth_service.dart';
+
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final AuthService _auth = AuthService();
+  bool _isLockEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLockState();
+  }
+
+  Future<void> _loadLockState() async {
+    final enabled = await _auth.isLockEnabled();
+    if (mounted) setState(() => _isLockEnabled = enabled);
+  }
+
+  Future<void> _toggleLock(bool value) async {
+    // Check hardware support first
+    if (value) {
+      final supported = await _auth.isDeviceSupported();
+      if (!supported) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Cihazınızda biyometrik doğrulama desteklenmiyor."),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    // Verify identity before changing setting
+    final authenticated = await _auth.authenticate();
+    if (authenticated) {
+      await _auth.setLockEnabled(value);
+      if (mounted) setState(() => _isLockEnabled = value);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +70,9 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              _buildSectionHeader(context, "Güvenlik"),
+              _buildSecurityCard(context),
+              const SizedBox(height: 24),
               _buildSectionHeader(context, "Genel"),
               _buildAboutCard(context),
               const SizedBox(height: 24),
@@ -38,6 +86,67 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSecurityCard(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.all(20),
+            leading: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.fingerprint_rounded,
+                color: Theme.of(context).primaryColor,
+                size: 28,
+              ),
+            ),
+            title: Text(
+              "Uygulama Kilidi",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                "Giriş için biyometrik doğrulama iste",
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  height: 1.5,
+                ),
+              ),
+            ),
+            trailing: Switch.adaptive(
+              value: _isLockEnabled,
+              onChanged: _toggleLock,
+              activeColor: Theme.of(context).primaryColor,
+            ),
+          ),
+        ],
       ),
     );
   }
