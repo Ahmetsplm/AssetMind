@@ -7,6 +7,9 @@ import '../models/holding.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Import for date locale
 import 'portfolio/category_detail_screen.dart';
+import '../theme/app_theme.dart';
+import '../providers/theme_provider.dart';
+import '../models/portfolio.dart';
 
 class PortfolioScreen extends StatefulWidget {
   const PortfolioScreen({super.key});
@@ -71,14 +74,34 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: Text(
-                portfolioName,
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-                overflow: TextOverflow.ellipsis,
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      portfolioName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (provider.selectedPortfolio != null)
+                    IconButton(
+                      onPressed: () => _showRenamePortfolioDialog(
+                        context,
+                        provider,
+                        provider.selectedPortfolio!,
+                      ),
+                      icon: Icon(
+                        Icons.edit_rounded,
+                        size: 20,
+                        color: Theme.of(context).disabledColor,
+                      ),
+                      tooltip: "Portföy Adını Değiştir",
+                    ),
+                ],
               ),
             ),
             Container(
@@ -201,9 +224,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                 color: getColor(type),
                 value: value,
                 title: '${percentage.toStringAsFixed(1)}%',
-                radius: 20, // Sleeker
+                radius: 20,
                 titleStyle: const TextStyle(
-                  fontSize: 0, // Hide text inside
+                  fontSize: 0,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -224,147 +247,190 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           );
         }
 
+        final themeProvider = Provider.of<ThemeProvider>(context);
         final isDark = Theme.of(context).brightness == Brightness.dark;
+        final int styleIndex = themeProvider.cardStyleIndex;
+        final bool isCustom = styleIndex > 0;
+
+        final Gradient backgroundGradient = isCustom
+            ? AppTheme.cardGradients[styleIndex]
+            : (isDark
+                  ? AppTheme.darkCardGradient
+                  : const LinearGradient(
+                      colors: [Colors.white, Color(0xFFFAFAFA)],
+                    ));
+
+        final Color textColor = isCustom
+            ? Colors.white
+            : Theme.of(context).textTheme.bodyLarge!.color!;
+        final Color subTextColor = isCustom
+            ? Colors.white70
+            : Theme.of(context).textTheme.bodyMedium!.color!.withOpacity(0.6);
 
         return Container(
-          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-            // Premium Gradient for Light mode to pop? Or Solid for clean look?
-            // Let's use a solid clean look for dashboard, maybe slight gradient
-            gradient: isDark
-                ? const LinearGradient(
-                    colors: [Color(0xFF1E1E1E), Color(0xFF252525)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Colors.white, Color(0xFFFAFAFA)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+            gradient: backgroundGradient,
             borderRadius: BorderRadius.circular(32),
             boxShadow: [
               BoxShadow(
-                color: isDark
-                    ? Colors.black.withOpacity(0.5)
-                    : const Color(0xFF1A237E).withOpacity(0.08),
+                color: isCustom
+                    ? AppTheme.cardGradients[styleIndex].colors.first
+                          .withOpacity(0.3)
+                    : (isDark
+                          ? Colors.black.withOpacity(0.5)
+                          : const Color(0xFF1A237E).withOpacity(0.08)),
                 blurRadius: 25,
                 offset: const Offset(0, 10),
               ),
-              BoxShadow(
-                color: isDark ? Colors.white.withOpacity(0.02) : Colors.white,
-                blurRadius: 0,
-                offset: const Offset(0, 0),
-              ),
+              if (!isCustom)
+                BoxShadow(
+                  color: isDark ? Colors.white.withOpacity(0.02) : Colors.white,
+                  blurRadius: 0,
+                  offset: const Offset(0, 0),
+                ),
             ],
-            // Border highlight for dark mode
-            border: isDark
+            border: isDark && !isCustom
                 ? Border.all(color: Colors.white.withOpacity(0.1))
                 : null,
           ),
-          child: Column(
+          child: Stack(
             children: [
-              // Total Value Section
-              Column(
-                children: [
-                  Text(
-                    "Toplam Varlık",
-                    style: GoogleFonts.poppins(
-                      color: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.color?.withOpacity(0.6),
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '₺${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Divider(height: 1),
-              const SizedBox(height: 24),
-
-              // Chart & Stats Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Chart
-                  SizedBox(
-                    height: 120,
-                    width: 120,
-                    child: Stack(
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    // Total Value Section
+                    Column(
                       children: [
-                        PieChart(
-                          PieChartData(
-                            sections: sections,
-                            centerSpaceRadius: 45,
-                            sectionsSpace: 4,
-                            startDegreeOffset: -90,
+                        Text(
+                          "Toplam Varlık",
+                          style: GoogleFonts.poppins(
+                            color: subTextColor,
+                            fontSize: 14,
                           ),
                         ),
-                        Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                        const SizedBox(height: 8),
+                        Text(
+                          '₺${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Divider(height: 1, color: subTextColor.withOpacity(0.2)),
+                    const SizedBox(height: 24),
+
+                    // Chart & Stats Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Chart
+                        SizedBox(
+                          height: 120,
+                          width: 120,
+                          child: Stack(
                             children: [
-                              Text(
-                                isProfit ? "Kâr" : "Zarar",
-                                style: GoogleFonts.poppins(
-                                  color: Theme.of(
-                                    context,
-                                  ).textTheme.bodySmall?.color,
-                                  fontSize: 10,
+                              PieChart(
+                                PieChartData(
+                                  sections: sections,
+                                  centerSpaceRadius: 45,
+                                  sectionsSpace: 4,
+                                  startDegreeOffset: -90,
                                 ),
                               ),
-                              Text(
-                                "%${plRate.toStringAsFixed(1)}",
-                                style: GoogleFonts.poppins(
-                                  color: isProfit ? Colors.green : Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                              Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      isProfit ? "Kâr" : "Zarar",
+                                      style: GoogleFonts.poppins(
+                                        color: subTextColor,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    Text(
+                                      "%${plRate.toStringAsFixed(1)}",
+                                      style: GoogleFonts.poppins(
+                                        color: isProfit
+                                            ? (isCustom
+                                                  ? Colors.white
+                                                  : Colors.green)
+                                            : (isCustom
+                                                  ? Colors.white
+                                                  : Colors.red),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(width: 16),
+
+                        // Stats
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              _buildStatRow(
+                                context,
+                                "Net Kâr/Zarar",
+                                '${isProfit ? '+' : ''}₺${NumberFormat('#,##0.00', 'tr_TR').format(totalPL)}',
+                                isProfit
+                                    ? (isCustom
+                                          ? Colors.white
+                                          : (isDark
+                                                ? Colors.greenAccent
+                                                : Colors.green))
+                                    : (isCustom
+                                          ? Colors.white
+                                          : (isDark
+                                                ? Colors.redAccent
+                                                : Colors.red)),
+                                textColor,
+                                subTextColor,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildStatRow(
+                                context,
+                                "Varlık Sayısı",
+                                provider.activeHoldingsCount.toString(),
+                                isCustom
+                                    ? Colors.white
+                                    : Theme.of(context).primaryColor,
+                                textColor,
+                                subTextColor,
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: IconButton(
+                  icon: Icon(
+                    Icons.edit_rounded,
+                    color: subTextColor.withOpacity(0.5),
+                    size: 20,
                   ),
-
-                  const SizedBox(width: 16),
-
-                  // Stats
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        _buildStatRow(
-                          context,
-                          "Net Kâr/Zarar",
-                          '${isProfit ? '+' : ''}₺${NumberFormat('#,##0.00', 'tr_TR').format(totalPL)}',
-                          isProfit
-                              ? (isDark ? Colors.greenAccent : Colors.green)
-                              : (isDark ? Colors.redAccent : Colors.red),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildStatRow(
-                          context,
-                          "Varlık Sayısı",
-                          provider.holdings.length.toString(),
-                          Theme.of(context).primaryColor,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  onPressed: () => _showCardStylePicker(context),
+                  tooltip: "Kart Stilini Düzenle",
+                ),
               ),
             ],
           ),
@@ -378,25 +444,22 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     String label,
     String value,
     Color valueColor,
+    Color textColor,
+    Color subTextColor,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(
           label,
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            color: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.color?.withOpacity(0.6),
-          ),
+          style: GoogleFonts.poppins(fontSize: 12, color: subTextColor),
         ),
         Text(
           value,
           style: GoogleFonts.poppins(
             fontSize: 16,
-            fontWeight: FontWeight.bold,
             color: valueColor,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ],
@@ -823,6 +886,131 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             },
             child: Text(
               'Oluştur',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCardStylePicker(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).cardColor,
+          title: Text(
+            "Kart Stili",
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: GridView.builder(
+              shrinkWrap: true,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: AppTheme.cardGradients.length,
+              itemBuilder: (context, index) {
+                final gradient = AppTheme.cardGradients[index];
+                return GestureDetector(
+                  onTap: () {
+                    Provider.of<ThemeProvider>(
+                      context,
+                      listen: false,
+                    ).setCardStyle(index);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: gradient,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child:
+                        index ==
+                            Provider.of<ThemeProvider>(context).cardStyleIndex
+                        ? const Icon(Icons.check, color: Colors.white)
+                        : null,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRenamePortfolioDialog(
+    BuildContext context,
+    PortfolioProvider provider,
+    Portfolio portfolio,
+  ) {
+    final TextEditingController controller = TextEditingController(
+      text: portfolio.name,
+    );
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Portföy Adını Düzenle',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          cursorColor: Theme.of(context).primaryColor,
+          decoration: InputDecoration(
+            hintText: 'Yeni İsim',
+            hintStyle: GoogleFonts.poppins(
+              color: Theme.of(context).disabledColor,
+            ),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Theme.of(context).dividerColor),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Theme.of(context).primaryColor),
+            ),
+          ),
+          style: GoogleFonts.poppins(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'İptal',
+              style: GoogleFonts.poppins(
+                color: Theme.of(context).disabledColor,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                provider.renamePortfolio(portfolio.id!, controller.text);
+                Navigator.pop(context);
+              }
+            },
+            child: Text(
+              'Kaydet',
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).primaryColor,

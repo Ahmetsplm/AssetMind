@@ -696,7 +696,6 @@ class ApiService {
 
     for (var s in symbols) {
       final String inputSym = s.toString();
-      String? foundKey;
       AssetCacheModel? item;
 
       // Helper to find key case-insensitively if direct match fails
@@ -712,17 +711,14 @@ class ApiService {
 
       // 1. Try Direct Match
       if (_cache.containsKey(inputSym)) {
-        foundKey = inputSym;
         item = _cache[inputSym];
       }
       // 2. Try .IS
       else if (_cache.containsKey("$inputSym.IS")) {
-        foundKey = inputSym; // Keep original for stocks usually
         item = _cache["$inputSym.IS"];
       }
       // 3. Try /TRY
       else if (_cache.containsKey("$inputSym/TRY")) {
-        foundKey = "$inputSym/TRY";
         item = _cache["$inputSym/TRY"];
       }
       // 4. Legacy / Logic Mapping
@@ -749,15 +745,15 @@ class ApiService {
         }
 
         if (_cache.containsKey(targetKey)) {
-          foundKey = targetKey; // Use the CLEAN name
+          // foundKey = targetKey;
           item = _cache[targetKey];
         }
       }
 
       if (item != null) {
         results.add({
-          // CRITICAL: Return the FOUND key (Clean Name) if available, otherwise input
-          'symbol': foundKey ?? inputSym,
+          // Return the input symbol so the requester can match it with their list
+          'symbol': inputSym,
           'price': item.price.toStringAsFixed(2),
           'change_rate': item.change,
         });

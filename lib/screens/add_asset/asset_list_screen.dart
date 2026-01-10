@@ -8,6 +8,7 @@ import '../../models/holding.dart'; // For AssetType
 import '../../models/favorite.dart';
 import '../../providers/favorite_provider.dart';
 import 'add_transaction_screen.dart';
+import '../../widgets/skeleton_list_item.dart';
 
 class AssetListScreen extends StatefulWidget {
   final AssetType type;
@@ -144,10 +145,14 @@ class _AssetListScreenState extends State<AssetListScreen> {
 
           Expanded(
             child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(
-                      color: Theme.of(context).primaryColor,
+                ? ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 0,
+                      vertical: 8,
                     ),
+                    itemCount: 10,
+                    separatorBuilder: (_, __) => const SizedBox(height: 0),
+                    itemBuilder: (_, __) => const SkeletonListItem(),
                   )
                 : AnimationLimiter(
                     child: ListView.separated(

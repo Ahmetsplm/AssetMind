@@ -8,6 +8,7 @@ import '../models/favorite.dart';
 import '../models/holding.dart'; // For AssetType
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'add_asset/asset_list_screen.dart';
+import 'news_screen.dart';
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -25,10 +26,15 @@ class _MarketScreenState extends State<MarketScreen> {
   Widget build(BuildContext context) {
     return Consumer<MarketProvider>(
       builder: (context, marketProvider, child) {
-        return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          appBar: _buildAppBar(context),
-          body: _buildBody(context),
+        return DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            appBar: _buildAppBar(context),
+            body: TabBarView(
+              children: [_buildMarketTab(context), const NewsScreen()],
+            ),
+          ),
         );
       },
     );
@@ -44,7 +50,9 @@ class _MarketScreenState extends State<MarketScreen> {
           fontSize: 24,
         ),
       ),
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(
+        context,
+      ).scaffoldBackgroundColor, // Ensure solid background for TabBar
       elevation: 0,
       centerTitle: false,
       actions: [
@@ -60,10 +68,21 @@ class _MarketScreenState extends State<MarketScreen> {
         ),
         const SizedBox(width: 8),
       ],
+      bottom: TabBar(
+        labelColor: Theme.of(context).primaryColor,
+        unselectedLabelColor: Theme.of(context).disabledColor,
+        indicatorColor: Theme.of(context).primaryColor,
+        indicatorWeight: 3,
+        labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        tabs: const [
+          Tab(text: "Piyasa"),
+          Tab(text: "Haberler"),
+        ],
+      ),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildMarketTab(BuildContext context) {
     final api = ApiService();
     // In a real app, this should be async/future builder or from provider
     // Using Sync here as per existing pattern

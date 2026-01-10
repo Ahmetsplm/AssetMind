@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -33,15 +34,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   TransactionType _transactionType = TransactionType.BUY; // Default
   DateTime _selectedDate = DateTime.now();
 
+  late ConfettiController _confettiController;
+
   @override
   void initState() {
     super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 1),
+    );
     _priceController.text = widget.initialPrice.toString();
     _dateController.text = DateFormat('dd/MM/yyyy').format(_selectedDate);
   }
 
   @override
   void dispose() {
+    _confettiController.dispose();
     _quantityController.dispose();
     _priceController.dispose();
     _dateController.dispose();
@@ -73,6 +80,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         ).addTransaction(transaction, widget.symbol, widget.type);
 
         if (mounted) {
+          // Play Confetti if BUY
+          if (_transactionType == TransactionType.BUY) {
+            _confettiController.play();
+            await Future.delayed(const Duration(seconds: 2));
+          }
+
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -131,64 +144,85 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (_, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              // Drag Handle
-              Center(
-                child: Container(
-                  width: 48,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).dividerColor.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(2.5),
-                  ),
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header
-                      _buildHeader(context),
-                      const SizedBox(height: 24),
-
-                      // Buy / Sell Toggle
-                      _buildTransactionTypeToggle(context),
-                      const SizedBox(height: 24),
-
-                      // Form
-                      _buildForm(context),
-
-                      const SizedBox(height: 24),
-
-                      // Summary and Button
-                      _buildBottomSection(context),
-
-                      const SizedBox(height: 32),
-                    ],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  // Drag Handle
+                  Center(
+                    child: Container(
+                      width: 48,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(2.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header
+                          _buildHeader(context),
+                          const SizedBox(height: 24),
+
+                          // Buy / Sell Toggle
+                          _buildTransactionTypeToggle(context),
+                          const SizedBox(height: 24),
+
+                          // Form
+                          _buildForm(context),
+
+                          const SizedBox(height: 24),
+
+                          // Summary and Button
+                          _buildBottomSection(context),
+
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Confetti Widget
+            ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [
+                Colors.green,
+                Colors.blue,
+                Colors.pink,
+                Colors.orange,
+                Colors.purple,
+              ],
+            ),
+          ],
         );
       },
     );
@@ -344,28 +378,75 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget _buildForm(BuildContext context) {
     return Form(
       key: _formKey,
-      child: Column(
-        children: [
-          _buildInputField(
-            context,
-            controller: _quantityController,
-            label: widget.type == AssetType.FOREX
-                ? 'Miktar (Birim)'
-                : 'Adet (Lot)',
-            inputType: const TextInputType.numberWithOptions(decimal: true),
-            icon: Icons.tag_rounded,
-          ),
-          const SizedBox(height: 16),
-          _buildInputField(
-            context,
-            controller: _priceController,
-            label: 'Fiyat (TL)',
-            inputType: const TextInputType.numberWithOptions(decimal: true),
-            icon: Icons.price_change_rounded,
-          ),
-          const SizedBox(height: 16),
-          _buildDateField(context),
-        ],
+      child: Consumer<PortfolioProvider>(
+        builder: (context, provider, child) {
+          double currentAmount = 0;
+          try {
+            final holding = provider.holdings.firstWhere(
+              (h) => h.symbol == widget.symbol,
+            );
+            currentAmount = holding.quantity;
+          } catch (e) {
+            // Not found
+          }
+
+          final bool showSellAll =
+              _transactionType == TransactionType.SELL && currentAmount > 0;
+
+          return Column(
+            children: [
+              _buildInputField(
+                context,
+                controller: _quantityController,
+                label: widget.type == AssetType.FOREX
+                    ? 'Miktar (Birim)'
+                    : 'Adet (Lot)',
+                inputType: const TextInputType.numberWithOptions(decimal: true),
+                icon: Icons.tag_rounded,
+                suffix: showSellAll
+                    ? TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _quantityController.text = currentAmount.toString();
+                          });
+                        },
+                        child: Text(
+                          "HEPSİ",
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+              if (showSellAll)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4, right: 8),
+                    child: Text(
+                      "Mevcut: $currentAmount",
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Theme.of(context).disabledColor,
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              _buildInputField(
+                context,
+                controller: _priceController,
+                label: 'Fiyat (TL)',
+                inputType: const TextInputType.numberWithOptions(decimal: true),
+                icon: Icons.price_change_rounded,
+              ),
+              const SizedBox(height: 16),
+              _buildDateField(context),
+            ],
+          );
+        },
       ),
     );
   }
@@ -376,6 +457,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     required String label,
     required TextInputType inputType,
     required IconData icon,
+    Widget? suffix,
   }) {
     return TextFormField(
       controller: controller,
@@ -395,6 +477,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           icon,
           color: Theme.of(context).primaryColor.withOpacity(0.7),
         ),
+        suffixIcon: suffix,
         filled: true,
         fillColor: Theme.of(context).cardColor,
         border: OutlineInputBorder(

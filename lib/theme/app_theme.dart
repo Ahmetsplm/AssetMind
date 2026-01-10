@@ -109,4 +109,37 @@ class AppTheme {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  static List<LinearGradient> get cardGradients => [
+    // 0: Default Midnight
+    const LinearGradient(
+      colors: [Color(0xFF1A237E), Color(0xFF283593)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    // 1: Sunset
+    const LinearGradient(
+      colors: [Color(0xFFFF512F), Color(0xFFDD2476)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    // 2: Ocean
+    const LinearGradient(
+      colors: [Color(0xFF00C6FF), Color(0xFF0072FF)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    // 3: Forest
+    const LinearGradient(
+      colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    // 4: Royal
+    const LinearGradient(
+      colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  ];
 }

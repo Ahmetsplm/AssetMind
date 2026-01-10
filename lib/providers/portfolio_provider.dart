@@ -21,6 +21,8 @@ class PortfolioProvider extends ChangeNotifier {
   SortOption _sortOption = SortOption.valueDesc;
   SortOption get sortOption => _sortOption;
 
+  int get activeHoldingsCount => _holdings.where((h) => h.quantity > 0).length;
+
   void setSortOption(SortOption option) {
     _sortOption = option;
     notifyListeners();
@@ -149,6 +151,37 @@ class PortfolioProvider extends ChangeNotifier {
       await loadHoldings();
     }
     notifyListeners();
+  }
+
+  Future<void> renamePortfolio(int portfolioId, String newName) async {
+    final db = await DatabaseHelper.instance.database;
+
+    // Update name in DB
+    await db.update(
+      'portfolios',
+      {'name': newName},
+      where: 'id = ?',
+      whereArgs: [portfolioId],
+    );
+
+    // Update local state
+    final index = _portfolios.indexWhere((p) => p.id == portfolioId);
+    if (index != -1) {
+      final old = _portfolios[index];
+      _portfolios[index] = Portfolio(
+        id: old.id,
+        name: newName,
+        isDefault: old.isDefault,
+        creationDate: old.creationDate,
+      );
+
+      // If renamed portfolio is selected, update selected reference
+      if (_selectedPortfolio?.id == portfolioId) {
+        _selectedPortfolio = _portfolios[index];
+      }
+
+      notifyListeners();
+    }
   }
 
   List<List<dynamic>> _historyPoints = [];
