@@ -485,7 +485,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                                       ),
                                     ),
                                     Text(
-                                      "%${plRate.toStringAsFixed(1)}",
+                                      "${isProfit ? '' : '-'}%${plRate.abs().toStringAsFixed(1)}",
                                       style: GoogleFonts.poppins(
                                         color: isProfit
                                             ? (isCustom

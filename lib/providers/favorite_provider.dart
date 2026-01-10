@@ -73,4 +73,9 @@ class FavoriteProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  Future<void> clearFavorites() async {
+    _favorites = [];
+    notifyListeners();
+  }
 }

@@ -262,7 +262,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '%${change.abs().toStringAsFixed(2)}',
+                      '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
                       style: TextStyle(
                         color: isUp ? Colors.greenAccent : Colors.redAccent,
                         fontWeight: FontWeight.bold,
@@ -425,7 +425,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '%${change.abs().toStringAsFixed(2)}',
+                  '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
                   style: GoogleFonts.poppins(
                     color: isUp ? Colors.green : Colors.red,
                     fontWeight: FontWeight.bold,

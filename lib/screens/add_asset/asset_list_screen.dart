@@ -353,7 +353,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    '%${change.abs().toStringAsFixed(2)}',
+                    '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: trendColor,

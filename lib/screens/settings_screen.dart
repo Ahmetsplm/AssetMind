@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/portfolio_provider.dart';
+import '../providers/favorite_provider.dart';
 import '../services/auth_service.dart';
 import '../services/data_service.dart';
 
@@ -132,6 +133,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           context,
           listen: false,
         ).loadPortfolios();
+        await Provider.of<FavoriteProvider>(
+          context,
+          listen: false,
+        ).clearFavorites();
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Tüm veriler sıfırlandı.')),
         );

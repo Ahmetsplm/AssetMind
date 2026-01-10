@@ -114,11 +114,24 @@ class PortfolioProvider extends ChangeNotifier {
     _portfolios = result.map((e) => Portfolio.fromMap(e)).toList();
 
     if (_portfolios.isNotEmpty) {
+      // Check if current selection is still valid
+      if (_selectedPortfolio != null) {
+        final stillExists =
+            _portfolios.any((p) => p.id == _selectedPortfolio!.id);
+        if (!stillExists) {
+          _selectedPortfolio = null; // Invalidate if not found
+        }
+      }
+
       _selectedPortfolio ??= _portfolios.firstWhere(
-          (p) => p.isDefault,
-          orElse: () => _portfolios.first,
-        );
+        (p) => p.isDefault,
+        orElse: () => _portfolios.first,
+      );
       await loadHoldings();
+    } else {
+      _selectedPortfolio = null; // No portfolios available
+      _holdings = [];
+      notifyListeners();
     }
     notifyListeners();
   }
