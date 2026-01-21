@@ -335,9 +335,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       iconColor = const Color(0xFF4285F4);
     }
 
-    // Brighten color for dark mode readiness
-    // Using base colors is fine as they are vibrant
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

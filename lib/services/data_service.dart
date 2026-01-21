@@ -107,11 +107,8 @@ class DataService {
       await txn.delete('transactions');
       await txn.delete('holdings');
       await txn.delete('portfolios');
-      // Note: We might want to keep 'favorites' or maybe not?
-      // User said "Tüm portföyü", favorites implies personalization. safely delete.
       await txn.delete('favorites');
 
-      // Re-insert default portfolio to prevent app from crashing/showing empty state
       await txn.insert('portfolios', {
         'name': 'Ana Portföy',
         'is_default': 1,

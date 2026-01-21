@@ -59,9 +59,6 @@ class MarketProvider extends ChangeNotifier {
 
   Future<void> _checkAndFetchBist() async {
     final now = DateTime.now();
-    // UTC+3 Correction explicitly if needed, but simple DateTime.now() usually
-    // reflects device time which user expects.
-    // Rule: Mon(1) - Fri(5). Hours 10 - 18.
 
     final bool isWeekday = now.weekday >= 1 && now.weekday <= 5;
     final bool isOpen = now.hour >= 10 && now.hour < 18;

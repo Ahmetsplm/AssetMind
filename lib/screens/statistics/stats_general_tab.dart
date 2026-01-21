@@ -44,11 +44,7 @@ class StatsGeneralTab extends StatelessWidget {
                     context,
                     icon: isProfit
                         ? Icons.arrow_downward_rounded
-                        : Icons.arrow_upward_rounded, // Wait, logic reversed?
-                    // Icon logic: Usually down is loss (red), up is profit (green).
-                    // But Arrow Down Red vs Arrow Up Green.
-                    // Let's stick to standard: Profit = Up = Green?
-                    // Actually the screenshot shows Down Arrow RED for loss. Correct.
+                        : Icons.arrow_upward_rounded,
                     iconColor: isProfit ? Colors.green : Colors.red,
                     iconData: isProfit
                         ? Icons.arrow_upward_rounded
@@ -152,7 +148,7 @@ class StatsGeneralTab extends StatelessWidget {
   Widget _buildSummaryCard(
     BuildContext context, {
     required IconData icon,
-    IconData? iconData, // Optional override
+    IconData? iconData,
     required Color iconColor,
     required String value,
     required String label,

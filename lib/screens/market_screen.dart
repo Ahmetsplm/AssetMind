@@ -116,7 +116,7 @@ class _MarketScreenState extends State<MarketScreen> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               child: SizedBox(
-                height: 150, // Slightly taller for premium look
+                height: 150,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   clipBehavior: Clip.none,

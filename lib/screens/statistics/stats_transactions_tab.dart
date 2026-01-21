@@ -29,20 +29,12 @@ class StatsTransactionsTab extends StatelessWidget {
           final val = t.amount * t.price;
           totalVolume += val;
 
-          // Bucket by month (e.g., 202310 for Oct 2023)
-          // Actually just use month index 1-12 for simple chart of THIS year?
-          // Or last 6 months.
-          // Let's do simple: Last 12 months.
           final key = t.date.month; // 1-12
-          // Note: Aggregating all years for simplicity or need Year check?
-          // Let's assume current view is generic. A more complex one checks Year.
-          // For simple UI, let's just show Month name of transaction.
           monthlyVolume[key] = (monthlyVolume[key] ?? 0) + val;
         }
 
-        final avgTransaction = totalTransactions > 0
-            ? totalVolume / totalTransactions
-            : 0;
+        final avgTransaction =
+            totalTransactions > 0 ? totalVolume / totalTransactions : 0;
         final currencySymbol = provider.currencySymbol;
 
         return SingleChildScrollView(
@@ -119,9 +111,9 @@ class StatsTransactionsTab extends StatelessWidget {
                           maxY: monthlyVolume.values.isEmpty
                               ? 100
                               : monthlyVolume.values.reduce(
-                                      (a, b) => a > b ? a : b,
-                                    ) *
-                                    1.2,
+                                    (a, b) => a > b ? a : b,
+                                  ) *
+                                  1.2,
                           barTouchData: BarTouchData(enabled: false),
                           titlesData: FlTitlesData(
                             show: true,
@@ -192,10 +184,6 @@ class StatsTransactionsTab extends StatelessWidget {
                 itemCount: transactions.take(10).length, // Show last 10
                 itemBuilder: (context, index) {
                   final t = transactions[index];
-                  // Need to fetch Holding symbol...
-                  // Uh oh, TransactionModel only has holdingId.
-                  // We need to look up Symbol from provider.holdings.
-                  // provider.holdings contains ALL holdings (loaded by loadHoldings).
                   try {
                     final holding = provider.holdings.firstWhere(
                       (h) => h.id == t.holdingId,

@@ -17,10 +17,10 @@ class AssetCacheModel {
   });
 
   Map<String, dynamic> toJson() => {
-    'price': price,
-    'change': change,
-    'lastUpdated': lastUpdated,
-  };
+        'price': price,
+        'change': change,
+        'lastUpdated': lastUpdated,
+      };
 
   factory AssetCacheModel.fromJson(Map<String, dynamic> json) {
     return AssetCacheModel(
@@ -63,7 +63,6 @@ class ApiService {
     'LTCUSDT',
     'SHIBUSDT',
     'ATOMUSDT',
-    // Expanded List
     'UNIUSDT',
     'XLMUSDT',
     'BCHUSDT',
@@ -115,12 +114,8 @@ class ApiService {
   };
   static const String _cacheKey = "asset_mind_rich_cache_v1";
 
-  // --- STATE ---
-  /// In-memory cache: Symbol -> Model
   final Map<String, AssetCacheModel> _cache = {};
   double? _cachedUsdTry; // Helper for conversions
-
-  // --- PUBLIC API ---
 
   /// 1. Initialize Cache from Disk
   Future<void> init() async {
@@ -174,10 +169,6 @@ class ApiService {
   /// 4. FETCH: Crypto (Binance)
   Future<void> fetchCrypto() async {
     try {
-      // Fetch all tickers (~2MB json, fast enough) or usage specific endpoint?
-      // Since we whitelist only ~20, let's filter the big list or use parallel.
-      // Parallel logic is safer for bandwidth if whitelist small.
-      // BUT Binance 24hr is one request. Let's do huge request, filter local.
       final response = await http.get(Uri.parse(_binance24hrUrl));
       if (response.statusCode == 200) {
         final List<dynamic> all = jsonDecode(response.body);
@@ -209,11 +200,7 @@ class ApiService {
     }
   }
 
-  /// 5. FETCH: Forex (Frankfurter)
-  /// 5. FETCH: Forex (Yahoo Finance for rich data including Change%)
   Future<void> fetchForex() async {
-    // We prefer Yahoo for USD and EUR to get the Daily Change %.
-    // Symbols: USDTRY=X, EURTRY=X
     final List<String> yahooForex = ["USDTRY=X", "EURTRY=X"];
 
     await Future.wait(
@@ -232,24 +219,16 @@ class ApiService {
     if (_cache.containsKey("EURTRY=X")) {
       final item = _cache["EURTRY=X"]!;
       _updateCache("EUR/TRY", item.price, item.change);
-
-      // Calculate EUR/USD parity for information? Not needed for now.
     }
 
-    // Fallback/Secondary: Fetch other currencies using Frankfurter
     await _fetchFrankfurterForex();
-
-    // Now that we have fresh USD, recalculate Gold
     _calculateGold();
 
     await _saveCache();
   }
 
-  /// Fetch non-USD/EUR currencies from Frankfurter (GBP, CHF, CAD, JPY)
   Future<void> _fetchFrankfurterForex() async {
     try {
-      // 1. Define targets (excluding USD, EUR which are handled by Yahoo)
-      // We need TRY to calculate cross rates (Base is EUR)
       const targets = [
         "TRY",
         "GBP",
@@ -278,15 +257,8 @@ class ApiService {
       final Map<String, dynamic> latestRates = latestJson['rates'];
       final String dateStr = latestJson['date'];
 
-      // Calculate Today's Cross Rates (X/TRY)
-      // EUR/TRY is known (latestRates['TRY'])
-      // EUR/X is known (latestRates['X'])
-      // X/TRY = (EUR/TRY) / (EUR/X)
-      // We assume EUR base = 1
-
       final double eurTryToday = (latestRates['TRY'] as num).toDouble();
 
-      // 3. Determine Previous Working Day
       DateTime date = DateTime.parse(dateStr);
       DateTime prevDate = date.subtract(const Duration(days: 1));
 
@@ -450,11 +422,6 @@ class ApiService {
     }
   }
 
-  // --- UI PROVIDERS (Read from Cache) ---
-  // Just simple accessors now, logic is in Fetchers
-
-  // --- SYNC PUBLIC API (For UI Consumers via Provider) ---
-
   List<Map<String, dynamic>> getMarketSummarySync() {
     final List<Map<String, dynamic>> list = [];
 
@@ -501,8 +468,8 @@ class ApiService {
     // Sort by magnitude
     items.sort(
       (a, b) => (b['raw_change'] as double).abs().compareTo(
-        (a['raw_change'] as double).abs(),
-      ),
+            (a['raw_change'] as double).abs(),
+          ),
     );
 
     // Filter by direction
@@ -535,11 +502,11 @@ class ApiService {
               !e.key.contains("Gümüş") &&
               !e.key.contains("Platin") &&
               !e.key.contains("Paladyum") &&
-              !e.key.contains("_") && // Kill all legacy keys like PALADYUM_ONS
+              !e.key.contains("_") &&
               !e.key.contains("PALADYUM") &&
               !e.key.contains("PLATIN") &&
               !e.key.contains("GUMUS") &&
-              !e.key.contains("_TL") && // Legacy
+              !e.key.contains("_TL") &&
               ![
                 "GRAM",
                 "CEYREK",
@@ -670,9 +637,6 @@ class ApiService {
 
   // --- COMPATIBILITY / PUBLIC ---
   Future<Map<String, double>> getCurrentPrices(List<String> symbols) async {
-    // Actually this is what PortfolioProvider uses.
-    // It passes pure symbols e.g. "THYAO", "BTC", "GRAM".
-    // We try to match with keys.
     final Map<String, double> map = {};
     for (var s in symbols) {
       // Direct match
@@ -743,9 +707,7 @@ class ApiService {
           targetKey = 'Cumhuriyet Altın';
         else if (inputSym == 'ONS')
           targetKey = 'Ons Altın';
-        // Handle potential UPPERCASE versions from UI (e.g. CEYREK ALTIN)
         else {
-          // Try to find a loosely matching key in cache (e.g. "ÇEYREK ALTIN" -> "Çeyrek Altın")
           final possible = findCaseInsensitive(inputSym);
           if (possible != null) targetKey = possible;
         }

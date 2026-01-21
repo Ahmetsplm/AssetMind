@@ -63,9 +63,6 @@ class _AnimatedPriceWidgetState extends State<AnimatedPriceWidget>
 
   @override
   Widget build(BuildContext context) {
-    // Format value? The widget should probably accept Display String to be safe.
-    // I'll update constructor to take `displayString` and `numericValue`.
-    // Wait, let me re-write this class properly.
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {

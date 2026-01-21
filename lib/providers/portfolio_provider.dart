@@ -199,10 +199,7 @@ class PortfolioProvider extends ChangeNotifier {
 
     final api = ApiService();
     _assetPrices = await api.getCurrentPrices(symbols);
-    // Ensure we fetch if not in cache (getCurrentPrices usually reads cache or fetches if missing?
-    // Actually getCurrentPrices in ApiService might need valid cache.
-    // MarketProvider fetches these separately. ApiService.fetchForex() usually handles it.
-    // We should trigger a fetch if they are missing/zero.
+
     if (_assetPrices['USD/TRY'] == null || _assetPrices['USD/TRY'] == 0) {
       await api.fetchForex();
       _assetPrices = await api.getCurrentPrices(symbols);
@@ -282,10 +279,7 @@ class PortfolioProvider extends ChangeNotifier {
     List<List<dynamic>> points = [];
 
     // Initial point
-    if (transactions.isNotEmpty) {
-      // Add a starting point just before the first transaction?
-      // Or just start from 0 at the first date?
-    }
+    if (transactions.isNotEmpty) {}
 
     // Parse all transactions for list display (descending date usually better for list)
     _allTransactions =

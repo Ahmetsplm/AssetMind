@@ -31,13 +31,11 @@ class StatsPerformanceTab extends StatelessWidget {
           };
         }).toList();
 
-        // Sort by Percent (Best first)
         final bestList = [...performanceData]..sort(
             (a, b) =>
                 (b['percent'] as double).compareTo(a['percent'] as double),
           );
 
-        // Sort by Percent (Worst first - effectively reverse of best, but let's handle explicitly)
         final worstList = [...performanceData]..sort(
             (a, b) =>
                 (a['percent'] as double).compareTo(b['percent'] as double),
@@ -62,7 +60,7 @@ class StatsPerformanceTab extends StatelessWidget {
               "📉 En Kötü Performans",
               worstList.take(5).toList(),
               false,
-            ), // Or just show the bottom 5 of the sorted list? No, explicit worst users usually want to see negative numbers.
+            ),
           ],
         );
       },
@@ -135,7 +133,7 @@ class StatsPerformanceTab extends StatelessWidget {
                       ),
                     ),
                     subtitle: Text(
-                      h.type.name, // "STOCK" etc. maybe format nicely?
+                      h.type.name,
                       style: GoogleFonts.poppins(fontSize: 12),
                     ),
                     trailing: Column(
@@ -143,12 +141,7 @@ class StatsPerformanceTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          // Simple profit/loss amount
-                          // Maybe convert based on provider currency later, but logic is complex here without provider ref.
-                          // Just showing raw value for now or maybe formatted string
-                          // Let's format clearly
                           NumberFormat.currency(symbol: "₺").format(profit),
-                          // Note: This assumes TRY. Ideally should use provider.currencySymbol logic.
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,

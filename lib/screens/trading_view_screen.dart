@@ -33,12 +33,6 @@ class _TradingViewScreenState extends State<TradingViewScreen> {
     );
 
     if (_tvSymbol != null) {
-      // Determine theme based on platform brightness?
-      // Or just force dark/light?
-      // State is not available in initState for context.
-      // But we can initialize controller here and load content in didChangeDependencies or build?
-      // Best practice: Initialize controller here. Load URL/HTML later.
-
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(const Color(0xFF131722)) // Dark BG default

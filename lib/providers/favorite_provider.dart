@@ -14,12 +14,9 @@ class FavoriteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Helper to handle synonymous symbols
   String _canonical(String s) {
     if (s == 'USD' || s == 'Dolar') return 'USD/TRY';
     if (s == 'EUR' || s == 'Euro') return 'EUR/TRY';
-    // Remove legacy GRAM mapping
-    // Don't force uppercase for Metals (which contain spaces or are mixed case)
     if (s.contains('Altın') ||
         s.contains('Gümüş') ||
         s.contains('Platin') ||
@@ -44,8 +41,6 @@ class FavoriteProvider extends ChangeNotifier {
     );
 
     if (existingIndex != -1) {
-      // Remove ALL synonymous entries from DB to clean up duplicates
-      // E.g. if user has "USD" and "USD/TRY", remove both.
       final candidates = _favorites
           .where((f) => _canonical(f.symbol) == targetSymbol)
           .toList();
@@ -59,12 +54,8 @@ class FavoriteProvider extends ChangeNotifier {
       }
       _favorites.removeWhere((f) => _canonical(f.symbol) == targetSymbol);
     } else {
-      // Add NEW entry using the CANONICAL symbol IF provided symbol is one of the mapped ones
-      // But we should respect the incoming object unless we want to force migration.
-      // Better to force migration: save as "USD/TRY" even if "USD" came in.
-
       final newFav = Favorite(
-        symbol: targetSymbol, // Use canonical
+        symbol: targetSymbol,
         type: favorite.type,
       );
 

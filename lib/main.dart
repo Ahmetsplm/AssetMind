@@ -30,8 +30,7 @@ class MyApp extends StatelessWidget {
           create: (_) => PortfolioProvider()..loadPortfolios(),
         ),
         ChangeNotifierProvider(
-          create: (_) => MarketProvider()
-            ..init(), // lazy: false removed, default is true but we call init
+          create: (_) => MarketProvider()..init(),
           lazy: false,
         ),
       ],
