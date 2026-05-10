@@ -6,6 +6,7 @@ import '../providers/portfolio_provider.dart';
 import '../providers/favorite_provider.dart';
 import '../services/auth_service.dart';
 import '../services/data_service.dart';
+import '../providers/auth_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -178,6 +179,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
               _buildSectionHeader(context, "Destek"),
               _buildContactButton(context),
+              const SizedBox(height: 24),
+              _buildSectionHeader(context, "Hesap"),
+              _buildAccountCard(context),
               const SizedBox(height: 48),
               _buildVersionInfo(context),
             ],
@@ -624,6 +628,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAccountCard(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ListTile(
+        onTap: () async {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Çıkış Yap'),
+              content: const Text('Hesabınızdan çıkış yapmak istediğinize emin misiniz?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('İptal'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Çıkış Yap'),
+                ),
+              ],
+            ),
+          );
+
+          if (confirm == true && context.mounted) {
+            await Provider.of<AuthProvider>(context, listen: false).signOut();
+            // AuthWrapper will automatically handle the routing!
+          }
+        },
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.red.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.logout_rounded,
+            color: Colors.red,
+            size: 24,
+          ),
+        ),
+        title: Text(
+          "Çıkış Yap",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: Colors.red,
+          ),
+        ),
       ),
     );
   }
