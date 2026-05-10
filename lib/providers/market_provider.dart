@@ -61,7 +61,7 @@ class MarketProvider extends ChangeNotifier {
     final now = DateTime.now();
 
     final bool isWeekday = now.weekday >= 1 && now.weekday <= 5;
-    final bool isOpen = now.hour >= 10 && now.hour < 18;
+    final bool isOpen = now.hour >= 9 && now.hour < 19;
 
     if (isWeekday && isOpen) {
       await _fetchBist(); // includes Gold Ounce
