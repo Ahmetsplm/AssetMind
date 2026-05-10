@@ -7,11 +7,15 @@ class SupabaseAuthService {
   Future<AuthResponse> signUpWithEmail({
     required String email,
     required String password,
+    required String fullName,
   }) async {
     try {
+      // Supabase'de yazdığımız trigger (handle_new_user) 
+      // bu metadata bilgisini yakalayıp profiles tablosuna otomatik yazacaktır.
       return await _client.auth.signUp(
         email: email,
         password: password,
+        data: {'full_name': fullName},
       );
     } catch (e) {
       rethrow;
@@ -61,6 +65,23 @@ class SupabaseAuthService {
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<String?> getUserFullName() async {
+    final user = currentUser;
+    if (user == null) return null;
+    
+    if (user.userMetadata?['full_name'] != null) {
+      return user.userMetadata!['full_name'] as String;
+    }
+    
+    try {
+      final data = await _client.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
+      if (data != null && data['full_name'] != null) {
+        return data['full_name'] as String;
+      }
+    } catch (_) {}
+    return null;
   }
 
   // Get current user

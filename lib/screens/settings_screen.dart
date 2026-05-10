@@ -633,66 +633,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildAccountCard(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: ListTile(
-        onTap: () async {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Çıkış Yap'),
-              content: const Text('Hesabınızdan çıkış yapmak istediğinize emin misiniz?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('İptal'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  child: const Text('Çıkış Yap'),
-                ),
-              ],
-            ),
-          );
-
-          if (confirm == true && context.mounted) {
-            await Provider.of<AuthProvider>(context, listen: false).signOut();
-            // AuthWrapper will automatically handle the routing!
-          }
-        },
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        final name = auth.displayName ?? 'Yatırımcı';
+        final email = auth.currentUser?.email ?? '';
+        final initial = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'Y';
+        
+        return Container(
           decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(10),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
-          child: const Icon(
-            Icons.logout_rounded,
-            color: Colors.red,
-            size: 24,
+          child: Column(
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                leading: CircleAvatar(
+                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  child: Text(
+                    initial,
+                    style: GoogleFonts.poppins(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                title: Text(
+                  name,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
+                subtitle: Text(
+                  email,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+              Divider(
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                height: 1,
+              ),
+              ListTile(
+                onTap: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Çıkış Yap'),
+                      content: const Text('Hesabınızdan çıkış yapmak istediğinize emin misiniz?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('İptal'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                          child: const Text('Çıkış Yap'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true && context.mounted) {
+                    await Provider.of<AuthProvider>(context, listen: false).signOut();
+                    // AuthWrapper will automatically handle the routing!
+                  }
+                },
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.logout_rounded,
+                    color: Colors.red,
+                    size: 24,
+                  ),
+                ),
+                title: Text(
+                  "Çıkış Yap",
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: Colors.red,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        title: Text(
-          "Çıkış Yap",
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: Colors.red,
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

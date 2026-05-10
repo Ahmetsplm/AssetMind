@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../providers/favorite_provider.dart';
 import '../providers/market_provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/market_provider.dart';
 import '../models/favorite.dart';
 import '../models/holding.dart'; // For AssetType
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -53,13 +55,31 @@ class _MarketScreenState extends State<MarketScreen> {
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      title: Text(
-        'Piyasalar',
-        style: GoogleFonts.poppins(
-          color: Theme.of(context).textTheme.bodyLarge?.color,
-          fontWeight: FontWeight.bold,
-          fontSize: 24,
-        ),
+      title: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          final name = auth.displayName?.split(' ').first ?? 'Yatırımcı';
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hoş geldin, $name',
+                style: GoogleFonts.poppins(
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                'Piyasalar',
+                style: GoogleFonts.poppins(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          );
+        },
       ),
       backgroundColor: Theme.of(
         context,

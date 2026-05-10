@@ -11,6 +11,7 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLogin = true;
@@ -18,6 +19,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -32,10 +34,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _submit() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty || (!_isLogin && name.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lütfen tüm alanları doldurun.')),
       );
@@ -46,7 +49,7 @@ class _AuthScreenState extends State<AuthScreen> {
     if (_isLogin) {
       success = await authProvider.signInWithEmail(email, password);
     } else {
-      success = await authProvider.signUpWithEmail(email, password);
+      success = await authProvider.signUpWithEmail(email, password, name);
     }
 
     if (!success && mounted) {
@@ -98,6 +101,27 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ),
                 const SizedBox(height: 48),
+
+                // Name Field (Only in Sign Up)
+                if (!_isLogin) ...[
+                  TextField(
+                    controller: _nameController,
+                    keyboardType: TextInputType.name,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(
+                      labelText: "Ad Soyad",
+                      prefixIcon: Icon(Icons.person_outline, color: brandBlue),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: brandBlue, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // Email Field
                 TextField(

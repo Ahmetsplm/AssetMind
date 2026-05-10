@@ -7,11 +7,36 @@ class AuthProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
+  String? _displayName;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get displayName => _displayName;
   User? get currentUser => _authService.currentUser;
   bool get isAuthenticated => currentUser != null;
+
+  AuthProvider() {
+    _initAuth();
+  }
+
+  void _initAuth() {
+    _authService.onAuthStateChange.listen((data) {
+      if (data.session != null) {
+        fetchDisplayName();
+      } else {
+        _displayName = null;
+        notifyListeners();
+      }
+    });
+  }
+
+  Future<void> fetchDisplayName() async {
+    final name = await _authService.getUserFullName();
+    if (_displayName != name) {
+      _displayName = name;
+      notifyListeners();
+    }
+  }
 
   void _setLoading(bool value) {
     _isLoading = value;
@@ -28,6 +53,7 @@ class AuthProvider extends ChangeNotifier {
     _setError(null);
     try {
       await _authService.signInWithEmail(email: email, password: password);
+      await fetchDisplayName();
       _setLoading(false);
       return true;
     } on AuthException catch (e) {
@@ -41,11 +67,12 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> signUpWithEmail(String email, String password) async {
+  Future<bool> signUpWithEmail(String email, String password, String fullName) async {
     _setLoading(true);
     _setError(null);
     try {
-      await _authService.signUpWithEmail(email: email, password: password);
+      await _authService.signUpWithEmail(email: email, password: password, fullName: fullName);
+      await fetchDisplayName();
       _setLoading(false);
       return true;
     } on AuthException catch (e) {
@@ -64,6 +91,7 @@ class AuthProvider extends ChangeNotifier {
     _setError(null);
     try {
       await _authService.signInWithGoogle();
+      await fetchDisplayName();
       _setLoading(false);
       return true;
     } catch (e) {
