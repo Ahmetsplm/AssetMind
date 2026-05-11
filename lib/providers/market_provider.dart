@@ -9,6 +9,8 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _cryptoTimer;
   Timer? _bistTimer;
   Timer? _forexTimer;
+  Timer? _globalTimer;
+  Timer? _fundTimer;
 
   bool _isInit = false;
   DateTime? _lastFetchTime;
@@ -53,6 +55,8 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
       _fetchCrypto(),
       _fetchBist(),
       _fetchForex(),
+      _fetchGlobal(),
+      _fetchFunds(),
     ]);
     _lastFetchTime = DateTime.now();
     notifyListeners();
@@ -73,13 +77,12 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
     _startCryptoTimer();
     _startBistTimer();
     _startForexTimer();
+    _startGlobalTimer();
+    _startFundTimer();
   }
 
   // --- 1. CRYPTO SCHEDULER (15s) ---
   void _startCryptoTimer() {
-    // Run immediately first
-    _fetchCrypto();
-
     _cryptoTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _fetchCrypto();
     });
@@ -94,14 +97,6 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // --- 2. BIST SCHEDULER (10m - Business Hours) ---
   void _startBistTimer() {
-    // Initial check: if cache is empty, force fetch regardless of time (Fix Night Install)
-    if (_api.isCacheEmpty) {
-      _fetchBist();
-    } else {
-      // Otherwise check rules
-      _checkAndFetchBist();
-    }
-
     _bistTimer = Timer.periodic(const Duration(minutes: 10), (_) {
       _checkAndFetchBist();
     });
@@ -126,7 +121,6 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // --- 3. FOREX SCHEDULER (1h) ---
   void _startForexTimer() {
-    _fetchForex(); // Initial
     _forexTimer = Timer.periodic(const Duration(hours: 1), (_) {
       _fetchForex();
     });
@@ -137,12 +131,38 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  // --- 4. GLOBAL SCHEDULER (15m) ---
+  void _startGlobalTimer() {
+    _globalTimer = Timer.periodic(const Duration(minutes: 15), (_) {
+      _fetchGlobal();
+    });
+  }
+
+  Future<void> _fetchGlobal() async {
+    await _api.fetchGlobal();
+    notifyListeners();
+  }
+
+  // --- 5. FUND SCHEDULER (1h) ---
+  void _startFundTimer() {
+    _fundTimer = Timer.periodic(const Duration(hours: 1), (_) {
+      _fetchFunds();
+    });
+  }
+
+  Future<void> _fetchFunds() async {
+    await _api.fetchFunds();
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _cryptoTimer?.cancel();
     _bistTimer?.cancel();
     _forexTimer?.cancel();
+    _globalTimer?.cancel();
+    _fundTimer?.cancel();
     super.dispose();
   }
 }

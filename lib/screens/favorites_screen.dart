@@ -154,6 +154,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         uniqueFavorites.where((f) => f.type == AssetType.FOREX).toList();
     final crypto =
         uniqueFavorites.where((f) => f.type == AssetType.CRYPTO).toList();
+    final global =
+        uniqueFavorites.where((f) => f.type == AssetType.GLOBAL).toList();
+    final fund =
+        uniqueFavorites.where((f) => f.type == AssetType.FUND).toList();
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 20),
@@ -174,6 +178,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         if (crypto.isNotEmpty) ...[
           _buildSectionHeader(context, 'Kripto Paralar'),
           ...crypto.map((f) => _buildListItem(context, f)),
+        ],
+        if (global.isNotEmpty) ...[
+          _buildSectionHeader(context, 'Global Hisseler'),
+          ...global.map((f) => _buildListItem(context, f)),
+        ],
+        if (fund.isNotEmpty) ...[
+          _buildSectionHeader(context, 'Yatırım Fonları'),
+          ...fund.map((f) => _buildListItem(context, f)),
         ],
       ],
     );
@@ -330,6 +342,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     } else if (item.type == AssetType.GOLD) {
       icon = Icons.diamond_outlined;
       iconColor = const Color(0xFFEA4335);
+    } else if (item.type == AssetType.GLOBAL) {
+      icon = Icons.public_rounded;
+      iconColor = const Color(0xFF9C27B0);
+    } else if (item.type == AssetType.FUND) {
+      icon = Icons.account_balance_rounded;
+      iconColor = const Color(0xFF00BCD4);
     } else {
       icon = Icons.show_chart_rounded; // Stock
       iconColor = const Color(0xFF4285F4);

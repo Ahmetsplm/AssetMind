@@ -504,7 +504,7 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   Widget _buildCategorySelector(BuildContext context) {
-    final categories = ['Özet', 'BIST', 'Kripto', 'Döviz'];
+    final categories = ['Özet', 'BIST', 'Kripto', 'Döviz', 'Global', 'Fonlar'];
     return Showcase(
       key: _oneKey,
       title: 'Kategoriler',
@@ -541,10 +541,15 @@ class _MarketScreenState extends State<MarketScreen> {
                     AssetType type;
                     if (index == 1) {
                       type = AssetType.STOCK;
-                    } else if (index == 2)
+                    } else if (index == 2) {
                       type = AssetType.CRYPTO;
-                    else
+                    } else if (index == 3) {
                       type = AssetType.FOREX;
+                    } else if (index == 4) {
+                      type = AssetType.GLOBAL;
+                    } else {
+                      type = AssetType.FUND;
+                    }
 
                     Navigator.push(
                       context,

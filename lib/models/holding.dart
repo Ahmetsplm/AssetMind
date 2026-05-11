@@ -1,4 +1,4 @@
-enum AssetType { STOCK, CRYPTO, GOLD, FOREX }
+enum AssetType { STOCK, CRYPTO, GOLD, FOREX, GLOBAL, FUND }
 
 class Holding {
   final int? id;

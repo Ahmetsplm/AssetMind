@@ -284,6 +284,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               return const Color(0xFFFBBC05); // Yellow
             case AssetType.FOREX:
               return const Color(0xFF34A853); // Green
+            case AssetType.GLOBAL:
+              return const Color(0xFF9C27B0); // Purple
+            case AssetType.FUND:
+              return const Color(0xFF00BCD4); // Cyan
           }
         }
 
@@ -794,11 +798,15 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         final goldCount = provider.getCountByType(AssetType.GOLD);
         final cryptoCount = provider.getCountByType(AssetType.CRYPTO);
         final forexCount = provider.getCountByType(AssetType.FOREX);
+        final globalCount = provider.getCountByType(AssetType.GLOBAL);
+        final fundCount = provider.getCountByType(AssetType.FUND);
 
         final stockVal = provider.getValueByType(AssetType.STOCK);
         final goldVal = provider.getValueByType(AssetType.GOLD);
         final cryptoVal = provider.getValueByType(AssetType.CRYPTO);
         final forexVal = provider.getValueByType(AssetType.FOREX);
+        final globalVal = provider.getValueByType(AssetType.GLOBAL);
+        final fundVal = provider.getValueByType(AssetType.FUND);
 
         final total = provider.totalPortfolioValue;
 
@@ -806,7 +814,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         if (stockCount == 0 &&
             goldCount == 0 &&
             cryptoCount == 0 &&
-            forexCount == 0) {
+            forexCount == 0 &&
+            globalCount == 0 &&
+            fundCount == 0) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(32.0),
@@ -875,6 +885,28 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             'value': forexVal,
             'icon': Icons.currency_exchange_rounded,
             'color': const Color(0xFF34A853),
+          });
+        }
+        if (globalCount > 0) {
+          categories.add({
+            'type': AssetType.GLOBAL,
+            'title': "Global Hisseler",
+            'subtitle': "Nasdaq, S&P 500",
+            'count': globalCount,
+            'value': globalVal,
+            'icon': Icons.public_rounded,
+            'color': const Color(0xFF9C27B0),
+          });
+        }
+        if (fundCount > 0) {
+          categories.add({
+            'type': AssetType.FUND,
+            'title': "Yatırım Fonları",
+            'subtitle': "TEFAS",
+            'count': fundCount,
+            'value': fundVal,
+            'icon': Icons.account_balance_rounded,
+            'color': const Color(0xFF00BCD4),
           });
         }
 

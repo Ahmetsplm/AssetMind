@@ -12,6 +12,7 @@ import 'add_transaction_screen.dart';
 import '../../widgets/skeleton_list_item.dart';
 import '../../widgets/animated_price_widget.dart';
 import '../../widgets/tech_analysis_button.dart';
+import '../../providers/market_provider.dart';
 
 class AssetListScreen extends StatefulWidget {
   final AssetType type;
@@ -53,12 +54,27 @@ class _AssetListScreenState extends State<AssetListScreen> {
         (_) => _loadAssets(),
       );
     }
+    
+    // Listen to MarketProvider for instant updates when background fetch completes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _marketProvider = Provider.of<MarketProvider>(context, listen: false);
+      _marketProvider?.addListener(_onMarketUpdate);
+    });
+  }
+
+  MarketProvider? _marketProvider;
+
+  void _onMarketUpdate() {
+    if (mounted) {
+      _loadAssets();
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _refreshTimer?.cancel();
+    _marketProvider?.removeListener(_onMarketUpdate);
     super.dispose();
   }
 
@@ -107,6 +123,10 @@ class _AssetListScreenState extends State<AssetListScreen> {
         return 'Kripto Para';
       case AssetType.FOREX:
         return 'Döviz';
+      case AssetType.GLOBAL:
+        return 'Global Hisseler';
+      case AssetType.FUND:
+        return 'Yatırım Fonları';
     }
   }
 

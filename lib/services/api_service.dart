@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/holding.dart';
 
 // Helper Model for Cache
@@ -101,6 +101,21 @@ class ApiService {
     'USD', 'EUR', 'GBP', 'CHF', 'CAD', 'JPY',
     // Expanded List
     'AUD', 'SEK', 'NOK', 'DKK', 'SAR', 'RUB', 'CNY', 'AZN', 'BGN',
+  ];
+
+  static const List<String> _whitelistGlobal = [
+    'AAPL', 'MSFT', 'TSLA', 'AMZN', 'GOOGL', 'NVDA', 'META', 'NFLX',
+    'AMD', 'INTC', 'JPM', 'V', 'DIS',
+    'SPY', // S&P 500 ETF
+    'QQQ', // NASDAQ 100 ETF
+  ];
+
+  static const List<String> _whitelistFund = [
+    // Garanti BBVA
+    'GAV', 'GTL', 'GTZ', 'GL1', 'GPA', 'GTA', 'GAU', 
+    'GZH', 'GMA', 'GMR', 'GBG', 'GZG', 'GHK', 'GSU',
+    // Popüler
+    'MAC', 'TCD', 'IIH', 'NNF', 'YAS', 'AFT', 'AFA'         
   ];
 
   // --- CONFIG ---
@@ -324,8 +339,90 @@ class ApiService {
     }
   }
 
-  // --- PRIVATE HELPERS ---
+  // --- FETCH: Global (Tiingo IEX) ---
+  Future<void> fetchGlobal() async {
+    final apiKey = dotenv.env['TIINGO_API_KEY'];
+    if (apiKey == null || apiKey.isEmpty) {
+      print("Tiingo API Key is missing.");
+      return;
+    }
 
+    await _ensureUsdRate();
+    if (_cachedUsdTry == null) return;
+
+    final symbols = _whitelistGlobal.join(",");
+    try {
+      final url = Uri.parse("https://api.tiingo.com/iex/?tickers=$symbols&token=$apiKey");
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final List<dynamic> json = jsonDecode(response.body);
+        for (var item in json) {
+          final String ticker = item['ticker'];
+          final double last = (item['tngoLast'] as num?)?.toDouble() ?? (item['last'] as num?)?.toDouble() ?? 0.0;
+          final double prevClose = (item['prevClose'] as num?)?.toDouble() ?? last;
+
+          if (last > 0) {
+            final priceTl = last * _cachedUsdTry!;
+            final change = prevClose > 0 ? ((last - prevClose) / prevClose) * 100 : 0.0;
+            _updateCache(ticker, priceTl, change);
+          }
+        }
+        await _saveCache();
+      } else {
+        print("Tiingo API Error: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Tiingo Global Fetch Error: $e");
+    }
+  }
+
+  // --- FETCH: Funds (TEFAS Scraper - Sequential to bypass Rate Limits) ---
+  Future<void> fetchFunds() async {
+    for (var fund in _whitelistFund) {
+      await _fetchTefasSingle(fund);
+      // TEFAS F5 ASM / Rate limit korumasına takılmamak için araya bekleme koyuyoruz
+      await Future.delayed(const Duration(milliseconds: 350));
+    }
+    await _saveCache();
+  }
+
+  Future<void> _fetchTefasSingle(String fundCode) async {
+    try {
+      final res = await http.get(
+        Uri.parse('https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=$fundCode'),
+        headers: _headers,
+      );
+      if (res.statusCode == 200) {
+        final html = res.body;
+        final idx = html.indexOf('Son Fiyat (TL)');
+        if (idx != -1) {
+          final sub = html.substring(idx, idx + 300);
+          final RegExp priceRegex = RegExp(r'>([\d,\.]+)<\/p>');
+          final match = priceRegex.firstMatch(sub);
+          if (match != null) {
+            String priceStr = match.group(1)!.replaceAll('.', '').replaceAll(',', '.');
+            double price = double.tryParse(priceStr) ?? 0.0;
+            if (price > 0) {
+               _updateCache(fundCode, price, 0.0);
+               print("TEFAS Success: $fundCode = $price");
+            } else {
+               print("TEFAS Parse Error: $fundCode, priceStr=$priceStr");
+            }
+          } else {
+             print("TEFAS Regex Match Failed: $fundCode, sub=$sub");
+          }
+        } else {
+           print("TEFAS HTML Missing 'Son Fiyat': $fundCode");
+        }
+      } else {
+        print("TEFAS HTTP Error: $fundCode -> ${res.statusCode}");
+      }
+    } catch (e) {
+      print("Tefas Fetch Error for $fundCode: $e");
+    }
+  }
+
+  // --- PRIVATE HELPERS ---
   Future<void> _fetchYahooSingle(String symbol) async {
     try {
       final url = Uri.parse(
@@ -628,6 +725,41 @@ class ApiService {
                 'change': d.change,
               });
             }
+          }
+        }
+        break;
+      case AssetType.GLOBAL:
+        for (var s in _whitelistGlobal) {
+          final d = _cache[s];
+          if (d != null) {
+            results.add({
+              'symbol': s,
+              'name': s,
+              'price': d.price,
+              'change': d.change,
+            });
+          }
+        }
+        break;
+      case AssetType.FUND:
+        for (var s in _whitelistFund) {
+          final d = _cache[s];
+          if (d != null) {
+            results.add({
+              'symbol': s,
+              'name': s,
+              'price': d.price,
+              'change': d.change,
+            });
+          } else {
+            // If TEFAS blocked the request, show the fund with 0.0 price
+            // so the user knows it's in the list but failed to fetch.
+            results.add({
+              'symbol': s,
+              'name': s,
+              'price': 0.0,
+              'change': 0.0,
+            });
           }
         }
         break;

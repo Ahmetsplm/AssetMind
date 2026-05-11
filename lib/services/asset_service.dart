@@ -126,4 +126,16 @@ class AssetService {
         .eq('user_id', userId!)
         .eq('symbol', symbol);
   }
+
+  // -- Data Wipe --
+  Future<void> wipeAllUserData() async {
+    if (userId == null) return;
+    try {
+      // ON DELETE CASCADE will handle holdings and transactions
+      await _client.from('portfolios').delete().eq('user_id', userId!);
+      await _client.from('favorites').delete().eq('user_id', userId!);
+    } catch (e) {
+      print("Wipe User Data Error: $e");
+    }
+  }
 }

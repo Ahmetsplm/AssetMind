@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
+
 import '../providers/theme_provider.dart';
 import '../providers/portfolio_provider.dart';
 import '../providers/favorite_provider.dart';
 import '../services/auth_service.dart';
 import '../services/data_service.dart';
+import '../services/asset_service.dart';
 import '../providers/auth_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -55,44 +61,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _backupData() async {
+  Future<void> _exportDataToCSV() async {
     try {
-      await _dataService.exportData();
+      final provider = Provider.of<PortfolioProvider>(context, listen: false);
+      final holdings = provider.holdings;
+      final txs = provider.allTransactions;
+
+      final holdingMap = {for (var h in holdings) h.id: h.symbol};
+
+      StringBuffer csv = StringBuffer();
+      // Section 1: Portfolio Status
+      csv.writeln("--- MEVCUT PORTFOY DURUMU ---");
+      csv.writeln("Sembol;Miktar;Ortalama Maliyet;Toplam Maliyet");
+      for (var h in holdings) {
+        if (h.quantity > 0) {
+          csv.writeln("${h.symbol};${h.quantity};${h.averageCost.toStringAsFixed(2)};${(h.quantity * h.averageCost).toStringAsFixed(2)}");
+        }
+      }
+      csv.writeln("");
+
+      // Section 2: Transactions
+      csv.writeln("--- ISLEM GECMISI ---");
+      csv.writeln("Tarih;Sembol;Islem Tipi;Miktar;Fiyat;Toplam Tutar");
+      for (var t in txs) {
+        final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(t.date);
+        final symbol = holdingMap[t.holdingId] ?? "Bilinmiyor";
+        final typeStr = t.type.name == 'BUY' ? 'ALIM' : 'SATIM';
+        final total = (t.amount * t.price).toStringAsFixed(2);
+        csv.writeln("$dateStr;$symbol;$typeStr;${t.amount};${t.price.toStringAsFixed(2)};$total");
+      }
+
+      final directory = await getTemporaryDirectory();
+      final path = "${directory.path}/assetmind_rapor_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv";
+      final file = File(path);
+      await file.writeAsString(csv.toString());
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Yedekleme dosyası hazırlandı.')),
+        final box = context.findRenderObject() as RenderBox?;
+        await Share.shareXFiles(
+          [XFile(path)],
+          text: 'AssetMind Portföy Raporu',
+          sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Yedekleme başarısız: $e')));
-      }
-    }
-  }
-
-  Future<void> _restoreData() async {
-    try {
-      final success = await _dataService.importData();
-      if (success && mounted) {
-        // Refresh Provider
-        await Provider.of<PortfolioProvider>(
-          context,
-          listen: false,
-        ).loadPortfolios();
-
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Veriler başarıyla geri yüklendi.')),
+          SnackBar(content: Text('Dışa aktarma başarısız: $e')),
         );
-      } else if (mounted) {
-        // User cancelled or failed silent
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Geri yükleme hatası: $e')));
       }
     }
   }
@@ -103,7 +119,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Tüm Verileri Sıfırla'),
         content: const Text(
-          'Bu işlem geri alınamaz! Tüm portföy verileriniz silinecek. Emin misiniz?',
+          'DİKKAT: Bu işlem buluttaki (Supabase) ve cihazınızdaki tüm portföy, işlem ve favori verilerinizi KALICI olarak silecektir. Emin misiniz?',
         ),
         actions: [
           TextButton(
@@ -113,22 +129,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Sıfırla'),
+            child: const Text('Evet, Her Şeyi Sil'),
           ),
         ],
       ),
     );
 
     if (confirm == true) {
-      // Security Check (Optional but good)
-      // Since it's destructive, re-auth if lock enabled?
-      // User said "Kırmızı, tehlikeli buton". Let's authorize if possible.
       if (_isLockEnabled) {
         final authenticated = await _auth.authenticate();
         if (!authenticated) return;
       }
 
-      await _dataService.clearAllData();
+      final assetService = AssetService();
+      await assetService.wipeAllUserData(); // Supabase Clear
+      await _dataService.clearAllData();    // Local SQLite Clear
+
       if (mounted) {
         await Provider.of<PortfolioProvider>(
           context,
@@ -140,7 +156,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ).clearFavorites();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tüm veriler sıfırlandı.')),
+          const SnackBar(content: Text('Tüm verileriniz başarıyla sıfırlandı.')),
         );
       }
     }
@@ -214,52 +230,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.backup_rounded,
-                color: Colors.blue,
-                size: 24,
-              ),
-            ),
-            title: Text(
-              "Yedekle",
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-              ),
-            ),
-            subtitle: Text(
-              "Verilerinizi dışa aktarın",
-              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
-            ),
-            onTap: _backupData,
-          ),
-          Divider(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-            height: 1,
-          ),
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 8,
-            ),
-            leading: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
                 color: Colors.green.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.restore_rounded,
+                Icons.file_download_outlined,
                 color: Colors.green,
                 size: 24,
               ),
             ),
             title: Text(
-              "Geri Yükle",
+              "Dışa Aktar (CSV/Excel)",
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
@@ -267,10 +248,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             subtitle: Text(
-              "Yedek dosyasından geri yükleyin",
+              "İşlem geçmişinizi ve portföy durumunu indirin",
               style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
             ),
-            onTap: _restoreData,
+            onTap: _exportDataToCSV,
           ),
           Divider(
             color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
@@ -294,7 +275,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             title: Text(
-              "Verileri Sıfırla",
+              "Tüm Verileri Sıfırla",
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
@@ -302,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             subtitle: Text(
-              "Tüm portföyü sil",
+              "Bulut ve cihazınızdaki tüm kayıtları silin",
               style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
             ),
             onTap: _resetData,
