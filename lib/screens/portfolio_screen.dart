@@ -762,7 +762,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           return _buildSkeletonLoading(context);
         }
 
-        if (provider.activeHoldingsCount == 0) {
+        if (provider.holdings.isEmpty) {
           return _buildEmptyState(context);
         }
 

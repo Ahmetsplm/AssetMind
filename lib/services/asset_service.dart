@@ -98,4 +98,32 @@ class AssetService {
     final data = await _client.from('transactions').insert(dataToInsert).select().single();
     return TransactionModel.fromMap(data);
   }
+
+  // -- Favorites --
+  Future<List<Map<String, dynamic>>> getFavorites() async {
+    if (userId == null) return [];
+    final data = await _client
+        .from('favorites')
+        .select()
+        .eq('user_id', userId!);
+    return data;
+  }
+
+  Future<void> addFavorite(String symbol, String type) async {
+    if (userId == null) return;
+    await _client.from('favorites').upsert({
+      'user_id': userId,
+      'symbol': symbol,
+      'type': type,
+    });
+  }
+
+  Future<void> removeFavorite(String symbol) async {
+    if (userId == null) return;
+    await _client
+        .from('favorites')
+        .delete()
+        .eq('user_id', userId!)
+        .eq('symbol', symbol);
+  }
 }

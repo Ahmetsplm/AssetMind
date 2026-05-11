@@ -111,7 +111,7 @@ class PortfolioProvider extends ChangeNotifier {
   }
 
   int getCountByType(AssetType type) {
-    return _holdings.where((h) => h.type == type && h.quantity > 0).length;
+    return _holdings.where((h) => h.type == type).length;
   }
 
   double getValueByType(AssetType type) {
