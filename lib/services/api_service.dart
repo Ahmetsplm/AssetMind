@@ -175,11 +175,15 @@ class ApiService {
   ];
 
   static const List<String> _whitelistFund = [
-    // Garanti BBVA
-    'GAV', 'GTL', 'GTZ', 'GL1', 'GPA', 'GTA', 'GAU', 
-    'GZH', 'GMA', 'GMR', 'GBG', 'GZG', 'GHK', 'GSU',
-    // Popüler
-    'MAC', 'TCD', 'IIH', 'NNF', 'YAS', 'AFT', 'AFA'         
+    // Borsa Yatırım Fonları (Aktif/Çalışanlar)
+    'ZGOLD.IS', 'Z30EA.IS', 'ZRE20.IS', 'GMSTR.IS', 
+    'GLDTR.IS', 'USDTR.IS', 'ZPT10.IS', 'Z30KE.IS', 'ZTLRK.IS',
+    // Garanti Portföy Fonları (Sadece Tıklanınca / Favoriye Alınınca Çekilecek)
+    'GAV.IS', 'GTL.IS', 'GTZ.IS', 'GL1.IS', 'GPA.IS', 'GTA.IS', 'GAU.IS', 
+    'GZH.IS', 'GMA.IS', 'GMR.IS', 'GBG.IS', 'GZG.IS', 'GHK.IS', 'GSU.IS',
+    'GZP.IS', 'GZJ.IS', 'GVI.IS', 'GZV.IS', 'GAL.IS', 'GPZ.IS', 'GJH.IS', 
+    'PIP.IS', 'GNP.IS', 'TGT.IS', 'GA1.IS', 'GUB.IS', 'GUV.IS', 'GAH.IS',
+    'GID.IS', 'GZL.IS', 'GBV.IS', 'GZZ.IS', 'GZY.IS', 'MET.IS', 'GVA.IS',
   ];
 
   // --- CONFIG ---
@@ -477,49 +481,62 @@ class ApiService {
     }
   }
 
-  // --- FETCH: Funds (TEFAS Scraper - Sequential to bypass Rate Limits) ---
+  // --- FETCH: Funds (BIST ETFs & Lazy Garanti via Yahoo) ---
   Future<void> fetchFunds() async {
-    for (var fund in _whitelistFund) {
-      await _fetchTefasSingle(fund);
-      // TEFAS F5 ASM / Rate limit korumasına takılmamak için araya bekleme koyuyoruz
-      await Future.delayed(const Duration(milliseconds: 350));
-    }
-    await _saveCache();
-  }
+    // 1. Sadece her 15 dakikada aktif olarak çekilecek "Çalışan" BIST BYF listesi
+    // Garanti fonları (GTL.IS vb.) bu listeye girmez, sadece tıklanınca (transient) 
+    // veya favori/alarm/portföye alınınca hedeflere eklenir.
+    final List<String> targets = [
+      'ZGOLD.IS', 'Z30EA.IS', 'ZRE20.IS', 'GMSTR.IS', 
+      'GLDTR.IS', 'USDTR.IS', 'ZPT10.IS', 'Z30KE.IS', 'ZTLRK.IS'
+    ];
 
-  Future<void> _fetchTefasSingle(String fundCode) async {
     try {
-      final res = await http.get(
-        Uri.parse('https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=$fundCode'),
-        headers: _headers,
-      );
-      if (res.statusCode == 200) {
-        final html = res.body;
-        final idx = html.indexOf('Son Fiyat (TL)');
-        if (idx != -1) {
-          final sub = html.substring(idx, idx + 300);
-          final RegExp priceRegex = RegExp(r'>([\d,\.]+)<\/p>');
-          final match = priceRegex.firstMatch(sub);
-          if (match != null) {
-            String priceStr = match.group(1)!.replaceAll('.', '').replaceAll(',', '.');
-            double price = double.tryParse(priceStr) ?? 0.0;
-            if (price > 0) {
-               _updateCache(fundCode, price, 0.0);
-               print("TEFAS Success: $fundCode = $price");
-            } else {
-               print("TEFAS Parse Error: $fundCode, priceStr=$priceStr");
-            }
-          } else {
-             print("TEFAS Regex Match Failed: $fundCode, sub=$sub");
+      final assetService = AssetService();
+      if (assetService.userId != null) {
+        // Favoriler
+        final favs = await assetService.getFavorites();
+        for (var f in favs) {
+          if (f['type'] == 'FUND') {
+            final sym = f['symbol'];
+            if (!targets.contains(sym)) targets.add(sym);
           }
-        } else {
-           print("TEFAS HTML Missing 'Son Fiyat': $fundCode");
         }
-      } else {
-        print("TEFAS HTTP Error: $fundCode -> ${res.statusCode}");
+        
+        // Alarmlar
+        final alerts = await assetService.getActiveAlerts();
+        for (var a in alerts) {
+          if (_whitelistFund.contains(a.symbol) || _whitelistFund.contains('${a.symbol}.IS')) {
+            final sym = _whitelistFund.contains(a.symbol) ? a.symbol : '${a.symbol}.IS';
+            if (!targets.contains(sym)) targets.add(sym);
+          }
+        }
+        
+        // Portföyler
+        final ports = await assetService.getPortfolios();
+        for (var p in ports) {
+          final holds = await assetService.getHoldings(p.id!);
+          for (var h in holds) {
+            if (h.type == AssetType.FUND) {
+              final sym = h.symbol;
+              if (!targets.contains(sym)) targets.add(sym);
+            }
+          }
+        }
       }
     } catch (e) {
-      print("Tefas Fetch Error for $fundCode: $e");
+      print("Dynamic Fund Target Fetch Error: \$e");
+    }
+
+    try {
+      await Future.wait(
+        targets.map((s) async {
+          await _fetchYahooSingle(s);
+        }),
+      );
+      await _saveCache();
+    } catch (e) {
+      print("Funds Fetch Error: \$e");
     }
   }
 
@@ -854,21 +871,34 @@ class ApiService {
         }
         break;
       case AssetType.FUND:
+        final fundNames = {
+          'ZGOLD.IS': 'Ziraat Altın',
+          'Z30EA.IS': 'Ziraat BIST 30',
+          'ZRE20.IS': 'Ziraat Gayrimenkul',
+          'GMSTR.IS': 'QNB Gümüş',
+          'GLDTR.IS': 'QNB Altın',
+          'USDTR.IS': 'QNB Dolar',
+          'ZPT10.IS': 'Ziraat BIST 10',
+          'Z30KE.IS': 'Ziraat Katılım',
+          'ZTLRK.IS': 'Ziraat Likit Banka',
+        };
         for (var s in _whitelistFund) {
           final d = _cache[s];
+          // .IS takısını silerek listeye ekleyelim
+          final String cleanSymbol = s.replaceAll('.IS', '');
+          final String displayName = fundNames[s] ?? 'Garanti Portföy $cleanSymbol';
           if (d != null) {
             results.add({
-              'symbol': s,
-              'name': s,
+              'symbol': s, // Fetch vs için hala .IS kullanılıyor
+              'name': displayName,
               'price': d.price,
               'change': d.change,
             });
           } else {
-            // If TEFAS blocked the request, show the fund with 0.0 price
-            // so the user knows it's in the list but failed to fetch.
+            // Eğer çekilemediyse fallback (UI'da uyarı gösterilecek)
             results.add({
               'symbol': s,
-              'name': s,
+              'name': displayName,
               'price': 0.0,
               'change': 0.0,
             });

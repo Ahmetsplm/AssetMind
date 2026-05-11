@@ -442,32 +442,43 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    '₺${currentPrice.toStringAsFixed(2)}',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: isUp
-                          ? Colors.green.withValues(alpha: 0.1)
-                          : Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
+                  if (currentPrice == 0.0 && item.type == AssetType.FUND)
+                    Text(
+                      'Veri Güncellenemedi',
                       style: GoogleFonts.poppins(
-                        color: isUp ? Colors.green : Colors.red,
+                        color: Colors.orange,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    )
+                  else ...[
+                    Text(
+                      '₺${currentPrice.toStringAsFixed(2)}',
+                      style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 16,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isUp
+                            ? Colors.green.withValues(alpha: 0.1)
+                            : Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
+                        style: GoogleFonts.poppins(
+                          color: isUp ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(width: 8),
