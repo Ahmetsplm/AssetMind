@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
+import '../services/asset_service.dart';
+import '../services/notification_service.dart';
 
 class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
   final ApiService _api = ApiService();
@@ -11,6 +13,7 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _forexTimer;
   Timer? _globalTimer;
   Timer? _fundTimer;
+  Timer? _foregroundAlertTimer;
 
   bool _isInit = false;
   DateTime? _lastFetchTime;
@@ -83,6 +86,49 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
     _startForexTimer();
     _startGlobalTimer();
     _startFundTimer();
+    _startForegroundAlertTimer();
+  }
+
+  // --- FOREGROUND ALERTS SCHEDULER (30s) ---
+  void _startForegroundAlertTimer() {
+    _foregroundAlertTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _checkForegroundAlerts();
+    });
+  }
+
+  Future<void> _checkForegroundAlerts() async {
+    try {
+      final assetService = AssetService();
+      if (assetService.userId == null) return; // User not logged in
+
+      final alerts = await assetService.getActiveAlerts();
+      if (alerts.isEmpty) return;
+
+      final notificationService = NotificationService();
+
+      for (var alert in alerts) {
+        final price = getPrice(alert.symbol);
+        if (price == 0.0) continue;
+
+        bool triggered = false;
+        if (alert.condition == 'above' && price >= alert.targetPrice) {
+          triggered = true;
+        } else if (alert.condition == 'below' && price <= alert.targetPrice) {
+          triggered = true;
+        }
+
+        if (triggered) {
+          await notificationService.showNotification(
+            id: alert.id.hashCode,
+            title: 'Fiyat Alarmı: ${alert.symbol}',
+            body: '${alert.symbol} belirlediğiniz hedef fiyata ulaştı! Güncel: \$${price.toStringAsFixed(2)}',
+          );
+          await assetService.deactivateAlert(alert.id);
+        }
+      }
+    } catch (e) {
+      print("Foreground Alert Check Error: $e");
+    }
   }
 
   // --- 1. CRYPTO SCHEDULER (15s) ---
@@ -167,6 +213,7 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
     _forexTimer?.cancel();
     _globalTimer?.cancel();
     _fundTimer?.cancel();
+    _foregroundAlertTimer?.cancel();
     super.dispose();
   }
 }
