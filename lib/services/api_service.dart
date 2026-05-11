@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -216,7 +217,7 @@ class ApiService {
         _cachedUsdTry = _cache['USD/TRY']!.price;
       }
     } catch (e) {
-      print("Cache Load Error: $e");
+      debugPrint("Cache Load Error: $e");
     }
   }
 
@@ -270,7 +271,7 @@ class ApiService {
         }
       }
     } catch (e) {
-      print("Dynamic Target Fetch Error: $e");
+      debugPrint("Dynamic Target Fetch Error: $e");
     }
 
     // Yahoo v8 Parallel Fetch
@@ -316,7 +317,7 @@ class ApiService {
         await _saveCache();
       }
     } catch (e) {
-      print("Binance Fetch Error: $e");
+      debugPrint("Binance Fetch Error: $e");
     }
   }
 
@@ -440,7 +441,7 @@ class ApiService {
         }
       }
     } catch (e) {
-      print("Frankfurter Fetch Error: $e");
+      debugPrint("Frankfurter Fetch Error: $e");
     }
   }
 
@@ -448,7 +449,7 @@ class ApiService {
   Future<void> fetchGlobal() async {
     final apiKey = dotenv.env['TIINGO_API_KEY'];
     if (apiKey == null || apiKey.isEmpty) {
-      print("Tiingo API Key is missing.");
+      debugPrint("Tiingo API Key is missing.");
       return;
     }
 
@@ -474,10 +475,10 @@ class ApiService {
         }
         await _saveCache();
       } else {
-        print("Tiingo API Error: ${response.statusCode}");
+        debugPrint("Tiingo API Error: ${response.statusCode}");
       }
     } catch (e) {
-      print("Tiingo Global Fetch Error: $e");
+      debugPrint("Tiingo Global Fetch Error: $e");
     }
   }
 
@@ -525,7 +526,7 @@ class ApiService {
         }
       }
     } catch (e) {
-      print("Dynamic Fund Target Fetch Error: \$e");
+      debugPrint("Dynamic Fund Target Fetch Error: $e");
     }
 
     try {
@@ -536,7 +537,7 @@ class ApiService {
       );
       await _saveCache();
     } catch (e) {
-      print("Funds Fetch Error: \$e");
+      debugPrint("Funds Fetch Error: $e");
     }
   }
 
@@ -640,7 +641,7 @@ class ApiService {
       final String jsonString = jsonEncode(mapToSave);
       await prefs.setString(_cacheKey, jsonString);
     } catch (e) {
-      print("Save Cache Error: $e");
+      debugPrint("Save Cache Error: $e");
     }
   }
 
@@ -971,19 +972,21 @@ class ApiService {
         String targetKey = inputSym;
         if (inputSym == 'GRAM') {
           targetKey = 'Gram Altın';
-        } else if (inputSym == 'CEYREK')
+        } else if (inputSym == 'CEYREK') {
           targetKey = 'Çeyrek Altın';
-        else if (inputSym == 'YARIM')
+        } else if (inputSym == 'YARIM') {
           targetKey = 'Yarım Altın';
-        else if (inputSym == 'TAM')
+        } else if (inputSym == 'TAM') {
           targetKey = 'Tam Altın';
-        else if (inputSym == 'CUMHURIYET')
+        } else if (inputSym == 'CUMHURIYET') {
           targetKey = 'Cumhuriyet Altın';
-        else if (inputSym == 'ONS')
+        } else if (inputSym == 'ONS') {
           targetKey = 'Ons Altın';
-        else {
+        } else {
           final possible = findCaseInsensitive(inputSym);
-          if (possible != null) targetKey = possible;
+          if (possible != null) {
+            targetKey = possible;
+          }
         }
 
         if (_cache.containsKey(targetKey)) {
@@ -1017,7 +1020,7 @@ class ApiService {
         await _fetchYahooSingle(symbol, isTransient: isTransient);
       }
     } catch (e) {
-      print("fetchSingle error for $symbol: $e");
+      debugPrint("fetchSingle error for $symbol: $e");
     }
   }
 }

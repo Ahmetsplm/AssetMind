@@ -14,6 +14,8 @@ import '../theme/app_theme.dart';
 import '../providers/theme_provider.dart';
 import '../models/portfolio.dart';
 import '../widgets/analysis_sheet.dart';
+import '../widgets/mesh_gradient_background.dart';
+import 'dart:ui' as ui;
 
 class PortfolioScreen extends StatefulWidget {
   const PortfolioScreen({super.key});
@@ -62,15 +64,12 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     final dateStr = DateFormat('d MMMM EEEE', 'tr_TR').format(now);
 
     return Text(
-      "Bugün, $dateStr",
-      style: GoogleFonts.poppins(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: Theme.of(context)
-            .textTheme
-            .bodyMedium
-            ?.color
-            ?.withValues(alpha: 0.6),
+      dateStr.toUpperCase(),
+      style: GoogleFonts.outfit(
+        fontSize: 10,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1.5,
+        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
       ),
     );
   }
@@ -89,9 +88,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                   Flexible(
                     child: Text(
                       portfolioName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                      style: GoogleFonts.outfit(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1,
                         color: Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -346,99 +346,107 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                 .color!
                 .withValues(alpha: 0.6);
 
-        return Container(
-          decoration: BoxDecoration(
-            gradient: backgroundGradient,
-            borderRadius: BorderRadius.circular(32),
-            boxShadow: [
-              BoxShadow(
-                color: isCustom
-                    ? AppTheme.cardGradients[styleIndex].colors.first
-                        .withValues(alpha: 0.3)
-                    : (isDark
-                        ? Colors.black.withValues(alpha: 0.5)
-                        : const Color(0xFF1A237E).withValues(alpha: 0.08)),
-                blurRadius: 25,
-                offset: const Offset(0, 10),
-              ),
-              if (!isCustom)
-                BoxShadow(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.02)
-                      : Colors.white,
-                  blurRadius: 0,
-                  offset: const Offset(0, 0),
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: MeshGradientBackground(
+            primaryColor: isCustom ? backgroundGradient.colors.first : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
+            secondaryColor: isCustom ? backgroundGradient.colors.last : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: isDark ? 0.05 : 0.2),
+                    width: 0.5,
+                  ),
                 ),
-            ],
-            border: isDark && !isCustom
-                ? Border.all(color: Colors.white.withValues(alpha: 0.1))
-                : null,
-          ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
+                child: Stack(
                   children: [
-                    // Total Value Section
-                    Column(
-                      children: [
-                        Text(
-                          "Toplam Varlık",
-                          style: GoogleFonts.poppins(
-                            color: subTextColor,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        provider.isPrivacyMode
-                            ? Text(
-                                '****',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 32,
+                    // Pulse Indicator
+                    Positioned(
+                      top: 24,
+                      left: 24,
+                      child: _PulseIndicator(isPositive: isProfit),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          // Total Value Section
+                          Column(
+                            children: [
+                              Text(
+                                "TOPLAM VARLIK",
+                                style: GoogleFonts.outfit(
+                                  color: subTextColor,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: textColor,
-                                  letterSpacing: 4,
-                                ),
-                              )
-                            : Text(
-                                '$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor,
-                                  letterSpacing: -0.5,
+                                  letterSpacing: 1.5,
                                 ),
                               ),
-                        const SizedBox(height: 4),
-                        Consumer<MarketProvider>(
-                          builder: (context, marketProvider, _) {
-                            return Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.update_rounded,
-                                  size: 12,
-                                  color: subTextColor,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  marketProvider.lastUpdateText,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: subTextColor,
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Divider(
-                        height: 1, color: subTextColor.withValues(alpha: 0.2)),
-                    const SizedBox(height: 24),
+                              const SizedBox(height: 12),
+                              provider.isPrivacyMode
+                                  ? Text(
+                                      '****',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.w900,
+                                        color: textColor,
+                                        letterSpacing: 4,
+                                      ),
+                                    )
+                                  : Text(
+                                      '$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.w900,
+                                        color: textColor,
+                                        letterSpacing: -1,
+                                      ),
+                                    ),
+                              const SizedBox(height: 6),
+                              Consumer<MarketProvider>(
+                                builder: (context, marketProvider, _) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.sync_rounded,
+                                          size: 10,
+                                          color: subTextColor,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          marketProvider.lastUpdateText.toUpperCase(),
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: subTextColor,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          Container(
+                            height: 0.5,
+                            width: 60,
+                            color: subTextColor.withValues(alpha: 0.2),
+                          ),
+                          const SizedBox(height: 24),
 
                     // Chart & Stats Row
                     Row(
@@ -598,10 +606,13 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               ),
             ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      ),
+    ),
+  );
+},
+);
+}
 
   Widget _buildCurrencyToggle(
     BuildContext context,
@@ -1398,6 +1409,68 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PulseIndicator extends StatefulWidget {
+  final bool isPositive;
+  const _PulseIndicator({required this.isPositive});
+
+  @override
+  State<_PulseIndicator> createState() => _PulseIndicatorState();
+}
+
+class _PulseIndicatorState extends State<_PulseIndicator> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.isPositive ? Colors.greenAccent : Colors.redAccent;
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.2 * (1 - _controller.value)),
+                border: Border.all(color: color.withValues(alpha: 1 - _controller.value), width: 2),
+              ),
+            ),
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color,
+                boxShadow: [
+                  BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 4, spreadRadius: 1),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

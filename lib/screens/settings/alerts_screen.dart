@@ -135,7 +135,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
         leading: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: (isAbove ? Colors.green : Colors.red).withOpacity(0.1),
+            color: (isAbove ? Colors.green : Colors.red).withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -157,7 +157,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Colors.grey.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(

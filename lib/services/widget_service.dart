@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:intl/intl.dart';
 
@@ -27,13 +28,13 @@ class WidgetService {
 
       await HomeWidget.updateWidget(name: portfolioWidgetName);
     } catch (e) {
-      print('Error updating portfolio widget: $e');
+      debugPrint('Error updating portfolio widget: $e');
     }
   }
 
   static Future<void> updateWatchlistWidget(List<Map<String, dynamic>> favorites) async {
     try {
-      int count = favorites.length > 4 ? 4 : favorites.length;
+      int count = favorites.length > 10 ? 10 : favorites.length;
       await HomeWidget.saveWidgetData<int>('fav_count', count);
       
       for (int i = 0; i < count; i++) {
@@ -49,7 +50,7 @@ class WidgetService {
       
       await HomeWidget.updateWidget(name: watchlistWidgetName);
     } catch (e) {
-      print('Error updating watchlist widget: $e');
+      debugPrint('Error updating watchlist widget: $e');
     }
   }
 }

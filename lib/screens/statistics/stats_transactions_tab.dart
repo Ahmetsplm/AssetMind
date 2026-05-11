@@ -180,8 +180,9 @@ class StatsTransactionsTab extends StatelessWidget {
               const SizedBox(height: 12),
               ListView.builder(
                 shrinkWrap: true,
+                padding: EdgeInsets.zero,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: transactions.take(10).length, // Show last 10
+                itemCount: transactions.take(10).length,
                 itemBuilder: (context, index) {
                   final t = transactions[index];
                   try {
@@ -190,53 +191,54 @@ class StatsTransactionsTab extends StatelessWidget {
                     );
                     final isBuy = t.type == TransactionType.BUY;
 
-                    return Card(
+                    return Container(
                       margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
                       ),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isBuy
-                              ? Colors.green.withValues(alpha: 0.1)
-                              : Colors.red.withValues(alpha: 0.1),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: (isBuy ? Colors.green : Colors.red).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           child: Icon(
-                            isBuy
-                                ? Icons.arrow_downward_rounded
-                                : Icons.arrow_upward_rounded, // IN vs OUT
+                            isBuy ? Icons.add_rounded : Icons.remove_rounded,
                             color: isBuy ? Colors.green : Colors.red,
                             size: 20,
                           ),
                         ),
                         title: Text(
                           holding.symbol,
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         subtitle: Text(
-                          DateFormat(
-                            'dd MMMM yyyy, HH:mm',
-                            'tr_TR',
-                          ).format(t.date),
-                          style: GoogleFonts.poppins(fontSize: 12),
+                          DateFormat('dd MMM yyyy', 'tr_TR').format(t.date),
+                          style: GoogleFonts.inter(fontSize: 11, color: Theme.of(context).disabledColor),
                         ),
                         trailing: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              "${isBuy ? '+' : '-'}$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(t.amount * t.price)}",
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.bold,
+                              "${isBuy ? '+' : '-'}${NumberFormat.currency(symbol: currencySymbol).format(t.amount * t.price / provider.getConversionRate())}",
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w900, 
+                                fontSize: 14,
                                 color: isBuy ? Colors.green : Colors.red,
                               ),
                             ),
                             Text(
-                              "${t.amount} ${isBuy ? 'Adet' : ''}",
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.grey,
+                              "${t.amount} ADET",
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).disabledColor,
                               ),
                             ),
                           ],
@@ -244,7 +246,6 @@ class StatsTransactionsTab extends StatelessWidget {
                       ),
                     );
                   } catch (e) {
-                    // Holding might be deleted? Or not loaded?
                     return const SizedBox.shrink();
                   }
                 },
@@ -261,15 +262,21 @@ class StatsTransactionsTab extends StatelessWidget {
       children: [
         Text(
           value,
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+          style: GoogleFonts.outfit(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
             color: Theme.of(context).textTheme.bodyLarge?.color,
+            letterSpacing: -0.5,
           ),
         ),
         Text(
           label,
-          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).disabledColor,
+            letterSpacing: 0.5,
+          ),
         ),
       ],
     );

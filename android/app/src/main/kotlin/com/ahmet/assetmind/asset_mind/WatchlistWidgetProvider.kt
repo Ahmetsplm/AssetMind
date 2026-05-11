@@ -22,14 +22,26 @@ class WatchlistWidgetProvider : HomeWidgetProvider() {
 
             // Get count
             val favCount = widgetData.getInt("fav_count", 0)
-            views.setTextViewText(R.id.tv_fav_title, "Takip Listesi ($favCount/4)")
+            views.setTextViewText(R.id.tv_fav_title, "Takip Listesi")
 
-            val itemIds = listOf(R.id.item_0, R.id.item_1, R.id.item_2, R.id.item_3)
-            val symbolIds = listOf(R.id.symbol_0, R.id.symbol_1, R.id.symbol_2, R.id.symbol_3)
-            val priceIds = listOf(R.id.price_0, R.id.price_1, R.id.price_2, R.id.price_3)
-            val changeIds = listOf(R.id.change_0, R.id.change_1, R.id.change_2, R.id.change_3)
+            val itemIds = listOf(
+                R.id.item_0, R.id.item_1, R.id.item_2, R.id.item_3, R.id.item_4,
+                R.id.item_5, R.id.item_6, R.id.item_7, R.id.item_8, R.id.item_9
+            )
+            val symbolIds = listOf(
+                R.id.symbol_0, R.id.symbol_1, R.id.symbol_2, R.id.symbol_3, R.id.symbol_4,
+                R.id.symbol_5, R.id.symbol_6, R.id.symbol_7, R.id.symbol_8, R.id.symbol_9
+            )
+            val priceIds = listOf(
+                R.id.price_0, R.id.price_1, R.id.price_2, R.id.price_3, R.id.price_4,
+                R.id.price_5, R.id.price_6, R.id.price_7, R.id.price_8, R.id.price_9
+            )
+            val changeIds = listOf(
+                R.id.change_0, R.id.change_1, R.id.change_2, R.id.change_3, R.id.change_4,
+                R.id.change_5, R.id.change_6, R.id.change_7, R.id.change_8, R.id.change_9
+            )
 
-            for (i in 0 until 4) {
+            for (i in 0 until 10) {
                 if (i < favCount) {
                     views.setViewVisibility(itemIds[i], View.VISIBLE)
                     

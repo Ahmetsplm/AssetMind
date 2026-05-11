@@ -124,7 +124,12 @@ class PortfolioProvider extends ChangeNotifier {
   }
 
   double getCurrentPrice(String symbol) {
-    return _assetPrices[symbol] ?? 0.0;
+    if (_assetPrices.containsKey(symbol) && _assetPrices[symbol]! > 0) {
+      return _assetPrices[symbol]!;
+    }
+    // Fallback to average cost if available in any holding
+    final h = _holdings.where((h) => h.symbol == symbol).firstOrNull;
+    return h?.averageCost ?? 0.0;
   }
 
   Future<List<TransactionModel>> getTransactionsForHolding(int holdingId) async {

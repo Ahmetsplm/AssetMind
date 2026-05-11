@@ -75,28 +75,24 @@ class StatsGeneralTab extends StatelessWidget {
 
               // Pie Chart Section
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(5),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
                 ),
                 child: Column(
                   children: [
                     Text(
-                      "Kategori Dağılımı",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                      "KATEGORİ DAĞILIMI",
+                      style: GoogleFonts.outfit(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                        color: Theme.of(context).disabledColor,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                     SizedBox(
                       height: 200,
                       child: Stack(
@@ -105,8 +101,8 @@ class StatsGeneralTab extends StatelessWidget {
                           PieChart(
                             PieChartData(
                               sections: _buildChartSections(provider),
-                              centerSpaceRadius: 60,
-                              sectionsSpace: 2,
+                              centerSpaceRadius: 65,
+                              sectionsSpace: 4,
                               startDegreeOffset: -90,
                             ),
                           ),
@@ -114,17 +110,19 @@ class StatsGeneralTab extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                "Kategori",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+                                "AKTİF",
+                                style: GoogleFonts.outfit(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).disabledColor,
+                                  letterSpacing: 1,
                                 ),
                               ),
                               Text(
                                 "${_countActiveCategories(provider)}",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
                             ],
@@ -132,7 +130,7 @@ class StatsGeneralTab extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                     // Legend
                     _buildLegend(context, provider),
                   ],
@@ -158,14 +156,8 @@ class StatsGeneralTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(5),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -174,24 +166,30 @@ class StatsGeneralTab extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: iconColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(iconData ?? icon, color: iconColor, size: 24),
           ),
           const SizedBox(height: 12),
           Text(
             value,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.outfit(
               fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w900,
               color: valueColor ?? Theme.of(context).textTheme.bodyLarge?.color,
+              letterSpacing: -0.5,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+            style: GoogleFonts.outfit(
+              fontSize: 11, 
+              color: Theme.of(context).disabledColor,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
             textAlign: TextAlign.center,
           ),
         ],

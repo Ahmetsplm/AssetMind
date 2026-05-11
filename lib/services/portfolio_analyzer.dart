@@ -241,7 +241,7 @@ class PortfolioAnalyzer {
       recs.add(
         AnalysisRecommendation(
           title: "Teknoloji Ağırlıklı Portföy",
-          description: "Aga portföyün teknoloji ağırlıklı (%${(techRatio * 100).toInt()}). Olası bir faiz artışında teknoloji hisseleri baskılanabilir, biraz Emtia (Altın/Gümüş) ekleyerek defansif kalabilirsin.",
+          description: "Portföyünüz teknoloji ağırlıklı (%${(techRatio * 100).toInt()}). Olası bir faiz artışında teknoloji hisseleri baskılanabilir; biraz Emtia (Altın/Gümüş) ekleyerek daha dengeli bir yapı kurabilirsiniz.",
           type: AnalysisType.tip,
         ),
       );

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/portfolio.dart';
 import '../models/holding.dart';
@@ -187,7 +188,7 @@ class AssetService {
       await _client.from('favorites').delete().eq('user_id', userId!);
       await _client.from('alerts').delete().eq('user_id', userId!);
     } catch (e) {
-      print("Wipe User Data Error: $e");
+      debugPrint("Wipe User Data Error: $e");
     }
   }
 }

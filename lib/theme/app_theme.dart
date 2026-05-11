@@ -39,7 +39,7 @@ class AppTheme {
       ),
       cardColor: lightSurface,
       dividerColor: Colors.grey.shade300,
-      textTheme: GoogleFonts.poppinsTextTheme().apply(
+      textTheme: GoogleFonts.interTextTheme().apply(
         bodyColor: lightTextPrimary,
         displayColor: lightTextPrimary,
       ),
@@ -47,9 +47,9 @@ class AppTheme {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: GoogleFonts.outfit(
           color: lightPrimary,
-          fontSize: 20,
+          fontSize: 22,
           fontWeight: FontWeight.bold,
         ),
         iconTheme: const IconThemeData(color: lightPrimary),
@@ -73,16 +73,16 @@ class AppTheme {
       ),
       cardColor: darkSurface,
       dividerColor: Colors.grey.shade800,
-      textTheme: GoogleFonts.poppinsTextTheme(
+      textTheme: GoogleFonts.interTextTheme(
         ThemeData.dark().textTheme,
       ).apply(bodyColor: darkTextPrimary, displayColor: darkTextPrimary),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: GoogleFonts.outfit(
           color: darkTextPrimary,
-          fontSize: 20,
+          fontSize: 22,
           fontWeight: FontWeight.bold,
         ),
         iconTheme: const IconThemeData(color: darkTextPrimary),

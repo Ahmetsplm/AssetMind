@@ -1,12 +1,12 @@
 import 'package:showcaseview/showcaseview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../providers/favorite_provider.dart';
 import '../providers/market_provider.dart';
 import '../providers/auth_provider.dart';
-import '../providers/market_provider.dart';
 import '../models/favorite.dart';
 import '../models/holding.dart'; // For AssetType
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -14,6 +14,8 @@ import 'add_asset/asset_list_screen.dart';
 import 'news_screen.dart';
 import '../widgets/animated_price_widget.dart';
 import '../widgets/tech_analysis_button.dart';
+import '../widgets/live_ticker.dart';
+import 'dart:ui' as ui;
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -42,8 +44,15 @@ class _MarketScreenState extends State<MarketScreen> {
               child: Scaffold(
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 appBar: _buildAppBar(context),
-                body: TabBarView(
-                  children: [_buildMarketTab(context), const NewsScreen()],
+                body: Column(
+                  children: [
+                    const LiveTicker(),
+                    Expanded(
+                      child: TabBarView(
+                        children: [_buildMarketTab(context), const NewsScreen()],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -63,18 +72,19 @@ class _MarketScreenState extends State<MarketScreen> {
             children: [
               Text(
                 'Hoş geldin, $name',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.inter(
                   color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                   fontSize: 14,
                 ),
               ),
               Text(
                 'Piyasalar',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.outfit(
                   color: Theme.of(context).textTheme.bodyLarge?.color,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
-                  height: 1.2,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 28,
+                  height: 1.1,
+                  letterSpacing: -1,
                 ),
               ),
             ],
@@ -211,7 +221,7 @@ class _MarketScreenState extends State<MarketScreen> {
             AssetType.CRYPTO,
           ),
 
-          SliverToBoxAdapter(child: const SizedBox(height: 30)),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
     );
@@ -233,20 +243,19 @@ class _MarketScreenState extends State<MarketScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                title.toUpperCase(),
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
                   color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
               ),
               Text(
                 subtitle,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -267,14 +276,14 @@ class _MarketScreenState extends State<MarketScreen> {
                   'Yükselen',
                   isRising,
                   () => onToggle(true),
-                  Colors.green,
+                  Colors.greenAccent,
                 ),
                 _buildToggleButton(
                   context,
                   'Düşen',
                   !isRising,
                   () => onToggle(false),
-                  Colors.red,
+                  Colors.redAccent,
                 ),
               ],
             ),
@@ -303,14 +312,10 @@ class _MarketScreenState extends State<MarketScreen> {
         ),
         child: Text(
           text,
-          style: GoogleFonts.poppins(
-            color: isActive
-                ? activeColor
-                : Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
+          style: GoogleFonts.outfit(
+            color: isActive ? activeColor : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
           ),
         ),
       ),
@@ -367,9 +372,9 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   Widget _buildMarketCard(BuildContext context, Map<String, dynamic> item) {
-    final bool isUp = item['is_rising'];
+    final bool isUp = item["is_rising"];
     final Color trendColor = isUp ? Colors.green : Colors.red;
-    final symbol = item['symbol'] as String;
+    final symbol = item["symbol"] as String;
 
     final mappedSymbol = _getCanonicalSymbol(symbol);
     final type = _determineTypeFromSummary(symbol);
@@ -379,124 +384,104 @@ class _MarketScreenState extends State<MarketScreen> {
       builder: (context, favoriteProvider, child) {
         final isFav = favoriteProvider.isFavorite(mappedSymbol);
 
-        return Container(
-          width: 160,
-          margin: const EdgeInsets.only(right: 16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-            // Slight gradient for depth
-            gradient: isDark
-                ? const LinearGradient(
-                    colors: [Color(0xFF1E1E1E), Color(0xFF252525)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Colors.white, Color(0xFFF8F9FA)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              width: 160,
+              margin: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white.withValues(alpha: isDark ? 0.05 : 0.2)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
                   ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
+                ],
               ),
-            ],
-            border: isDark ? Border.all(color: Colors.white10) : null,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Text(
-                      symbol,
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      favoriteProvider.toggleFavorite(
-                        Favorite(symbol: mappedSymbol, type: type),
-                      );
-                    },
-                    child: Icon(
-                      isFav ? Icons.star_rounded : Icons.star_border_rounded,
-                      size: 22,
-                      color: isFav
-                          ? const Color(0xFFFFB300)
-                          : Theme.of(context).disabledColor,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AnimatedPriceWidget(
-                    numericValue: (item['raw_value'] as num?)?.toDouble() ??
-                        double.tryParse(
-                          item['value']
-                              .toString()
-                              .replaceAll('.', '')
-                              .replaceAll(',', '.'),
-                        ) ??
-                        0.0,
-                    displayString: item['value'].toString(),
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: trendColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isUp
-                              ? Icons.trending_up_rounded
-                              : Icons.trending_down_rounded,
-                          size: 14,
-                          color: trendColor,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '%${item['change_rate']}',
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          symbol,
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                            color: trendColor,
+                            fontSize: 14,
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          favoriteProvider.toggleFavorite(
+                            Favorite(symbol: mappedSymbol, type: type),
+                          );
+                        },
+                        child: Icon(
+                          isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                          size: 22,
+                          color: isFav ? const Color(0xFFFFB300) : Theme.of(context).disabledColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimatedPriceWidget(
+                        numericValue: (item["raw_value"] as num?)?.toDouble() ??
+                            double.tryParse(item["value"].toString().replaceAll(".", "").replaceAll(",", ".")) ??
+                            0.0,
+                        displayString: item["value"].toString(),
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: trendColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isUp ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                              size: 14,
+                              color: trendColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "%${item["change_rate"]}",
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: trendColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -606,21 +591,15 @@ class _MarketScreenState extends State<MarketScreen> {
     final symbol = item['symbol'] as String;
     final String timeStr = item['time'] ?? '';
 
-    final trendColor = isUp ? Colors.green : Colors.red;
+    final trendColor = isUp ? Colors.greenAccent : Colors.redAccent;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: Theme.of(context).cardColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
@@ -649,8 +628,8 @@ class _MarketScreenState extends State<MarketScreen> {
               children: [
                 Text(
                   symbol,
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
                     fontSize: 16,
                     color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
@@ -658,7 +637,7 @@ class _MarketScreenState extends State<MarketScreen> {
                 if (timeStr.isNotEmpty)
                   Text(
                     timeStr,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.inter(
                       color: Theme.of(
                         context,
                       ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
@@ -681,8 +660,8 @@ class _MarketScreenState extends State<MarketScreen> {
                     ) ??
                     0.0,
                 displayString: item['price'].toString(),
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.w900,
                   fontSize: 16,
                   color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
@@ -696,10 +675,10 @@ class _MarketScreenState extends State<MarketScreen> {
                 ),
                 child: Text(
                   '%${item['change']}',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.outfit(
                     color: trendColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
                   ),
                 ),
               ),
@@ -711,6 +690,7 @@ class _MarketScreenState extends State<MarketScreen> {
               final isFav = favoriteProvider.isFavorite(symbol);
               return GestureDetector(
                 onTap: () {
+                  HapticFeedback.lightImpact();
                   favoriteProvider.toggleFavorite(
                     Favorite(symbol: symbol, type: type),
                   );
@@ -725,7 +705,7 @@ class _MarketScreenState extends State<MarketScreen> {
               );
             },
           ),
-          const SizedBox(width: 8), // Spacing
+          const SizedBox(width: 12),
           TechAnalysisButton(symbol: symbol, type: type),
         ],
       ),

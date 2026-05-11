@@ -47,17 +47,11 @@ class StatsDistributionTab extends StatelessWidget {
 
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(5),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,43 +64,72 @@ class StatsDistributionTab extends StatelessWidget {
                         children: [
                           Text(
                             h.symbol,
-                            style: GoogleFonts.poppins(
+                            style: GoogleFonts.outfit(
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: 18,
                             ),
                           ),
                           Text(
-                            h.type.name, // Or formatted name
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.grey,
+                            h.type.name.toUpperCase(),
+                            style: GoogleFonts.outfit(
+                              fontSize: 10,
+                              letterSpacing: 1,
+                              color: Theme.of(context).disabledColor,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
-                      Text(
-                        "%${percent.toStringAsFixed(1)}",
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Theme.of(context).primaryColor,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _getColorForIndex(index, context).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          "%${percent.toStringAsFixed(1)}",
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            color: _getColorForIndex(index, context),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: percent / 100,
-                      backgroundColor: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: 0.1),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _getColorForIndex(index, context),
+                  const SizedBox(height: 20),
+                  Stack(
+                    children: [
+                      Container(
+                        height: 8,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
-                      minHeight: 8,
-                    ),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 500),
+                        height: 8,
+                        width: (MediaQuery.of(context).size.width - 80) * (percent / 100),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              _getColorForIndex(index, context),
+                              _getColorForIndex(index, context).withValues(alpha: 0.7),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _getColorForIndex(index, context).withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:webfeed_plus/webfeed_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -106,69 +107,75 @@ class _NewsScreenState extends State<NewsScreen>
                   ? DateFormat('dd MMM HH:mm', 'tr_TR').format(item.pubDate!)
                   : '';
 
-              return Card(
-                elevation: 0,
-                color: Theme.of(context).cardColor,
-                margin: const EdgeInsets.only(bottom: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color:
-                        Theme.of(context).dividerColor.withValues(alpha: 0.1),
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
                   ),
-                ),
-                child: InkWell(
-                  onTap: () =>
-                      item.link != null ? _launchUrl(item.link!) : null,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item.title ?? 'Başlıksız',
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                  color: Theme.of(
-                                    context,
-                                  ).textTheme.bodyLarge?.color,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (date.isNotEmpty) ...[
-                              const SizedBox(width: 8),
-                              Text(
-                                date,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.color
-                                      ?.withValues(alpha: 0.5),
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      if (item.link != null) _launchUrl(item.link!);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.title ?? 'Başlıksız',
+                                  style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    height: 1.3,
+                                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          item.source?.value ?? 'Finans Haberleri',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Theme.of(context).primaryColor,
-                            fontWeight: FontWeight.w500,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  item.source?.value?.toUpperCase() ?? 'HABER',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 10,
+                                    color: Theme.of(context).primaryColor,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              if (date.isNotEmpty)
+                                Text(
+                                  date,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

@@ -151,10 +151,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           context,
           listen: false,
         ).loadPortfolios();
+        
+        if (!mounted) return;
+        
         await Provider.of<FavoriteProvider>(
           context,
           listen: false,
         ).clearFavorites();
+
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Tüm verileriniz başarıyla sıfırlandı.')),
@@ -349,7 +354,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: Switch.adaptive(
               value: _isLockEnabled,
               onChanged: _toggleLock,
-              activeColor: Theme.of(context).primaryColor,
+              activeThumbColor: Theme.of(context).primaryColor,
             ),
           ),
         ],

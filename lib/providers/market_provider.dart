@@ -193,7 +193,7 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
     } catch (e) {
-      print("Foreground Alert Check Error: $e");
+      debugPrint("Foreground Alert Check Error: $e");
     }
   }
 
@@ -205,9 +205,7 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _fetchCrypto() async {
-    print("MarketProvider: Fetching Crypto...");
     await _api.fetchCrypto();
-    print("MarketProvider: Crypto Fetched. Notifying listeners.");
     notifyListeners();
   }
 

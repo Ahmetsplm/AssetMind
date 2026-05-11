@@ -36,9 +36,11 @@ class _StatisticsScreenState extends State<StatisticsScreen>
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          "İstatistikler",
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
+          "İSTATİSTİKLER",
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 2,
             color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
@@ -48,22 +50,34 @@ class _StatisticsScreenState extends State<StatisticsScreen>
         iconTheme: IconThemeData(
           color: Theme.of(context).textTheme.bodyLarge?.color,
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Theme.of(context).primaryColor,
-          unselectedLabelColor: Colors.grey,
-          labelStyle: GoogleFonts.poppins(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: Theme.of(context).primaryColor,
+              unselectedLabelColor: Colors.grey,
+              labelStyle: GoogleFonts.outfit(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+              indicator: BoxDecoration(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              tabs: const [
+                Tab(icon: Icon(Icons.dashboard_rounded, size: 20), text: "GENEL"),
+                Tab(icon: Icon(Icons.trending_up_rounded, size: 20), text: "PERF."),
+                Tab(icon: Icon(Icons.pie_chart_rounded, size: 20), text: "DAĞILIM"),
+                Tab(icon: Icon(Icons.history_rounded, size: 20), text: "İŞLEM"),
+              ],
+            ),
           ),
-          indicatorColor: Theme.of(context).primaryColor,
-          indicatorSize: TabBarIndicatorSize.label,
-          tabs: const [
-            Tab(icon: Icon(Icons.dashboard_rounded), text: "Genel"),
-            Tab(icon: Icon(Icons.trending_up_rounded), text: "Performans"),
-            Tab(icon: Icon(Icons.pie_chart_rounded), text: "Dağılım"),
-            Tab(icon: Icon(Icons.history_rounded), text: "İşlemler"),
-          ],
         ),
       ),
       body: Consumer<PortfolioProvider>(

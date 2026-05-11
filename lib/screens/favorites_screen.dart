@@ -188,6 +188,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           _buildSectionHeader(context, 'Yatırım Fonları'),
           ...fund.map((f) => _buildListItem(context, f)),
         ],
+        const SizedBox(height: 100),
       ],
     );
   }

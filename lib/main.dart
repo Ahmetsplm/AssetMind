@@ -90,7 +90,7 @@ void callbackDispatcher() {
         }
         await WidgetService.updateWatchlistWidget(favWidgetData);
       } catch (e) {
-        print("Background widget update error: $e");
+        debugPrint("Background widget update error: $e");
       }
       
       // --- ALERT LOGIC ---
@@ -127,7 +127,7 @@ void callbackDispatcher() {
         }
       }
     } catch (e) {
-      print("Background Task Error: $e");
+      debugPrint("Background Task Error: $e");
     }
     return Future.value(true);
   });
