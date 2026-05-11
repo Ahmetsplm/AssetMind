@@ -3,30 +3,35 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/holding.dart';
+import 'asset_service.dart';
 
 // Helper Model for Cache
 class AssetCacheModel {
   final double price;
   final double change;
-  final String lastUpdated;
+  final DateTime timestamp;
+  final bool isTransient;
 
   AssetCacheModel({
     required this.price,
     required this.change,
-    required this.lastUpdated,
+    required this.timestamp,
+    this.isTransient = false,
   });
 
   Map<String, dynamic> toJson() => {
         'price': price,
         'change': change,
-        'lastUpdated': lastUpdated,
+        'timestamp': timestamp.toIso8601String(),
+        'isTransient': isTransient,
       };
 
   factory AssetCacheModel.fromJson(Map<String, dynamic> json) {
     return AssetCacheModel(
       price: (json['price'] as num).toDouble(),
       change: (json['change'] as num).toDouble(),
-      lastUpdated: json['lastUpdated'] ?? '',
+      timestamp: DateTime.parse(json['timestamp'] ?? DateTime.now().toIso8601String()),
+      isTransient: json['isTransient'] ?? false,
     );
   }
 }
@@ -45,6 +50,65 @@ class ApiService {
     'PETKM.IS', 'SAHOL.IS', 'SISE.IS', 'TCELL.IS', 'THYAO.IS', 'TOASO.IS',
     'TUPRS.IS', 'YKBNK.IS', 'PGSUS.IS', 'KONTR.IS', 'GESAN.IS', 'ASTOR.IS',
     'XU100.IS', // Endeks (Display: BIST 100)
+  ];
+
+  static const List<String> _allBistStocks = [
+    "A1YEN","AAGYO","ACSEL","ADEL","ADESE","AEFES","AFYON","AGESA","AGHOL","AGROT",
+    "AGYO","AHGAZ","AHSGY","AKBNK","AKCNS","AKENR","AKFGY","AKFIS","AKFYE","AKGRT",
+    "AKMGY","AKSA","AKSEN","AKSUE","AKYHO","ALARK","ALBRK","ALCAR","ALCTL","ALFAS",
+    "ALGYO","ALKA","ALKIM","ALKLC","ALTNY","ANELE","APBDL","APGLD","APMDL","APX30",
+    "ARASE","ARCLK","ARDYZ","ARENA","ARFYE","ARSAN","ARTMS","ARZUM","ASGYO","ASTOR",
+    "ASUZU","ATAKP","ATATP","ATATR","ATEKS","ATLAS","ATSYH","AVGYO","AVHOL","AVPGY",
+    "AVTUR","AYDEM","AYEN","AYES","AYGAZ","AZTEK","BAGFS","BAHKM","BAKAB","BALAT",
+    "BANVT","BARMA","BASCM","BASGZ","BAYRK","BEGYO","BESLR","BESTE","BFREN","BIENY",
+    "BIGCH","BIGTK","BIMAS","BINBN","BINHO","BIOEN","BIZIM","BJKAS","BLCYT","BLUME",
+    "BMSCH","BMSTL","BNTAS","BOBET","BORLS","BORSK","BOSSA","BRISA","BRKO","BRKSN",
+    "BRLSM","BRMEN","BRSAN","BRYAT","BSOKE","BTCIM","BUCIM","BULGS","BURCE","BURVA",
+    "CANTE","CASA","CATES","CCOLA","CELHA","CEMAS","CEMTS","CEMZY","CGCAM","CIMSA",
+    "CLEBI","CMBTN","CMENT","CONSE","COSMO","CRDFA","CRFSA","CUSAN","CVKMD","CWENE",
+    "DAGI","DAPGM","DARDL","DCTTR","DENGE","DERHL","DERIM","DESPC","DEVA","DGATE",
+    "DGGYO","DGNMO","DIRIT","DITAS","DMRGD","DMSAS","DNISI","DOAS","DOCO","DOFER",
+    "DOFRB","DOGUB","DOHOL","DOKTA","DUNYH","DURDO","DURKN","DYOBY","DZGYO","EBEBK",
+    "ECILC","ECOGR","ECZYT","EDATA","EDIP","EFOR","EGEEN","EGEGY","EGEPO","EGGUB",
+    "EGSER","EKGYO","EKIZ","EKOS","EKSUN","ELITE","EMKEL","EMNIS","EMPAE","ENDAE",
+    "ENJSA","ENKAI","ENPRA","ENSRI","EPLAS","ERBOS","ERCB","EREGL","ERSU","ESCAR",
+    "ESCOM","ESEN","ETILR","ETYAT","EUKYO","EUPWR","EUREN","EUYO","FENER","FLAP",
+    "FMIZP","FONET","FORTE","FRIGO","FRMPL","FZLGY","GARAN","GARFA","GATEG","GEDIK",
+    "GEDZA","GENIL","GENKM","GENTS","GEREL","GESAN","GLBMD","GLCVY","GLDTR","GLRMK",
+    "GLRYH","GLYHO","GMSTR","GMTAS","GOKNR","GOLTS","GOODY","GOZDE","GRNYO","GRSEL",
+    "GRTHO","GSDDE","GSDHO","GSRAY","GUBRF","GWIND","GZNMI","HALKB","HATEK","HATSN",
+    "HDFGS","HEDEF","HEKTS","HKTM","HLGYO","HOROZ","HRKET","HTTBT","HUBVC","HUNER",
+    "HURGZ","ICBCT","ICUGS","IDGYO","IEYHO","IHAAS","IHEVA","IHLAS","IHLGM","IHYAY",
+    "IMASM","INDES","INFO","INGRM","INTEK","INVEO","INVES","ISBIR","ISBTR","ISCTR",
+    "ISDMR","ISFIN","ISGLK","ISGSY","ISGYO","ISKPL","ISKUR","ISMEN","ISYAT","IZENR",
+    "IZFAS","IZINV","IZMDC","JANTS","KAPLM","KAREL","KARSN","KATMR","KAYSE","KBORU",
+    "KCAER","KCHOL","KENT","KERVN","KFEIN","KGYO","KIMMR","KLGYO","KLKIM","KLMSN",
+    "KLNMA","KLSER","KLSYN","KLYPV","KMPUR","KNFRT","KOCMT","KONKA","KONTR","KONYA",
+    "KOPOL","KORDS","KOTON","KRDMA","KRDMB","KRDMD","KRGYO","KRONT","KRPLS","KRTEK",
+    "KRVGD","KSTUR","KTLEV","KTSKR","KUTPO","KUVVA","KUYAS","KZBGY","LIDER","LILAK",
+    "LKMNH","LMKDC","LOGO","LRSHO","LUKSK","LXGYO","LYDHO","LYDYE","MAALT","MACKO",
+    "MAGEN","MAKIM","MAKTK","MANAS","MARBL","MARKA","MARMR","MARTI","MAVI","MCARD",
+    "MEDTR","MEGAP","MEGMT","MEKAG","MEPET","MERCN","MERIT","MERKO","METRO","MEYSU",
+    "MGROS","MMCAS","MNDRS","MOBTL","MOGAN","MOPAS","MPARK","MRGYO","MRSHL","MTRKS",
+    "NETAS","NETCD","NIBAS","NPTLR","NTGAZ","NTHOL","NUGYO","NUHCM","OBASE","ODAS",
+    "ODINE","OFSYM","ONCSM","OPK30","OPT25","OPTGY","OPTLR","OPX30","ORCAY","ORGE",
+    "OSMEN","OSTIM","OTKAR","OTTO","OYAKC","OYAYO","OYLUM","OYYAT","OZGYO","OZKGY",
+    "OZRDN","OZSUB","PAGYO","PAHOL","PAMEL","PAPIL","PARSN","PASEU","PATEK","PCILT",
+    "PEKGY","PENTA","PETKM","PETUN","PGSUS","PINSU","PKART","PKENT","PLTUR","PNLSN",
+    "PNSUT","POLHO","POLTK","PRDGS","PRKME","PRZMA","PSDTC","QNBFK","QNBTR","QTEMZ",
+    "QUAGR","RALYH","RAYSG","REEDR","RGYAS","RNPOL","RTALB","RUBNS","RUZYE","RYSAS",
+    "SAFKR","SAHOL","SAMAT","SANFM","SANKO","SARKY","SASA","SAYAS","SDTTR","SEGMN",
+    "SEGYO","SEKFK","SEKUR","SELEC","SELVA","SERNT","SEYKM","SILVR","SISE","SKBNK",
+    "SKTAS","SKYMD","SMRTG","SNGYO","SNICA","SODSN","SOKM","SONME","SRVGY","SUMAS",
+    "SUNTK","SURGY","SUWEN","SVGYO","TABGD","TARKM","TATEN","TATGD","TAVHL","TCELL",
+    "TCKRC","TEHOL","TEKTU","TERA","TEZOL","TGSAS","THYAO","TKFEN","TKNSA","TLMAN",
+    "TMPOL","TMSN","TNZTP","TOASO","TRALT","TRENJ","TRGYO","TRILC","TRMET","TSKB",
+    "TTKOM","TTRAK","TUKAS","TUPRS","TUREX","TURGG","TURSG","UFUK","ULAS","ULKER",
+    "ULUFA","ULUSE","ULUUN","UNLU","USAK","USDTR","VAKBN","VAKFA","VAKFN","VAKKO",
+    "VANGD","VBTYZ","VERTU","VESBE","VKFYO","VKGYO","VKING","VSNMD","YAPRK","YAYLA",
+    "YBTAS","YEOTK","YESIL","YGGYO","YIGIT","YKBNK","YKSLN","YONGA","YUNSA","YYAPI",
+    "YYLGD","Z30EA","Z30KE","Z30KP","ZEDUR","ZELOT","ZERGY","ZGOLD","ZGYO","ZOREN",
+    "ZPBDL","ZPLIB","ZPT10","ZPX30","ZRE20","ZRGYO","ZSR25","ZTLRF","ZTLRK","ZTM25"
   ];
 
   static const List<String> _whitelistCrypto = [
@@ -167,6 +231,43 @@ class ApiService {
     // Add Gold & Metals to fetch list
     final List<String> targets = List.from(_whitelistBist)
       ..addAll(["GC=F", "SI=F", "PL=F", "PA=F"]);
+
+    try {
+      final assetService = AssetService();
+      if (assetService.userId != null) {
+        // Favoriler
+        final favs = await assetService.getFavorites();
+        for (var f in favs) {
+          if (f['type'] == 'STOCK') {
+            final sym = '${f['symbol']}.IS';
+            if (!targets.contains(sym)) targets.add(sym);
+          }
+        }
+        
+        // Alarmlar
+        final alerts = await assetService.getActiveAlerts();
+        for (var a in alerts) {
+          if (_allBistStocks.contains(a.symbol)) {
+            final sym = '${a.symbol}.IS';
+            if (!targets.contains(sym)) targets.add(sym);
+          }
+        }
+        
+        // Portföyler
+        final ports = await assetService.getPortfolios();
+        for (var p in ports) {
+          final holds = await assetService.getHoldings(p.id!);
+          for (var h in holds) {
+            if (h.type == AssetType.STOCK) {
+              final sym = '${h.symbol}.IS';
+              if (!targets.contains(sym)) targets.add(sym);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print("Dynamic Target Fetch Error: $e");
+    }
 
     // Yahoo v8 Parallel Fetch
     await Future.wait(
@@ -423,7 +524,7 @@ class ApiService {
   }
 
   // --- PRIVATE HELPERS ---
-  Future<void> _fetchYahooSingle(String symbol) async {
+  Future<void> _fetchYahooSingle(String symbol, {bool isTransient = false}) async {
     try {
       final url = Uri.parse(
         "https://query1.finance.yahoo.com/v8/finance/chart/$symbol?interval=1d&range=1d",
@@ -443,7 +544,7 @@ class ApiService {
         // BIST 100 Fix
         if (symbol == "XU100.IS" && current > 50000) current /= 100;
 
-        _updateCache(symbol, current, change);
+        _updateCache(symbol, current, change, isTransient: isTransient);
       }
     } catch (_) {}
   }
@@ -501,18 +602,25 @@ class ApiService {
     await fetchForex();
   }
 
-  void _updateCache(String symbol, double price, double change) {
+  void _updateCache(String symbol, double price, double change, {bool isTransient = false}) {
     _cache[symbol] = AssetCacheModel(
       price: price,
       change: change,
-      lastUpdated: DateTime.now().toIso8601String(),
+      timestamp: DateTime.now(),
+      isTransient: isTransient,
     );
   }
 
   Future<void> _saveCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String jsonString = jsonEncode(_cache);
+      final Map<String, dynamic> mapToSave = {};
+      _cache.forEach((key, value) {
+        if (!value.isTransient) {
+          mapToSave[key] = value.toJson();
+        }
+      });
+      final String jsonString = jsonEncode(mapToSave);
       await prefs.setString(_cacheKey, jsonString);
     } catch (e) {
       print("Save Cache Error: $e");
@@ -644,18 +752,22 @@ class ApiService {
 
     switch (type) {
       case AssetType.STOCK:
-        for (var s in _whitelistBist) {
-          if (s == "XU100.IS") continue;
-          final d = _cache[s];
+        for (var s in _allBistStocks) {
+          final cachedSym = '$s.IS';
+          final d = _cache[cachedSym];
           if (d != null) {
             results.add({
-              'symbol': s.replaceAll(
-                ".IS",
-                "",
-              ), // Normalize keys to exclude .IS
-              'name': s.replaceAll(".IS", ""),
+              'symbol': s,
+              'name': s,
               'price': d.price,
               'change': d.change,
+            });
+          } else {
+            results.add({
+              'symbol': s,
+              'name': s,
+              'price': 0.0,
+              'change': 0.0,
             });
           }
         }
@@ -866,4 +978,16 @@ class ApiService {
 
   Future<Map<String, dynamic>?> getLatestPrice(String s, AssetType t) async =>
       null;
+
+  Future<void> fetchSingle(String symbol, {bool isTransient = false}) async {
+    try {
+      if (_allBistStocks.contains(symbol)) {
+        await _fetchYahooSingle('$symbol.IS', isTransient: isTransient);
+      } else {
+        await _fetchYahooSingle(symbol, isTransient: isTransient);
+      }
+    } catch (e) {
+      print("fetchSingle error for $symbol: $e");
+    }
+  }
 }

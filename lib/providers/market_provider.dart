@@ -24,6 +24,16 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
     return _api.getAsset(symbol)?.price ?? 0.0;
   }
 
+  AssetCacheModel? getAsset(String symbol) {
+    return _api.getAsset(symbol);
+  }
+
+  Future<void> fetchSingleAndNotify(String symbol) async {
+    // Sadece anlık UI gösterimi için geçici (transient) fetch
+    await _api.fetchSingle(symbol, isTransient: true);
+    notifyListeners();
+  }
+
   String get lastUpdateText {
     if (_lastFetchTime == null) return "Güncelleniyor...";
     final diff = DateTime.now().difference(_lastFetchTime!);
@@ -107,7 +117,11 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
       final notificationService = NotificationService();
 
       for (var alert in alerts) {
-        final price = getPrice(alert.symbol);
+        double price = getPrice(alert.symbol);
+        if (price == 0.0) {
+          price = getPrice('${alert.symbol}.IS');
+        }
+        
         if (price == 0.0) continue;
 
         bool triggered = false;

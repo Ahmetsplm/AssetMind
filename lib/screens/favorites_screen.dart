@@ -5,6 +5,7 @@ import '../models/favorite.dart';
 import '../models/holding.dart'; // For AssetType enum
 import '../services/api_service.dart';
 import '../providers/favorite_provider.dart';
+import '../providers/market_provider.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -192,102 +193,114 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildSpecialCard(BuildContext context, Favorite item) {
-    final data =
-        _marketData[item.symbol] ?? {'price': '0.00', 'change_rate': 0.0};
-    final change = (data['change_rate'] as num).toDouble();
-    final isUp = change >= 0;
+    return Consumer<MarketProvider>(
+      builder: (context, marketProvider, _) {
+        String cacheSym = item.symbol;
+        if (item.type == AssetType.STOCK) cacheSym = '${item.symbol}.IS';
+        
+        final d = marketProvider.getAsset(cacheSym);
+        final data = _marketData[item.symbol] ?? {'price': '0.00', 'change_rate': 0.0};
+        
+        final double currentPrice = d?.price ?? (double.tryParse(data['price'].toString().replaceAll(',', '')) ?? 0.0);
+        final double change = d?.change ?? (data['change_rate'] as num).toDouble();
+        final isUp = change >= 0;
 
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withValues(alpha: 0.8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'BIST 100',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Borsa İstanbul Endeksi',
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
+        return Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).primaryColor,
+                Theme.of(context).primaryColor.withValues(alpha: 0.8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${data['price']}',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'BIST 100',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Borsa İstanbul',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
-              Container(
-                margin: const EdgeInsets.only(top: 6),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: isUp
-                      ? Colors.greenAccent.withValues(alpha: 0.2)
-                      : Colors.redAccent.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isUp
-                          ? Icons.trending_up_rounded
-                          : Icons.trending_down_rounded,
-                      color: isUp ? Colors.greenAccent : Colors.redAccent,
-                      size: 16,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    currentPrice.toStringAsFixed(2),
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
-                      style: TextStyle(
-                        color: isUp ? Colors.greenAccent : Colors.redAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
                     ),
-                  ],
-                ),
+                    decoration: BoxDecoration(
+                      color: isUp
+                          ? Colors.greenAccent.withValues(alpha: 0.2)
+                          : Colors.redAccent.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isUp
+                              ? Icons.trending_up_rounded
+                              : Icons.trending_down_rounded,
+                          color: isUp ? Colors.greenAccent : Colors.redAccent,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
+                          style: TextStyle(
+                            color: isUp ? Colors.greenAccent : Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -315,182 +328,191 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildListItem(BuildContext context, Favorite item) {
-    final data =
-        _marketData[item.symbol] ?? {'price': '0.00', 'change_rate': 0.0};
-    final change = (data['change_rate'] as num).toDouble();
-    final isUp = change >= 0;
+    return Consumer<MarketProvider>(
+      builder: (context, marketProvider, _) {
+        String cacheSym = item.symbol;
+        if (item.type == AssetType.STOCK) cacheSym = '${item.symbol}.IS';
+        
+        final d = marketProvider.getAsset(cacheSym);
+        final data = _marketData[item.symbol] ?? {'price': '0.00', 'change_rate': 0.0};
+        
+        final double currentPrice = d?.price ?? (double.tryParse(data['price'].toString().replaceAll(',', '')) ?? 0.0);
+        final double change = d?.change ?? (data['change_rate'] as num).toDouble();
+        final isUp = change >= 0;
 
-    // Time Logic (Mock or Real)
-    String timeStr;
-    final now = DateTime.now();
-    // Simplified logic for demo
-    if (item.type == AssetType.CRYPTO) {
-      timeStr = "${now.hour}:${now.minute}";
-    } else {
-      timeStr = "15dk Gecikmeli";
-    }
+        // Time Logic (Mock or Real)
+        String timeStr;
+        final now = DateTime.now();
+        // Simplified logic for demo
+        if (item.type == AssetType.CRYPTO) {
+          timeStr = "${now.hour}:${now.minute}";
+        } else {
+          timeStr = "15dk Gecikmeli";
+        }
 
-    // Icon Logic
-    IconData icon;
-    Color iconColor;
-    if (item.type == AssetType.CRYPTO) {
-      icon = Icons.currency_bitcoin_rounded;
-      iconColor = const Color(0xFFFBBC05);
-    } else if (item.type == AssetType.FOREX) {
-      icon = Icons.currency_exchange_rounded;
-      iconColor = const Color(0xFF34A853);
-    } else if (item.type == AssetType.GOLD) {
-      icon = Icons.diamond_outlined;
-      iconColor = const Color(0xFFEA4335);
-    } else if (item.type == AssetType.GLOBAL) {
-      icon = Icons.public_rounded;
-      iconColor = const Color(0xFF9C27B0);
-    } else if (item.type == AssetType.FUND) {
-      icon = Icons.account_balance_rounded;
-      iconColor = const Color(0xFF00BCD4);
-    } else {
-      icon = Icons.show_chart_rounded; // Stock
-      iconColor = const Color(0xFF4285F4);
-    }
+        // Icon Logic
+        IconData icon;
+        Color iconColor;
+        if (item.type == AssetType.CRYPTO) {
+          icon = Icons.currency_bitcoin_rounded;
+          iconColor = const Color(0xFFFBBC05);
+        } else if (item.type == AssetType.FOREX) {
+          icon = Icons.currency_exchange_rounded;
+          iconColor = const Color(0xFF34A853);
+        } else if (item.type == AssetType.GOLD) {
+          icon = Icons.diamond_outlined;
+          iconColor = const Color(0xFFEA4335);
+        } else if (item.type == AssetType.GLOBAL) {
+          icon = Icons.public_rounded;
+          iconColor = const Color(0xFF9C27B0);
+        } else if (item.type == AssetType.FUND) {
+          icon = Icons.account_balance_rounded;
+          iconColor = const Color(0xFF00BCD4);
+        } else {
+          icon = Icons.show_chart_rounded; // Stock
+          iconColor = const Color(0xFF4285F4);
+        }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: iconColor, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  (item.symbol == 'USD/TRY')
-                      ? 'USD'
-                      : (item.symbol == 'EUR/TRY')
-                          ? 'EUR'
-                          : (item.symbol == 'GRAM')
-                              ? 'Gram Altın'
-                              : (item.symbol == 'CEYREK')
-                                  ? 'Çeyrek Altın'
-                                  : (item.symbol == 'YARIM')
-                                      ? 'Yarım Altın'
-                                      : (item.symbol == 'TAM')
-                                          ? 'Tam Altın'
-                                          : (item.symbol == 'CUMHURIYET')
-                                              ? 'Cumhuriyet Altın'
-                                              : (item.symbol == 'ONS')
-                                                  ? 'Ons Altın'
-                                                  : item.symbol,
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
-                ),
-                Text(
-                  timeStr,
-                  style: GoogleFonts.poppins(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '₺${data['price']}',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isUp
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
-                  style: GoogleFonts.poppins(
-                    color: isUp ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
-          const SizedBox(width: 8),
-
-          // Action Button
-          Consumer<FavoriteProvider>(
-            builder: (context, provider, child) {
-              return IconButton(
-                icon: Icon(Icons.star_rounded, color: const Color(0xFFFFB300)),
-                onPressed: () {
-                  provider.toggleFavorite(item);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      duration: const Duration(seconds: 1),
-                      backgroundColor: Colors.red[700],
-                      behavior: SnackBarBehavior.floating,
-                      content: Row(
-                        children: [
-                          const Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${item.symbol} favorilerden çıkarıldı',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: iconColor, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (item.symbol == 'USD/TRY')
+                          ? 'USD'
+                          : (item.symbol == 'EUR/TRY')
+                              ? 'EUR'
+                              : (item.symbol == 'GRAM')
+                                  ? 'Gram Altın'
+                                  : (item.symbol == 'CEYREK')
+                                      ? 'Çeyrek Altın'
+                                      : (item.symbol == 'YARIM')
+                                          ? 'Yarım Altın'
+                                          : (item.symbol == 'TAM')
+                                              ? 'Tam Altın'
+                                              : (item.symbol == 'CUMHURIYET')
+                                                  ? 'Cumhuriyet Altın'
+                                                  : (item.symbol == 'ONS')
+                                                      ? 'Ons Altın'
+                                                      : item.symbol,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
+                    Text(
+                      timeStr,
+                      style: GoogleFonts.poppins(
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '₺${currentPrice.toStringAsFixed(2)}',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isUp
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
+                      style: GoogleFonts.poppins(
+                        color: isUp ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 8),
+
+              // Action Button
+              Consumer<FavoriteProvider>(
+                builder: (context, provider, child) {
+                  return IconButton(
+                    icon: Icon(Icons.star_rounded, color: const Color(0xFFFFB300)),
+                    onPressed: () {
+                      provider.toggleFavorite(item);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          duration: const Duration(seconds: 1),
+                          backgroundColor: Colors.red[700],
+                          behavior: SnackBarBehavior.floating,
+                          content: Row(
+                            children: [
+                              const Icon(
+                                Icons.delete_outline_rounded,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${item.symbol} favorilerden çıkarıldı',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    iconSize: 24,
                   );
                 },
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                iconSize: 24,
-              );
-            },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

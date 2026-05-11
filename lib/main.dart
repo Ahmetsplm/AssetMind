@@ -47,8 +47,13 @@ void callbackDispatcher() {
       await notificationService.init();
 
       for (var alert in alerts) {
-        final asset = api.getAsset(alert.symbol);
-        final price = asset?.price ?? 0.0;
+        var asset = api.getAsset(alert.symbol);
+        double price = asset?.price ?? 0.0;
+        if (price == 0.0) {
+          asset = api.getAsset('${alert.symbol}.IS');
+          price = asset?.price ?? 0.0;
+        }
+        
         if (price == 0.0) continue;
 
         bool triggered = false;

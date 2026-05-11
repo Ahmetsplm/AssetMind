@@ -166,8 +166,8 @@ class _AssetListScreenState extends State<AssetListScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Showcase(
                   key: _searchKey,
-                  title: 'Arama',
-                  description: 'İstediğiniz varlığı buradan arayabilirsiniz.',
+                  title: 'Arama ve Fiyat Görüntüleme',
+                  description: 'İstediğiniz varlığı buradan arayabilirsiniz.\nListede fiyatı görünmeyen varlıkların güncel fiyatını çekmek için üzerine tıklamanız yeterlidir.',
                   child: Container(
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
@@ -320,10 +320,22 @@ class _AssetListScreenState extends State<AssetListScreen> {
                     : Theme.of(context).disabledColor,
                 size: 28,
               ),
-              onPressed: () {
-                provider.toggleFavorite(
-                  Favorite(symbol: item['symbol'], type: widget.type),
-                );
+              onPressed: () async {
+                provider.toggleFavorite(Favorite(
+                  symbol: item['symbol'],
+                  type: widget.type,
+                ));
+                
+                // Eğer favoriye ekleniyorsa ve fiyat 0.0 ise, anında fetch et
+                if (!isFav) {
+                  String cacheSym = item['symbol'];
+                  if (widget.type == AssetType.STOCK) cacheSym = '${item['symbol']}.IS';
+                  final currentPrice = Provider.of<MarketProvider>(context, listen: false).getAsset(cacheSym)?.price ?? 0.0;
+                  
+                  if (currentPrice == 0.0) {
+                     await Provider.of<MarketProvider>(context, listen: false).fetchSingleAndNotify(item['symbol']);
+                  }
+                }
               },
             );
           },
@@ -347,65 +359,76 @@ class _AssetListScreenState extends State<AssetListScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
+        trailing: Consumer<MarketProvider>(
+          builder: (context, marketProvider, _) {
+            String cacheSym = item['symbol'];
+            if (widget.type == AssetType.STOCK) cacheSym = '${item['symbol']}.IS';
+            
+            final d = marketProvider.getAsset(cacheSym);
+            final double currentPrice = d?.price ?? (item['price'] as num).toDouble();
+            final double currentChange = d?.change ?? (item['change'] as num).toDouble();
+            final bool isUp = currentChange >= 0;
+            final Color trendColor = isUp ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+
+            return Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                AnimatedPriceWidget(
-                  numericValue: (item['price'] as num).toDouble(),
-                  displayString:
-                      '₺${(item['price'] as num).toDouble().toStringAsFixed(2)}',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                if (currentPrice != 0.0) ...[
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      AnimatedPriceWidget(
+                        numericValue: currentPrice,
+                        displayString: '₺${currentPrice.toStringAsFixed(2)}',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: trendColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${isUp ? '' : '-'}%${currentChange.abs().toStringAsFixed(2)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: trendColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: trendColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: trendColor,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: Icon(
+                      Icons.notifications_active_outlined,
+                      color: Theme.of(context).primaryColor,
                     ),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => AlertBottomSheet(
+                          symbol: item['symbol'],
+                          currentPrice: currentPrice,
+                        ),
+                      );
+                    },
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(4),
                   ),
-                ),
+                ],
+                TechAnalysisButton(symbol: item['symbol'], type: widget.type),
               ],
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: Icon(
-                Icons.notifications_active_outlined,
-                color: Theme.of(context).primaryColor,
-              ),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (context) => AlertBottomSheet(
-                    symbol: item['symbol'],
-                    currentPrice: (item['price'] as num).toDouble(),
-                  ),
-                );
-              },
-              constraints: const BoxConstraints(),
-              padding: const EdgeInsets.all(4),
-            ),
-            TechAnalysisButton(symbol: item['symbol'], type: widget.type),
-          ],
+            );
+          },
         ),
       ),
     );

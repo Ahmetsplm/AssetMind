@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../models/holding.dart'; // AssetType
 import '../../models/transaction.dart';
 import '../../providers/portfolio_provider.dart';
+import '../../providers/market_provider.dart';
+import '../../services/api_service.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final String symbol;
@@ -35,6 +37,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   DateTime _selectedDate = DateTime.now();
 
   late ConfettiController _confettiController;
+  bool _isLoadingPrice = false;
+  double _currentPrice = 0.0;
 
   @override
   void initState() {
@@ -42,8 +46,34 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 1),
     );
-    _priceController.text = widget.initialPrice.toString();
+    _currentPrice = widget.initialPrice;
     _dateController.text = DateFormat('dd/MM/yyyy').format(_selectedDate);
+
+    if (_currentPrice == 0.0) {
+      _fetchPrice();
+    } else {
+      _priceController.text = _currentPrice.toString();
+    }
+  }
+
+  Future<void> _fetchPrice() async {
+    setState(() {
+      _isLoadingPrice = true;
+    });
+
+    await Provider.of<MarketProvider>(context, listen: false).fetchSingleAndNotify(widget.symbol);
+
+    if (mounted) {
+      String cacheSym = widget.symbol;
+      if (widget.type == AssetType.STOCK) cacheSym = '${widget.symbol}.IS';
+      
+      final p = Provider.of<MarketProvider>(context, listen: false).getPrice(cacheSym);
+      setState(() {
+        _currentPrice = p;
+        _isLoadingPrice = false;
+        _priceController.text = p > 0 ? p.toString() : "";
+      });
+    }
   }
 
   @override
@@ -271,14 +301,23 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ],
           ),
         ),
-        Text(
-          '₺${widget.initialPrice}',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-        ),
+        _isLoadingPrice
+            ? SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
+                ),
+              )
+            : Text(
+                '₺$_currentPrice',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
       ],
     );
   }
