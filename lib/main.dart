@@ -16,6 +16,8 @@ import 'providers/auth_provider.dart';
 import 'services/notification_service.dart';
 import 'services/asset_service.dart';
 import 'services/api_service.dart';
+import 'services/widget_service.dart';
+import 'package:home_widget/home_widget.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -30,10 +32,7 @@ void callbackDispatcher() {
       );
 
       final assetService = AssetService();
-      final alerts = await assetService.getActiveAlerts();
       
-      if (alerts.isEmpty) return Future.value(true);
-
       final api = ApiService();
       await api.init();
       
@@ -42,6 +41,61 @@ void callbackDispatcher() {
       await api.fetchForex();
       await api.fetchGlobal();
       await api.fetchFunds();
+
+      // --- WIDGET UPDATE LOGIC ---
+      try {
+        // Portföy widget'ı için: tüm portföylerdeki holdingleri topla
+        final portfolios = await assetService.getPortfolios();
+        double totalValue = 0;
+        double totalCost = 0;
+        int assetCount = 0;
+        
+        for (var p in portfolios) {
+          final holdings = await assetService.getHoldings(p.id!);
+          for (var h in holdings) {
+            if (h.quantity <= 0) continue;
+            var asset = api.getAsset(h.symbol) ?? api.getAsset('${h.symbol}.IS');
+            double price = asset?.price ?? h.averageCost;
+            totalValue += h.quantity * price;
+            totalCost += h.quantity * h.averageCost;
+            assetCount++;
+          }
+        }
+        
+        double netProfit = totalValue - totalCost;
+        double profitPercentage = totalCost > 0 ? (netProfit / totalCost) * 100 : 0.0;
+        
+        await WidgetService.init();
+        await WidgetService.updatePortfolioWidget(
+          totalValue: totalValue,
+          netProfit: netProfit,
+          profitPercentage: profitPercentage,
+          assetCount: assetCount,
+        );
+
+        // Favoriler widget'ı için
+        final favs = await assetService.getFavorites();
+        List<Map<String, dynamic>> favWidgetData = [];
+        for (var f in favs) {
+          final sym = f['symbol'] as String? ?? '';
+          if (sym.isEmpty) continue;
+          var asset = api.getAsset(sym) ?? api.getAsset('$sym.IS');
+          if (asset != null) {
+            favWidgetData.add({
+              'symbol': sym.replaceAll('.IS', ''),
+              'price': asset.price,
+              'change': asset.change,
+            });
+          }
+        }
+        await WidgetService.updateWatchlistWidget(favWidgetData);
+      } catch (e) {
+        print("Background widget update error: $e");
+      }
+      
+      // --- ALERT LOGIC ---
+      final alerts = await assetService.getActiveAlerts();
+      if (alerts.isEmpty) return Future.value(true);
 
       final notificationService = NotificationService();
       await notificationService.init();
@@ -90,6 +144,7 @@ Future<void> main() async {
   );
 
   await NotificationService().init();
+  await WidgetService.init();
   
   Workmanager().initialize(
     callbackDispatcher,
@@ -105,11 +160,23 @@ Future<void> main() async {
     ),
   );
 
-  runApp(const MyApp());
+  // Deep Link: Widget'tan gelen URI'yi kontrol et
+  final initialUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+  int initialTab = 0;
+  if (initialUri != null) {
+    if (initialUri.host == 'portfolio') {
+      initialTab = 3;
+    } else if (initialUri.host == 'favorites') {
+      initialTab = 1;
+    }
+  }
+
+  runApp(MyApp(initialTab: initialTab));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final int initialTab;
+  const MyApp({super.key, this.initialTab = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +203,7 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
-            home: const SplashScreen(),
+            home: SplashScreen(initialTab: initialTab),
           );
         },
       ),

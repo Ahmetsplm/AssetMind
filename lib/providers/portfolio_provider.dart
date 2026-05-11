@@ -6,6 +6,7 @@ import '../models/holding.dart';
 import '../models/transaction.dart';
 import '../services/api_service.dart';
 import '../services/asset_service.dart';
+import '../services/widget_service.dart';
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -284,6 +285,14 @@ class PortfolioProvider extends ChangeNotifier {
       await api.fetchForex();
       _assetPrices = await api.getCurrentPrices(symbols);
     }
+    
+    // Update Widget
+    WidgetService.updatePortfolioWidget(
+      totalValue: totalPortfolioValue,
+      netProfit: totalProfitLoss,
+      profitPercentage: totalProfitLossRate,
+      assetCount: activeHoldingsCount,
+    );
   }
 
   Future<void> addPortfolio(String name) async {

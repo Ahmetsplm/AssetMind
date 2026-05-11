@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
 import '../services/asset_service.dart';
 import '../services/notification_service.dart';
+import '../services/widget_service.dart';
 
 class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
   final ApiService _api = ApiService();
@@ -77,6 +78,57 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
     ]);
     _lastFetchTime = DateTime.now();
     notifyListeners();
+    _updateWidgetData();
+  }
+
+  Future<void> _updateWidgetData() async {
+    try {
+      final favs = await AssetService().getFavorites();
+      List<Map<String, dynamic>> favWidgetData = [];
+      for (var f in favs) {
+        final sym = f['symbol'] as String? ?? '';
+        if (sym.isEmpty) continue;
+        var asset = _api.getAsset(sym) ?? _api.getAsset('$sym.IS');
+        if (asset != null) {
+          favWidgetData.add({
+            'symbol': sym.replaceAll('.IS', ''),
+            'price': asset.price,
+            'change': asset.change,
+          });
+        }
+      }
+      await WidgetService.updateWatchlistWidget(favWidgetData);
+
+      // --- Portfolio Widget Update ---
+      final portfolios = await AssetService().getPortfolios();
+      double totalValue = 0;
+      double totalCost = 0;
+      int assetCount = 0;
+      
+      for (var p in portfolios) {
+        final holdings = await AssetService().getHoldings(p.id!);
+        for (var h in holdings) {
+          if (h.quantity <= 0) continue;
+          var asset = _api.getAsset(h.symbol) ?? _api.getAsset('${h.symbol}.IS');
+          double price = asset?.price ?? h.averageCost;
+          totalValue += h.quantity * price;
+          totalCost += h.quantity * h.averageCost;
+          assetCount++;
+        }
+      }
+      
+      double netProfit = totalValue - totalCost;
+      double profitPercentage = totalCost > 0 ? (netProfit / totalCost) * 100 : 0.0;
+      
+      await WidgetService.updatePortfolioWidget(
+        totalValue: totalValue,
+        netProfit: netProfit,
+        profitPercentage: profitPercentage,
+        assetCount: assetCount,
+      );
+    } catch (e) {
+      debugPrint("Widget update from MarketProvider failed: $e");
+    }
   }
 
   Future<void> init() async {
@@ -88,7 +140,7 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners(); // Show initial cached data immediately
 
     // Always fetch latest on app start
-    checkAndRefreshPricesIfNeeded();
+    await fetchAllPrices();
 
     // 2. Start Schedulers
     _startCryptoTimer();

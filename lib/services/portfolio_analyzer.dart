@@ -69,7 +69,6 @@ class PortfolioAnalyzer {
       // Havacılık
       case 'THYAO':
       case 'PGSUS':
-      case 'DOAS': // gerçi otomotiv ama
         return AssetMetadata(sector: 'Havacılık/Ulaşım', riskScore: 6);
       // Teknoloji (BIST)
       case 'ASELS':

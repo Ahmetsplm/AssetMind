@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_watchlist_bg"
+    android:orientation="vertical"
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
+
+    <!-- Header Section (Compact) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/tv_fav_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Takip Listesi (0/5)"
+            android:textColor="#94A3B8"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Borsa"
+            android:textColor="#64748B"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- Item 0 -->
+    <LinearLayout
+        android:id="@+id/item_0"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/symbol_0"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#F8FAFC"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+        
+        <TextView
+            android:id="@+id/price_0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="12dp"
+            android:textColor="#F1F5F9"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/change_0"
+            android:layout_width="65dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Item 1 -->
+    <LinearLayout
+        android:id="@+id/item_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/symbol_1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#F8FAFC"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+        
+        <TextView
+            android:id="@+id/price_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="12dp"
+            android:textColor="#F1F5F9"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/change_1"
+            android:layout_width="65dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Item 2 -->
+    <LinearLayout
+        android:id="@+id/item_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/symbol_2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#F8FAFC"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+        
+        <TextView
+            android:id="@+id/price_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="12dp"
+            android:textColor="#F1F5F9"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/change_2"
+            android:layout_width="65dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Item 3 -->
+    <LinearLayout
+        android:id="@+id/item_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/symbol_3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#F8FAFC"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+        
+        <TextView
+            android:id="@+id/price_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="12dp"
+            android:textColor="#F1F5F9"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/change_3"
+            android:layout_width="65dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

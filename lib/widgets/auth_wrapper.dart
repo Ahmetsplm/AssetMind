@@ -5,7 +5,8 @@ import '../screens/home_screen.dart';
 import '../screens/lock_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
+  final int initialTab;
+  const AuthWrapper({super.key, this.initialTab = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +24,7 @@ class AuthWrapper extends StatelessWidget {
         final session = snapshot.data?.session;
 
         if (session != null) {
-          return const LockScreen(child: HomeScreen());
+          return LockScreen(child: HomeScreen(initialIndex: initialTab));
         } else {
           return const AuthScreen();
         }
