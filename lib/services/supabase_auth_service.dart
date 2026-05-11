@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart' as gso;
 
 class SupabaseAuthService {
   final SupabaseClient _client = Supabase.instance.client;
@@ -10,7 +11,7 @@ class SupabaseAuthService {
     required String fullName,
   }) async {
     try {
-      // Supabase'de yazdığımız trigger (handle_new_user) 
+      // Supabase'de yazdığımız trigger (handle_new_user)
       // bu metadata bilgisini yakalayıp profiles tablosuna otomatik yazacaktır.
       return await _client.auth.signUp(
         email: email,
@@ -46,22 +47,32 @@ class SupabaseAuthService {
     }
   }
 
-  // Google Sign In (Requires native setup in GCP and Supabase Dashboard)
-  Future<void> signInWithGoogle() async {
+  Future<AuthResponse?> signInWithGoogle() async {
     try {
-      // NOTE: This is the structure for Google Sign In. 
-      // It requires the google_sign_in package for native tokens on Android/iOS,
-      // or using signInWithOAuth for web. For a mobile app, it's typically:
-      // final googleSignIn = GoogleSignIn();
-      // final googleUser = await googleSignIn.signIn();
-      // final googleAuth = await googleUser!.authentication;
-      // await _client.auth.signInWithIdToken(
-      //   provider: OAuthProvider.google,
-      //   idToken: googleAuth.idToken!,
-      //   accessToken: googleAuth.accessToken,
-      // );
-      
-      throw UnimplementedError('Google Sign-In native altyapısı kurulduğunda bu metot aktif edilecek.');
+      final googleSignIn = gso.GoogleSignIn(
+        serverClientId:
+            '38711545080-gob5lpe5tnjqu3aj3f09hj8htmp0qf6m.apps.googleusercontent.com',
+      );
+      final googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        throw Exception('Google ile giriş işlemi iptal edildi.');
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final accessToken = googleAuth.accessToken;
+      final idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw Exception(
+            'Google ID Token alınamadı. SHA-1 veya Web Client ID ayarlarını kontrol edin.');
+      }
+
+      return await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+      );
     } catch (e) {
       rethrow;
     }
@@ -70,13 +81,17 @@ class SupabaseAuthService {
   Future<String?> getUserFullName() async {
     final user = currentUser;
     if (user == null) return null;
-    
+
     if (user.userMetadata?['full_name'] != null) {
       return user.userMetadata!['full_name'] as String;
     }
-    
+
     try {
-      final data = await _client.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
+      final data = await _client
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .maybeSingle();
       if (data != null && data['full_name'] != null) {
         return data['full_name'] as String;
       }
