@@ -13,6 +13,7 @@ import '../../widgets/skeleton_list_item.dart';
 import '../../widgets/animated_price_widget.dart';
 import '../../widgets/tech_analysis_button.dart';
 import '../../providers/market_provider.dart';
+import '../../widgets/alert_bottom_sheet.dart';
 
 class AssetListScreen extends StatefulWidget {
   final AssetType type;
@@ -384,6 +385,25 @@ class _AssetListScreenState extends State<AssetListScreen> {
               ],
             ),
             const SizedBox(width: 8),
+            IconButton(
+              icon: Icon(
+                Icons.notifications_active_outlined,
+                color: Theme.of(context).primaryColor,
+              ),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => AlertBottomSheet(
+                    symbol: item['symbol'],
+                    currentPrice: (item['price'] as num).toDouble(),
+                  ),
+                );
+              },
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(4),
+            ),
             TechAnalysisButton(symbol: item['symbol'], type: widget.type),
           ],
         ),

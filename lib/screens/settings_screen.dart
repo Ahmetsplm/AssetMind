@@ -13,6 +13,7 @@ import '../services/auth_service.dart';
 import '../services/data_service.dart';
 import '../services/asset_service.dart';
 import '../providers/auth_provider.dart';
+import 'settings/alerts_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -194,6 +195,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildAppearanceCard(context),
               const SizedBox(height: 24),
               _buildSectionHeader(context, "Destek"),
+              _buildAlertsButton(context),
+              const SizedBox(height: 12),
               _buildContactButton(context),
               const SizedBox(height: 24),
               _buildSectionHeader(context, "Hesap"),
@@ -519,6 +522,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAlertsButton(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ListTile(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AlertsScreen()),
+          );
+        },
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.blue.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.notifications_active_outlined,
+            color: Colors.blue,
+            size: 24,
+          ),
+        ),
+        title: Text(
+          "Fiyat Alarmları",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        subtitle: Text(
+          "Kurduğunuz alarmları yönetin",
+          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios_rounded,
+          size: 16,
+          color: Theme.of(context).disabledColor,
+        ),
       ),
     );
   }

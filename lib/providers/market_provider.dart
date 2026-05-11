@@ -16,6 +16,10 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
   DateTime? _lastFetchTime;
 
   DateTime? get lastFetchTime => _lastFetchTime;
+  
+  double getPrice(String symbol) {
+    return _api.getAsset(symbol)?.price ?? 0.0;
+  }
 
   String get lastUpdateText {
     if (_lastFetchTime == null) return "Güncelleniyor...";

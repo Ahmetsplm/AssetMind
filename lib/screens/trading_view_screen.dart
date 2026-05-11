@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:provider/provider.dart';
 import '../models/holding.dart';
 import '../utils/trading_view_helper.dart';
+import '../providers/market_provider.dart';
+import '../widgets/alert_bottom_sheet.dart';
 
 class TradingViewScreen extends StatefulWidget {
   final String symbol;
@@ -93,6 +96,24 @@ class _TradingViewScreenState extends State<TradingViewScreen> {
           ],
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active_outlined),
+            onPressed: () {
+              final marketProvider = Provider.of<MarketProvider>(context, listen: false);
+              final currentPrice = marketProvider.getPrice(widget.symbol);
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => AlertBottomSheet(
+                  symbol: widget.symbol,
+                  currentPrice: currentPrice,
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [

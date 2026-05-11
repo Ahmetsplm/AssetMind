@@ -2,11 +2,62 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/portfolio.dart';
 import '../models/holding.dart';
 import '../models/transaction.dart';
+import '../models/alert.dart';
 
 class AssetService {
   final SupabaseClient _client = Supabase.instance.client;
 
   String? get userId => _client.auth.currentUser?.id;
+
+  // -- Alerts --
+  Future<List<Alert>> getActiveAlerts() async {
+    if (userId == null) return [];
+    final data = await _client
+        .from('alerts')
+        .select()
+        .eq('user_id', userId!)
+        .eq('is_active', true)
+        .order('created_at', ascending: false);
+    return data.map((e) => Alert.fromJson(e)).toList();
+  }
+
+  Future<List<Alert>> getAllAlerts() async {
+    if (userId == null) return [];
+    final data = await _client
+        .from('alerts')
+        .select()
+        .eq('user_id', userId!)
+        .order('created_at', ascending: false);
+    return data.map((e) => Alert.fromJson(e)).toList();
+  }
+
+  Future<Alert> addAlert(Alert alert) async {
+    if (userId == null) throw Exception("Kullanıcı girişi yapılmamış");
+    
+    final Map<String, dynamic> dataToInsert = alert.toJson();
+    dataToInsert['user_id'] = userId;
+    
+    final data = await _client.from('alerts').insert(dataToInsert).select().single();
+    return Alert.fromJson(data);
+  }
+
+  Future<void> deleteAlert(String id) async {
+    if (userId == null) return;
+    await _client
+        .from('alerts')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId!);
+  }
+
+  Future<void> deactivateAlert(String id) async {
+    if (userId == null) return;
+    await _client
+        .from('alerts')
+        .update({'is_active': false})
+        .eq('id', id)
+        .eq('user_id', userId!);
+  }
 
   // -- Portfolios --
   Future<List<Portfolio>> getPortfolios() async {
@@ -134,6 +185,7 @@ class AssetService {
       // ON DELETE CASCADE will handle holdings and transactions
       await _client.from('portfolios').delete().eq('user_id', userId!);
       await _client.from('favorites').delete().eq('user_id', userId!);
+      await _client.from('alerts').delete().eq('user_id', userId!);
     } catch (e) {
       print("Wipe User Data Error: $e");
     }
