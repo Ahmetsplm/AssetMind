@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_auth_service.dart';
+import '../database/database_helper.dart';
 
 class AuthProvider extends ChangeNotifier {
   final SupabaseAuthService _authService = SupabaseAuthService();
@@ -106,6 +107,7 @@ class AuthProvider extends ChangeNotifier {
     _setError(null);
     try {
       await _authService.signOut();
+      await DatabaseHelper.instance.clearDatabase();
       notifyListeners();
     } catch (e) {
       _setError('Çıkış yaparken hata oluştu: $e');

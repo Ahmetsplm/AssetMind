@@ -40,10 +40,12 @@ class Holding {
       portfolioId: map['portfolio_id'],
       symbol: map['symbol'],
       type: AssetType.values.firstWhere((e) => e.name == map['type']),
-      quantity: map['quantity'],
-      averageCost: map['average_cost'],
-      totalRealizedProfit: map['total_realized_profit'],
-      lastUpdate: DateTime.parse(map['last_update']),
+      quantity: (map['quantity'] ?? 0).toDouble(),
+      averageCost: (map['average_cost'] ?? 0).toDouble(),
+      totalRealizedProfit: (map['total_realized_profit'] ?? 0).toDouble(),
+      lastUpdate: map['last_update'] is String 
+          ? DateTime.parse(map['last_update']) 
+          : DateTime.now(),
     );
   }
 }

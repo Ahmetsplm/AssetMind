@@ -33,9 +33,11 @@ class TransactionModel {
       id: map['id'],
       holdingId: map['holding_id'],
       type: TransactionType.values.firstWhere((e) => e.name == map['type']),
-      amount: map['amount'],
-      price: map['price'],
-      date: DateTime.parse(map['date']),
+      amount: (map['amount'] ?? 0).toDouble(),
+      price: (map['price'] ?? 0).toDouble(),
+      date: map['date'] is String 
+          ? DateTime.parse(map['date']) 
+          : DateTime.now(),
     );
   }
 }

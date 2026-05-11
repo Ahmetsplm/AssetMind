@@ -24,7 +24,7 @@ class Portfolio {
     return Portfolio(
       id: map['id'],
       name: map['name'],
-      isDefault: map['is_default'] == 1,
+      isDefault: map['is_default'] == 1 || map['is_default'] == true,
       creationDate: DateTime.parse(map['creation_date']),
     );
   }
