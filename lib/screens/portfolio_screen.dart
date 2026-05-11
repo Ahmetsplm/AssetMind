@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/portfolio_provider.dart';
+import '../providers/market_provider.dart';
 import '../models/holding.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Import for date locale
@@ -405,6 +406,29 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                                   letterSpacing: -0.5,
                                 ),
                               ),
+                        const SizedBox(height: 4),
+                        Consumer<MarketProvider>(
+                          builder: (context, marketProvider, _) {
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.update_rounded,
+                                  size: 12,
+                                  color: subTextColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  marketProvider.lastUpdateText,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: subTextColor,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
