@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/portfolio_provider.dart';
 import '../services/portfolio_analyzer.dart';
 import '../screens/statistics_screen.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class AnalysisSheet extends StatelessWidget {
   const AnalysisSheet({super.key});
@@ -66,48 +67,120 @@ class AnalysisSheet extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // Score Gauge
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 150,
-                    height: 150,
-                    child: CircularProgressIndicator(
-                      value: result.score / 100,
-                      strokeWidth: 12,
-                      backgroundColor: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: 0.1),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _getColor(result.statusColor),
-                      ),
-                      strokeCap: StrokeCap.round,
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
+              // Sectors Pie Chart & Score Gauge
+              if (result.sectorDistribution.isNotEmpty) ...[
+                SizedBox(
+                  height: 200,
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Text(
-                        "${result.score}",
-                        style: GoogleFonts.poppins(
-                          fontSize: 42,
-                          fontWeight: FontWeight.bold,
-                          color: _getColor(result.statusColor),
+                      PieChart(
+                        PieChartData(
+                          sectionsSpace: 2,
+                          centerSpaceRadius: 60,
+                          sections: result.sectorDistribution.entries.map((e) {
+                            final double total = result.sectorDistribution.values.fold(0, (p, c) => p + c);
+                            final double percentage = (e.value / total) * 100;
+                            return PieChartSectionData(
+                              color: _getSectorColor(e.key),
+                              value: percentage,
+                              title: percentage > 5 ? '${percentage.toStringAsFixed(0)}%' : '',
+                              radius: 20,
+                              titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                            );
+                          }).toList(),
                         ),
                       ),
-                      Text(
-                        result.status,
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).disabledColor,
-                        ),
+                      // Score in the middle
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "${result.score}",
+                            style: GoogleFonts.poppins(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: _getColor(result.statusColor),
+                            ),
+                          ),
+                          Text(
+                            result.status,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).disabledColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                // Legend
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: result.sectorDistribution.keys.map((s) => Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 10, height: 10, 
+                          decoration: BoxDecoration(color: _getSectorColor(s), shape: BoxShape.circle)
+                        ),
+                        const SizedBox(width: 4),
+                        Text(s, style: TextStyle(fontSize: 11, color: Theme.of(context).disabledColor)),
+                      ],
+                    )).toList(),
+                  ),
+                ),
+              ] else ...[
+                // Boş veya hataliysa eski gauge (gerçi Veri Yoksa direkt 0 çıkar)
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 150,
+                      height: 150,
+                      child: CircularProgressIndicator(
+                        value: result.score / 100,
+                        strokeWidth: 12,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).dividerColor.withValues(alpha: 0.1),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _getColor(result.statusColor),
+                        ),
+                        strokeCap: StrokeCap.round,
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "${result.score}",
+                          style: GoogleFonts.poppins(
+                            fontSize: 42,
+                            fontWeight: FontWeight.bold,
+                            color: _getColor(result.statusColor),
+                          ),
+                        ),
+                        Text(
+                          result.status,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).disabledColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 32),
 
@@ -270,6 +343,27 @@ class AnalysisSheet extends StatelessWidget {
         return Icons.warning_rounded;
       case AnalysisType.tip:
         return Icons.lightbulb_rounded;
+    }
+  }
+
+  Color _getSectorColor(String sector) {
+    switch (sector) {
+      case 'Kripto': return Colors.deepPurple;
+      case 'Emtia': return Colors.amber;
+      case 'Döviz': return Colors.green;
+      case 'Küresel Teknoloji': return Colors.blue;
+      case 'Banka': return Colors.redAccent;
+      case 'Havacılık/Ulaşım': return Colors.cyan;
+      case 'Teknoloji': return Colors.lightBlue;
+      case 'Enerji': return Colors.orange;
+      case 'Nakit/Para Piyasası': return Colors.teal;
+      case 'Ulusal Endeksler': return Colors.indigo;
+      case 'Yatırım Fonu (Genel)': return Colors.pink;
+      case 'Otomotiv': return Colors.brown;
+      case 'Perakende/Gıda': return Colors.lime;
+      case 'İletişim': return Colors.deepOrangeAccent;
+      case 'Holding': return Colors.blueGrey;
+      default: return Colors.grey;
     }
   }
 }
