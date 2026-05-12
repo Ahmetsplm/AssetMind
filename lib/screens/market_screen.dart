@@ -104,9 +104,7 @@ class _MarketScreenState extends State<MarketScreen> {
             size: 28,
           ),
           onPressed: () {
-            ShowCaseWidget.of(
-              context,
-            ).startShowCase([_oneKey, _twoKey, _threeKey]);
+            ShowCaseWidget.of(context).startShowCase([_oneKey, _twoKey, _threeKey]);
           },
         ),
         const SizedBox(width: 8),
@@ -221,7 +219,7 @@ class _MarketScreenState extends State<MarketScreen> {
             AssetType.CRYPTO,
           ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
     );

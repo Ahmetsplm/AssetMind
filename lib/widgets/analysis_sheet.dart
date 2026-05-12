@@ -23,7 +23,7 @@ class _AnalysisSheetState extends State<AnalysisSheet> with SingleTickerProvider
     super.initState();
     _scanController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 800),
     )..forward().then((_) {
         if (mounted) {
           setState(() => _isScanning = false);
@@ -123,7 +123,7 @@ class _AnalysisSheetState extends State<AnalysisSheet> with SingleTickerProvider
           ),
           const SizedBox(height: 24),
           Text(
-            "AKILLI ANALİZ YAPILIYOR...",
+            "PORTFÖY ANALİZ EDİLİYOR...",
             style: GoogleFonts.outfit(
               fontSize: 14,
               fontWeight: FontWeight.bold,

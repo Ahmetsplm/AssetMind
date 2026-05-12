@@ -42,7 +42,16 @@ class StatsPerformanceTab extends StatelessWidget {
           );
 
         if (holdings.isEmpty) {
-          return const Center(child: Text("Veri Yok"));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.show_chart_rounded, size: 64, color: Theme.of(context).disabledColor.withValues(alpha: 0.2)),
+                const SizedBox(height: 16),
+                Text("Veri Bulunmuyor", style: GoogleFonts.outfit(color: Theme.of(context).disabledColor)),
+              ],
+            ),
+          );
         }
 
         return ListView(
@@ -51,16 +60,17 @@ class StatsPerformanceTab extends StatelessWidget {
             _buildSection(
               context,
               provider,
-              "🏆 En İyi Performans",
+              "🏆 EN İYİ PERFORMANS",
               bestList.take(5).toList(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             _buildSection(
               context,
               provider,
-              "📉 En Kötü Performans",
+              "📉 EN KÖTÜ PERFORMANS",
               worstList.take(5).toList(),
             ),
+            const SizedBox(height: 120), // Padding for nav
           ],
         );
       },
@@ -76,82 +86,101 @@ class StatsPerformanceTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 16),
+          child: Text(
+            title,
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+              color: Theme.of(context).disabledColor,
+            ),
           ),
         ),
-        const SizedBox(height: 16),
-        ...items.asMap().entries.map((entry) {
-          final index = entry.key;
-          final item = entry.value;
+        ...items.map((item) {
           final h = item['holding'] as Holding;
           final profit = item['profit'] as double;
           final percent = item['percent'] as double;
+          final price = item['price'] as double;
+          final isUp = profit >= 0;
+          final trendColor = isUp ? Colors.greenAccent : Colors.redAccent;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: (percent >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.1)),
+              border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              leading: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: (percent >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    "#${index + 1}",
-                    style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.bold,
-                      color: percent >= 0 ? Colors.green : Colors.red,
-                    ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: trendColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isUp ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                    color: trendColor,
+                    size: 20,
                   ),
                 ),
-              ),
-              title: Text(
-                h.symbol,
-                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              subtitle: Text(
-                h.type.name.toUpperCase(),
-                style: GoogleFonts.outfit(fontSize: 10, letterSpacing: 1, color: Theme.of(context).disabledColor),
-              ),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    NumberFormat.currency(symbol: provider.currencySymbol).format(profit / provider.getConversionRate()),
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 14),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        h.symbol,
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        "₺${price.toStringAsFixed(2)}",
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: Theme.of(context).disabledColor,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: (percent >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      "${percent >= 0 ? '+' : ''}${percent.toStringAsFixed(2)}%",
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      "${isUp ? '+' : ''}₺${NumberFormat('#,##0.00', 'tr_TR').format(profit)}",
                       style: GoogleFonts.outfit(
-                        fontSize: 11,
-                        color: percent >= 0 ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        color: trendColor,
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${isUp ? '+' : ''}%${percent.toStringAsFixed(2)}",
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: trendColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           );
         }),

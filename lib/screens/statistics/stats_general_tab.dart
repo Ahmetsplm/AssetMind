@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/portfolio_provider.dart';
-import '../../models/holding.dart';
+import '../../services/portfolio_analyzer.dart';
 
 class StatsGeneralTab extends StatelessWidget {
   const StatsGeneralTab({super.key});
@@ -73,66 +73,47 @@ class StatsGeneralTab extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // Pie Chart Section
+              // Detailed Analysis Summary Section
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).cardColor,
+                      Theme.of(context).cardColor.withValues(alpha: 0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
-                    Text(
-                      "KATEGORİ DAĞILIMI",
-                      style: GoogleFonts.outfit(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                        color: Theme.of(context).disabledColor,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "SEKTÖREL DAĞILIM",
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                            color: Theme.of(context).disabledColor,
+                          ),
+                        ),
+                        Icon(Icons.info_outline_rounded, size: 16, color: Theme.of(context).disabledColor),
+                      ],
                     ),
                     const SizedBox(height: 32),
-                    SizedBox(
-                      height: 200,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          PieChart(
-                            PieChartData(
-                              sections: _buildChartSections(provider),
-                              centerSpaceRadius: 65,
-                              sectionsSpace: 4,
-                              startDegreeOffset: -90,
-                            ),
-                          ),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                "AKTİF",
-                                style: GoogleFonts.outfit(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).disabledColor,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                              Text(
-                                "${_countActiveCategories(provider)}",
-                                style: GoogleFonts.outfit(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    // Legend
-                    _buildLegend(context, provider),
+                    _buildSectorsView(context, provider),
                   ],
                 ),
               ),
@@ -141,6 +122,141 @@ class StatsGeneralTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _buildSectorsView(BuildContext context, PortfolioProvider provider) {
+    final prices = <String, double>{};
+    for (var h in provider.holdings) {
+      prices[h.symbol] = provider.getCurrentPrice(h.symbol);
+    }
+
+    final result = PortfolioAnalyzer.analyze(provider.holdings, prices);
+    final total = provider.displayedTotalValue;
+
+    if (result.sectorDistribution.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Column(
+            children: [
+              Icon(Icons.pie_chart_outline_rounded, size: 48, color: Theme.of(context).disabledColor.withValues(alpha: 0.2)),
+              const SizedBox(height: 16),
+              Text("Henüz veri bulunmuyor", style: GoogleFonts.inter(color: Theme.of(context).disabledColor)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 180,
+          child: PieChart(
+            PieChartData(
+              sectionsSpace: 4,
+              centerSpaceRadius: 55,
+              sections: result.sectorDistribution.entries.map((e) {
+                return PieChartSectionData(
+                  color: _getSectorColor(e.key),
+                  value: e.value,
+                  radius: 20,
+                  showTitle: false,
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+        // Grouped Legend
+        ...result.sectorDistribution.entries.map((e) {
+          final percentage = (e.value / total) * 100;
+          final sectorColor = _getSectorColor(e.key);
+          
+          // Get assets in this sector
+          final sectorAssets = provider.holdings.where((h) {
+            if (h.quantity <= 0) return false;
+            return PortfolioAnalyzer.getMetadata(h.symbol, h.type).sector == e.key;
+          }).map((h) => h.symbol).toList();
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: sectorColor.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: sectorColor.withValues(alpha: 0.1)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(color: sectorColor, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        e.key,
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      "%${percentage.toStringAsFixed(1)}",
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: sectorColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const SizedBox(width: 22),
+                    Expanded(
+                      child: Text(
+                        sectorAssets.join(", "),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: Theme.of(context).disabledColor,
+                          letterSpacing: 0.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Color _getSectorColor(String sector) {
+    switch (sector) {
+      case 'Kripto': return Colors.deepPurpleAccent;
+      case 'Emtia': return Colors.amberAccent;
+      case 'Döviz': return Colors.greenAccent;
+      case 'Küresel Teknoloji': return Colors.blueAccent;
+      case 'Banka': return Colors.indigoAccent;
+      case 'Enerji': return Colors.orangeAccent;
+      case 'Havacılık/Ulaşım': return Colors.lightBlueAccent;
+      case 'Teknoloji': return Colors.cyanAccent;
+      case 'Holding': return Colors.brown;
+      case 'Perakende/Gıda': return Colors.pinkAccent;
+      case 'Otomotiv': return Colors.redAccent;
+      default: return Colors.blueGrey;
+    }
   }
 
   Widget _buildSummaryCard(
@@ -158,6 +274,13 @@ class StatsGeneralTab extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -197,104 +320,4 @@ class StatsGeneralTab extends StatelessWidget {
     );
   }
 
-  int _countActiveCategories(PortfolioProvider provider) {
-    int count = 0;
-    if (provider.getCountByType(AssetType.STOCK) > 0) count++;
-    if (provider.getCountByType(AssetType.CRYPTO) > 0) count++;
-    if (provider.getCountByType(AssetType.GOLD) > 0) count++;
-    if (provider.getCountByType(AssetType.FOREX) > 0) count++;
-    return count;
-  }
-
-  List<PieChartSectionData> _buildChartSections(PortfolioProvider provider) {
-    List<PieChartSectionData> sections = [];
-    final total = provider.displayedTotalValue;
-    if (total == 0) {
-      return [
-        PieChartSectionData(
-          value: 1,
-          color: Colors.grey.withValues(alpha: 0.1),
-          showTitle: false,
-        ),
-      ];
-    }
-
-    void addSection(AssetType type, Color color) {
-      final val = provider.getValueByType(type);
-      if (val > 0) {
-        sections.add(
-          PieChartSectionData(
-            color: color,
-            value: val,
-            radius: 25,
-            showTitle: false,
-          ),
-        );
-      }
-    }
-
-    addSection(AssetType.STOCK, const Color(0xFF4285F4));
-    addSection(AssetType.GOLD, const Color(0xFFEA4335));
-    addSection(AssetType.CRYPTO, const Color(0xFFFBBC05));
-    addSection(AssetType.FOREX, const Color(0xFF34A853));
-
-    return sections;
-  }
-
-  Widget _buildLegend(BuildContext context, PortfolioProvider provider) {
-    final total = provider.displayedTotalValue;
-
-    Widget item(String text, double val, Color color) {
-      if (val <= 0) return const SizedBox.shrink();
-      final percent = (val / total) * 100;
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(text, style: GoogleFonts.poppins(fontSize: 12)),
-            ),
-            Text(
-              "%${percent.toStringAsFixed(1)}",
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        item(
-          "Türk Hisse Senetleri",
-          provider.getValueByType(AssetType.STOCK),
-          const Color(0xFF4285F4),
-        ),
-        item(
-          "Değerli Madenler",
-          provider.getValueByType(AssetType.GOLD),
-          const Color(0xFFEA4335),
-        ),
-        item(
-          "Kripto Para",
-          provider.getValueByType(AssetType.CRYPTO),
-          const Color(0xFFFBBC05),
-        ),
-        item(
-          "Döviz",
-          provider.getValueByType(AssetType.FOREX),
-          const Color(0xFF34A853),
-        ),
-      ],
-    );
-  }
 }

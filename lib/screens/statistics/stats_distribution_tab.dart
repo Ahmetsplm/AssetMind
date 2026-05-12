@@ -37,7 +37,7 @@ class StatsDistributionTab extends StatelessWidget {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
           itemCount: distData.length,
           itemBuilder: (context, index) {
             final item = distData[index];

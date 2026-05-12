@@ -52,6 +52,8 @@ class _AuthScreenState extends State<AuthScreen> {
       success = await authProvider.signUpWithEmail(email, password, name);
     }
 
+    if (!mounted) return;
+
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(authProvider.errorMessage ?? 'Bir hata oluştu')),
@@ -62,8 +64,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final brandBlue = const Color(0xFF1A237E);
-    final brandGold = const Color(0xFFFFC107);
+    const brandBlue = Color(0xFF1A237E);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -75,7 +76,7 @@ class _AuthScreenState extends State<AuthScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
+                const Icon(
                   Icons.show_chart_rounded,
                   size: 80,
                   color: brandBlue,
@@ -110,13 +111,13 @@ class _AuthScreenState extends State<AuthScreen> {
                     textCapitalization: TextCapitalization.words,
                     decoration: InputDecoration(
                       labelText: "Ad Soyad",
-                      prefixIcon: Icon(Icons.person_outline, color: brandBlue),
+                      prefixIcon: const Icon(Icons.person_outline, color: brandBlue),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: brandBlue, width: 2),
+                        borderSide: const BorderSide(color: brandBlue, width: 2),
                       ),
                     ),
                   ),
@@ -129,13 +130,13 @@ class _AuthScreenState extends State<AuthScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: "E-posta",
-                    prefixIcon: Icon(Icons.email_outlined, color: brandBlue),
+                    prefixIcon: const Icon(Icons.email_outlined, color: brandBlue),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: brandBlue, width: 2),
+                      borderSide: const BorderSide(color: brandBlue, width: 2),
                     ),
                   ),
                 ),
@@ -147,7 +148,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: "Şifre",
-                    prefixIcon: Icon(Icons.lock_outline, color: brandBlue),
+                    prefixIcon: const Icon(Icons.lock_outline, color: brandBlue),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -166,7 +167,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: brandBlue, width: 2),
+                      borderSide: const BorderSide(color: brandBlue, width: 2),
                     ),
                   ),
                 ),
@@ -209,16 +210,17 @@ class _AuthScreenState extends State<AuthScreen> {
                       ? null
                       : () async {
                           final success = await authProvider.signInWithGoogle();
+                          if (!mounted) return;
                           if (!success &&
                               mounted &&
                               authProvider.errorMessage != null) {
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                   content: Text(authProvider.errorMessage!)),
                             );
                           }
                         },
-                  // Buraya patlamayan güvenli bir ikon koyduk
                   icon: const Icon(
                     Icons.g_mobiledata_rounded,
                     size: 28,

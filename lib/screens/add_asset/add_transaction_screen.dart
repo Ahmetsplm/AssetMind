@@ -62,6 +62,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     });
 
     await Provider.of<MarketProvider>(context, listen: false).fetchSingleAndNotify(widget.symbol);
+    if (!mounted) return;
 
     if (mounted) {
       String cacheSym = widget.symbol;
@@ -109,11 +110,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           listen: false,
         ).addTransaction(transaction, widget.symbol, widget.type);
 
+        if (!mounted) return;
+
         if (mounted) {
           // Play Confetti if BUY
           if (_transactionType == TransactionType.BUY) {
             _confettiController.play();
             await Future.delayed(const Duration(seconds: 2));
+            if (!mounted) return;
           }
 
           Navigator.pop(context);

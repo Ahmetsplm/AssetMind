@@ -38,7 +38,7 @@ class StatsTransactionsTab extends StatelessWidget {
         final currencySymbol = provider.currencySymbol;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
           child: Column(
             children: [
               // Summary Card

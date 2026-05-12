@@ -98,7 +98,7 @@ class _NewsScreenState extends State<NewsScreen>
               16,
               16,
               16,
-              100,
+              120,
             ), // Bottom padding for FAB/Nav
             itemCount: news.length,
             itemBuilder: (context, index) {

@@ -47,6 +47,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
   Future<void> _deleteAlert(String id) async {
     try {
       await _assetService.deleteAlert(id);
+      if (!mounted) return;
       setState(() {
         _alerts.removeWhere((a) => a.id == id);
       });

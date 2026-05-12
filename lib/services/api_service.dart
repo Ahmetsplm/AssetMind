@@ -227,7 +227,36 @@ class ApiService {
   }
 
   // Safe Accessor for UI
-  AssetCacheModel? getAsset(String symbol) => _cache[symbol];
+  AssetCacheModel? getAsset(String symbol) {
+    if (_cache.containsKey(symbol)) return _cache[symbol];
+    if (_cache.containsKey("$symbol.IS")) return _cache["$symbol.IS"];
+    if (_cache.containsKey("$symbol/TRY")) return _cache["$symbol/TRY"];
+
+    // Legacy Mapping
+    final legacyMap = {
+      'GRAM': 'Gram Altın',
+      'CEYREK': 'Çeyrek Altın',
+      'YARIM': 'Yarım Altın',
+      'TAM': 'Tam Altın',
+      'CUMHURIYET': 'Cumhuriyet Altın',
+      'ONS': 'Ons Altın',
+    };
+
+    if (legacyMap.containsKey(symbol.toUpperCase())) {
+      final target = legacyMap[symbol.toUpperCase()]!;
+      if (_cache.containsKey(target)) return _cache[target];
+    }
+
+    // Case-insensitive lookup as last resort
+    try {
+      final key = _cache.keys.firstWhere(
+        (k) => k.toLowerCase() == symbol.toLowerCase(),
+      );
+      return _cache[key];
+    } catch (_) {
+      return null;
+    }
+  }
 
   bool get isCacheEmpty => _cache.isEmpty;
 
@@ -914,20 +943,9 @@ class ApiService {
   Future<Map<String, double>> getCurrentPrices(List<String> symbols) async {
     final Map<String, double> map = {};
     for (var s in symbols) {
-      // Direct match
-      if (_cache.containsKey(s)) {
-        map[s] = _cache[s]!.price;
-        continue;
-      }
-      // Try suffixes
-      if (_cache.containsKey("$s.IS")) {
-        map[s] = _cache["$s.IS"]!.price;
-        continue;
-      }
-      // Try prefixes
-      if (_cache.containsKey("$s/TRY")) {
-        map[s] = _cache["$s/TRY"]!.price;
-        continue;
+      final asset = getAsset(s);
+      if (asset != null) {
+        map[s] = asset.price;
       }
     }
     return map;
@@ -941,59 +959,7 @@ class ApiService {
 
     for (var s in symbols) {
       final String inputSym = s.toString();
-      AssetCacheModel? item;
-
-      // Helper to find key case-insensitively if direct match fails
-      String? findCaseInsensitive(String target) {
-        try {
-          return _cache.keys.firstWhere(
-            (k) => k.toLowerCase() == target.toLowerCase(),
-          );
-        } catch (_) {
-          return null;
-        }
-      }
-
-      // 1. Try Direct Match
-      if (_cache.containsKey(inputSym)) {
-        item = _cache[inputSym];
-      }
-      // 2. Try .IS
-      else if (_cache.containsKey("$inputSym.IS")) {
-        item = _cache["$inputSym.IS"];
-      }
-      // 3. Try /TRY
-      else if (_cache.containsKey("$inputSym/TRY")) {
-        item = _cache["$inputSym/TRY"];
-      }
-      // 4. Legacy / Logic Mapping
-      else {
-        // Map Legacy -> New Cache Key
-        String targetKey = inputSym;
-        if (inputSym == 'GRAM') {
-          targetKey = 'Gram Altın';
-        } else if (inputSym == 'CEYREK') {
-          targetKey = 'Çeyrek Altın';
-        } else if (inputSym == 'YARIM') {
-          targetKey = 'Yarım Altın';
-        } else if (inputSym == 'TAM') {
-          targetKey = 'Tam Altın';
-        } else if (inputSym == 'CUMHURIYET') {
-          targetKey = 'Cumhuriyet Altın';
-        } else if (inputSym == 'ONS') {
-          targetKey = 'Ons Altın';
-        } else {
-          final possible = findCaseInsensitive(inputSym);
-          if (possible != null) {
-            targetKey = possible;
-          }
-        }
-
-        if (_cache.containsKey(targetKey)) {
-          // foundKey = targetKey;
-          item = _cache[targetKey];
-        }
-      }
+      final item = getAsset(inputSym);
 
       if (item != null) {
         results.add({
