@@ -74,7 +74,7 @@ class ApiService {
     "EGSER","EKGYO","EKIZ","EKOS","EKSUN","ELITE","EMKEL","EMNIS","EMPAE","ENDAE",
     "ENJSA","ENKAI","ENPRA","ENSRI","EPLAS","ERBOS","ERCB","EREGL","ERSU","ESCAR",
     "ESCOM","ESEN","ETILR","ETYAT","EUKYO","EUPWR","EUREN","EUYO","FENER","FLAP",
-    "FMIZP","FONET","FORTE","FRIGO","FRMPL","FZLGY","GARAN","GARFA","GATEG","GEDIK",
+    "FMIZP","FONET","FORTE","FRIGO","FRMPL","FROTO","FZLGY","GARAN","GARFA","GATEG","GEDIK",
     "GEDZA","GENIL","GENKM","GENTS","GEREL","GESAN","GLBMD","GLCVY","GLDTR","GLRMK",
     "GLRYH","GLYHO","GMSTR","GMTAS","GOKNR","GOLTS","GOODY","GOZDE","GRNYO","GRSEL",
     "GRTHO","GSDDE","GSDHO","GSRAY","GUBRF","GWIND","GZNMI","HALKB","HATEK","HATSN",
@@ -744,30 +744,10 @@ class ApiService {
     final timeStr =
         "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
 
+    final cryptoKeys = _whitelistCrypto.map((s) => s.replaceAll("USDT", "")).toSet();
+
     final items = _cache.entries
-        .where(
-          (e) =>
-              !e.key.contains(".IS") &&
-              !e.key.contains("=") &&
-              !e.key.contains("/TRY") &&
-              !e.key.contains("Altın") &&
-              !e.key.contains("Gümüş") &&
-              !e.key.contains("Platin") &&
-              !e.key.contains("Paladyum") &&
-              !e.key.contains("_") &&
-              !e.key.contains("PALADYUM") &&
-              !e.key.contains("PLATIN") &&
-              !e.key.contains("GUMUS") &&
-              !e.key.contains("_TL") &&
-              ![
-                "GRAM",
-                "CEYREK",
-                "YARIM",
-                "TAM",
-                "CUMHURIYET",
-                "ONS",
-              ].contains(e.key), // Legacy Upper
-        )
+        .where((e) => cryptoKeys.contains(e.key))
         .map(
           (e) => {
             'symbol': e.key,
