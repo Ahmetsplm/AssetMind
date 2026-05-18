@@ -3,15 +3,18 @@ import 'package:provider/provider.dart';
 import '../models/alert.dart';
 import '../services/asset_service.dart';
 import '../providers/theme_provider.dart';
+import '../models/holding.dart';
 
 class AlertBottomSheet extends StatefulWidget {
   final String symbol;
   final double currentPrice;
+  final AssetType type;
 
   const AlertBottomSheet({
     super.key,
     required this.symbol,
     required this.currentPrice,
+    required this.type,
   });
 
   @override
@@ -122,7 +125,7 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Güncel Fiyat: ${widget.currentPrice.toStringAsFixed(2)}',
+            'Güncel Fiyat: ${widget.type.getCurrencySymbol(widget.symbol)}${widget.currentPrice.toStringAsFixed(2)}',
             style: TextStyle(
               color: isDark ? Colors.grey[400] : Colors.grey[600],
               fontSize: 14,
@@ -133,11 +136,11 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
             controller: _priceController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: 'Hedef Fiyat',
+              labelText: 'Hedef Fiyat (${widget.type.getCurrencySymbol(widget.symbol)})',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              prefixIcon: const Icon(Icons.attach_money),
+              prefixText: widget.type.getCurrencySymbol(widget.symbol),
             ),
           ),
           const SizedBox(height: 24),

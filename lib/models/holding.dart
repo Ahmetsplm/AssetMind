@@ -49,3 +49,12 @@ class Holding {
     );
   }
 }
+
+extension AssetTypeExtension on AssetType {
+  String getCurrencySymbol(String symbol) {
+    if (this == AssetType.CRYPTO || this == AssetType.GLOBAL) return '\$';
+    if (this == AssetType.GOLD && symbol.toLowerCase().contains('ons')) return '\$';
+    return '₺';
+  }
+}
+

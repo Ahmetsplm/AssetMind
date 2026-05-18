@@ -231,7 +231,7 @@ class CategoryDetailScreen extends StatelessWidget {
               children: [
                 if (!isClosed) ...[
                   Text(
-                    '₺${NumberFormat('#,##0.00', 'tr_TR').format(holding.quantity * curPrice)}',
+                    '${holding.type.getCurrencySymbol(holding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(holding.quantity * curPrice)}',
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -240,7 +240,7 @@ class CategoryDetailScreen extends StatelessWidget {
                   ),
                 ] else ...[
                   Text(
-                    'Kâr: ₺${NumberFormat('#,##0.00', 'tr_TR').format(holding.totalRealizedProfit)}',
+                    'Kâr: ${holding.type.getCurrencySymbol(holding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(holding.totalRealizedProfit)}',
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,

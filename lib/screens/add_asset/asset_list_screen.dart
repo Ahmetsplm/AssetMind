@@ -380,7 +380,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
                     children: [
                       AnimatedPriceWidget(
                         numericValue: currentPrice,
-                        displayString: '₺${currentPrice.toStringAsFixed(2)}',
+                        displayString: '${widget.type.getCurrencySymbol(item['symbol'])}${currentPrice.toStringAsFixed(2)}',
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -418,6 +418,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
                         builder: (context) => AlertBottomSheet(
                           symbol: item['symbol'],
                           currentPrice: currentPrice,
+                          type: widget.type,
                         ),
                       );
                     },

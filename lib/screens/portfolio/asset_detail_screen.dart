@@ -88,7 +88,7 @@ class AssetDetailScreen extends StatelessWidget {
                       _buildInfoRow(
                         context,
                         "Tutar",
-                        '₺${NumberFormat('#,##0.00', 'tr_TR').format(currentValue)}',
+                        '${currentHolding.type.getCurrencySymbol(currentHolding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(currentValue)}',
                         true,
                         null,
                       ),
@@ -102,14 +102,14 @@ class AssetDetailScreen extends StatelessWidget {
                       _buildInfoRow(
                         context,
                         "Alış Maliyeti",
-                        '₺${NumberFormat('#,##0.00', 'tr_TR').format(currentHolding.averageCost)}',
+                        '${currentHolding.type.getCurrencySymbol(currentHolding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(currentHolding.averageCost)}',
                         false,
                         null,
                       ),
                       _buildInfoRow(
                         context,
                         "Güncel Fiyat",
-                        '₺${NumberFormat('#,##0.00', 'tr_TR').format(currentPrice)}',
+                        '${currentHolding.type.getCurrencySymbol(currentHolding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(currentPrice)}',
                         true,
                         null,
                       ),
@@ -121,8 +121,8 @@ class AssetDetailScreen extends StatelessWidget {
                       ),
                       _buildInfoRow(
                         context,
-                        "Toplam Kâr/Zarar (₺)",
-                        '₺${NumberFormat('#,##0.00', 'tr_TR').format(unrealizedPL)}',
+                        "Toplam Kâr/Zarar (${currentHolding.type.getCurrencySymbol(currentHolding.symbol)})",
+                        '${currentHolding.type.getCurrencySymbol(currentHolding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(unrealizedPL)}',
                         true,
                         isProfit ? Colors.green : Colors.red,
                       ),
@@ -215,11 +215,11 @@ class AssetDetailScreen extends StatelessWidget {
                       );
                     }
 
-                    return Column(
-                      children: transactions
-                          .map((t) => _buildTransactionItem(context, t))
-                          .toList(),
-                    );
+                      return Column(
+                        children: transactions
+                            .map((t) => _buildTransactionItem(context, t, currentHolding.type, currentHolding.symbol))
+                            .toList(),
+                      );
                   },
                 ),
 
@@ -241,7 +241,7 @@ class AssetDetailScreen extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            "Bu pozisyon kapanmıştır.\nToplam Realize Kâr: ₺${NumberFormat('#,##0.00', 'tr_TR').format(currentHolding.totalRealizedProfit)}",
+                            "Bu pozisyon kapanmıştır.\nToplam Realize Kâr: ${currentHolding.type.getCurrencySymbol(currentHolding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(currentHolding.totalRealizedProfit)}",
                             style: GoogleFonts.poppins(
                               color: Colors.red,
                               fontWeight: FontWeight.w600,
@@ -294,7 +294,7 @@ class AssetDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionItem(BuildContext context, TransactionModel t) {
+  Widget _buildTransactionItem(BuildContext context, TransactionModel t, AssetType type, String symbol) {
     final isBuy = t.type == TransactionType.BUY;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -353,7 +353,7 @@ class AssetDetailScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '₺${NumberFormat('#,##0.00', 'tr_TR').format(t.amount * t.price)}',
+                '${type.getCurrencySymbol(symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(t.amount * t.price)}',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).textTheme.bodyLarge?.color,

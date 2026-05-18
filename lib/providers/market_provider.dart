@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/asset_service.dart';
 import '../services/notification_service.dart';
 import '../services/widget_service.dart';
+import '../models/holding.dart';
 
 class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
   final ApiService _api = ApiService();
@@ -21,6 +22,8 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   DateTime? get lastFetchTime => _lastFetchTime;
   
+  double get usdTryRate => _api.usdTryRate;
+
   double getPrice(String symbol) {
     return _api.getAsset(symbol)?.price ?? 0.0;
   }
@@ -111,8 +114,17 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
           if (h.quantity <= 0) continue;
           var asset = _api.getAsset(h.symbol) ?? _api.getAsset('${h.symbol}.IS');
           double price = asset?.price ?? h.averageCost;
-          totalValue += h.quantity * price;
-          totalCost += h.quantity * h.averageCost;
+          
+          double valueInTl = price;
+          double costInTl = h.averageCost;
+          
+          if (h.type == AssetType.CRYPTO || h.type == AssetType.GLOBAL) {
+            valueInTl *= _api.usdTryRate;
+            costInTl *= _api.usdTryRate;
+          }
+
+          totalValue += h.quantity * valueInTl;
+          totalCost += h.quantity * costInTl;
           assetCount++;
         }
       }
@@ -169,9 +181,11 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
       final notificationService = NotificationService();
 
       for (var alert in alerts) {
+        bool isBist = false;
         double price = getPrice(alert.symbol);
         if (price == 0.0) {
           price = getPrice('${alert.symbol}.IS');
+          isBist = true;
         }
         
         if (price == 0.0) continue;
@@ -184,10 +198,17 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
 
         if (triggered) {
+          String currencySym = '₺';
+          if (alert.symbol.endsWith('USDT') || alert.symbol.toLowerCase().contains('ons')) {
+            currencySym = '\$';
+          } else if (!isBist && !alert.symbol.contains(' ') && RegExp(r'^[a-zA-Z]+$').hasMatch(alert.symbol)) {
+            currencySym = '\$';
+          }
+
           await notificationService.showNotification(
             id: alert.id.hashCode,
             title: 'Fiyat Alarmı: ${alert.symbol}',
-            body: '${alert.symbol} belirlediğiniz hedef fiyata ulaştı! Güncel: \$${price.toStringAsFixed(2)}',
+            body: '${alert.symbol} belirlediğiniz hedef fiyata ulaştı! Güncel: $currencySym${price.toStringAsFixed(2)}',
           );
           await assetService.deactivateAlert(alert.id);
         }

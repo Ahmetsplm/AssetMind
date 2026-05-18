@@ -255,7 +255,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    currentPrice.toStringAsFixed(2),
+                    '${item.type.getCurrencySymbol(item.symbol)}${currentPrice.toStringAsFixed(2)}',
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: 24,
@@ -454,7 +454,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     )
                   else ...[
                     Text(
-                      '₺${currentPrice.toStringAsFixed(2)}',
+                      '${item.type.getCurrencySymbol(item.symbol)}${currentPrice.toStringAsFixed(2)}',
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,

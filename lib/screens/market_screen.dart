@@ -359,6 +359,9 @@ class _MarketScreenState extends State<MarketScreen> {
         symbol.contains('EUR')) {
       return AssetType.FOREX;
     }
+    if (symbol.toLowerCase().contains('bitcoin') || symbol.toLowerCase().contains('btc')) {
+      return AssetType.CRYPTO;
+    }
     return AssetType.STOCK;
   }
 
@@ -441,7 +444,7 @@ class _MarketScreenState extends State<MarketScreen> {
                         numericValue: (item["raw_value"] as num?)?.toDouble() ??
                             double.tryParse(item["value"].toString().replaceAll(".", "").replaceAll(",", ".")) ??
                             0.0,
-                        displayString: item["value"].toString(),
+                        displayString: '${type.getCurrencySymbol(item['symbol'])}${item["value"]}',
                         style: GoogleFonts.outfit(
                           fontWeight: FontWeight.w900,
                           fontSize: 18,
@@ -646,19 +649,19 @@ class _MarketScreenState extends State<MarketScreen> {
             ),
           ),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              AnimatedPriceWidget(
-                numericValue: (item['raw_price'] as num?)?.toDouble() ??
-                    double.tryParse(
-                      item['price']
-                          .toString()
-                          .replaceAll('.', '')
-                          .replaceAll(',', '.'),
-                    ) ??
-                    0.0,
-                displayString: item['price'].toString(),
-                style: GoogleFonts.outfit(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                AnimatedPriceWidget(
+                  numericValue: (item['raw_price'] as num?)?.toDouble() ??
+                      double.tryParse(
+                        item['price']
+                            .toString()
+                            .replaceAll('.', '')
+                            .replaceAll(',', '.'),
+                      ) ??
+                      0.0,
+                  displayString: '${type.getCurrencySymbol(item['symbol'])}${item['price']}',
+                  style: GoogleFonts.outfit(
                   fontWeight: FontWeight.w900,
                   fontSize: 16,
                   color: Theme.of(context).textTheme.bodyLarge?.color,

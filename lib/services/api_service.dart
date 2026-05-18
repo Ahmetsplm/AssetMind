@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/holding.dart';
 import 'asset_service.dart';
+import 'bist_names.dart';
 
 // Helper Model for Cache
 class AssetCacheModel {
@@ -58,7 +59,7 @@ class ApiService {
     "AGYO","AHGAZ","AHSGY","AKBNK","AKCNS","AKENR","AKFGY","AKFIS","AKFYE","AKGRT",
     "AKMGY","AKSA","AKSEN","AKSUE","AKYHO","ALARK","ALBRK","ALCAR","ALCTL","ALFAS",
     "ALGYO","ALKA","ALKIM","ALKLC","ALTNY","ANELE","APBDL","APGLD","APMDL","APX30",
-    "ARASE","ARCLK","ARDYZ","ARENA","ARFYE","ARSAN","ARTMS","ARZUM","ASGYO","ASTOR",
+    "ARASE","ARCLK","ARDYZ","ARENA","ARFYE","ARSAN","ARTMS","ARZUM","ASELS","ASGYO","ASTOR",
     "ASUZU","ATAKP","ATATP","ATATR","ATEKS","ATLAS","ATSYH","AVGYO","AVHOL","AVPGY",
     "AVTUR","AYDEM","AYEN","AYES","AYGAZ","AZTEK","BAGFS","BAHKM","BAKAB","BALAT",
     "BANVT","BARMA","BASCM","BASGZ","BAYRK","BEGYO","BESLR","BESTE","BFREN","BIENY",
@@ -85,7 +86,7 @@ class ApiService {
     "IZFAS","IZINV","IZMDC","JANTS","KAPLM","KAREL","KARSN","KATMR","KAYSE","KBORU",
     "KCAER","KCHOL","KENT","KERVN","KFEIN","KGYO","KIMMR","KLGYO","KLKIM","KLMSN",
     "KLNMA","KLSER","KLSYN","KLYPV","KMPUR","KNFRT","KOCMT","KONKA","KONTR","KONYA",
-    "KOPOL","KORDS","KOTON","KRDMA","KRDMB","KRDMD","KRGYO","KRONT","KRPLS","KRTEK",
+    "KOPOL","KORDS","KOTON","KOZAA","KOZAL","KRDMA","KRDMB","KRDMD","KRGYO","KRONT","KRPLS","KRTEK",
     "KRVGD","KSTUR","KTLEV","KTSKR","KUTPO","KUVVA","KUYAS","KZBGY","LIDER","LILAK",
     "LKMNH","LMKDC","LOGO","LRSHO","LUKSK","LXGYO","LYDHO","LYDYE","MAALT","MACKO",
     "MAGEN","MAKIM","MAKTK","MANAS","MARBL","MARKA","MARMR","MARTI","MAVI","MCARD",
@@ -163,10 +164,44 @@ class ApiService {
   ];
 
   static const List<String> _whitelistForex = [
-    'USD', 'EUR', 'GBP', 'CHF', 'CAD', 'JPY',
-    // Expanded List
-    'AUD', 'SEK', 'NOK', 'DKK', 'SAR', 'RUB', 'CNY', 'AZN', 'BGN',
+    "USD", "EUR", "GBP", "JPY", "CHF", "TRY", "CAD", "AUD", "NZD", "CNY",
+    "HKD", "SGD", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "RON", 
+    "ISK", "ILS", "ZAR", "MXN", "BRL", "INR", "KRW", "IDR", "MYR", "PHP", "THB"
   ];
+
+  static const Map<String, String> _forexNames = {
+    "USD": "Amerikan Doları",
+    "EUR": "Euro",
+    "GBP": "İngiliz Sterlini",
+    "JPY": "Japon Yeni",
+    "CHF": "İsviçre Frangı",
+    "TRY": "Türk Lirası",
+    "CAD": "Kanada Doları",
+    "AUD": "Avustralya Doları",
+    "NZD": "Yeni Zelanda Doları",
+    "CNY": "Çin Yuanı",
+    "HKD": "Hong Kong Doları",
+    "SGD": "Singapur Doları",
+    "SEK": "İsveç Kronu",
+    "NOK": "Norveç Kronu",
+    "DKK": "Danimarka Kronu",
+    "PLN": "Polonya Zlotisi",
+    "CZK": "Çek Korunası",
+    "HUF": "Macar Forinti",
+    "RON": "Rumen Leyi",
+    "BGN": "Bulgar Levası",
+    "ISK": "İzlanda Kronu",
+    "ILS": "İsrail Şekeli",
+    "ZAR": "Güney Afrika Randı",
+    "MXN": "Meksika Pesosu",
+    "BRL": "Brezilya Reali",
+    "INR": "Hindistan Rupisi",
+    "KRW": "Güney Kore Wonu",
+    "IDR": "Endonezya Rupisi",
+    "MYR": "Malezya Ringgiti",
+    "PHP": "Filipinler Pesosu",
+    "THB": "Tayland Bahtı",
+  };
 
   static const List<String> _whitelistGlobal = [
     'AAPL', 'MSFT', 'TSLA', 'AMZN', 'GOOGL', 'NVDA', 'META', 'NFLX',
@@ -228,9 +263,33 @@ class ApiService {
 
   // Safe Accessor for UI
   AssetCacheModel? getAsset(String symbol) {
+    if (symbol.toUpperCase() == "TRY") {
+      return AssetCacheModel(
+        price: 1.0,
+        change: 0.0,
+        timestamp: DateTime.now(),
+        isTransient: true,
+      );
+    }
     if (_cache.containsKey(symbol)) return _cache[symbol];
     if (_cache.containsKey("$symbol.IS")) return _cache["$symbol.IS"];
     if (_cache.containsKey("$symbol/TRY")) return _cache["$symbol/TRY"];
+    if (_cache.containsKey("${symbol}TRY=X")) return _cache["${symbol}TRY=X"];
+
+    // Dynamic Forex Fallbacks (USD -> USD/TRY or USDTRY=X)
+    if (symbol.length == 3 && _whitelistForex.contains(symbol.toUpperCase())) {
+      final sym = symbol.toUpperCase();
+      if (_cache.containsKey("$sym/TRY")) return _cache["$sym/TRY"];
+      if (_cache.containsKey("${sym}TRY=X")) return _cache["${sym}TRY=X"];
+    }
+
+    // Dynamic Reverse Forex Fallbacks (USD/TRY -> USDTRY=X)
+    if (symbol.contains("/")) {
+      final clean = "${symbol.replaceAll("/", "")}=X";
+      if (_cache.containsKey(clean)) return _cache[clean];
+      final cleanNoSuffix = symbol.replaceAll("/", "");
+      if (_cache.containsKey("${cleanNoSuffix}TRY=X")) return _cache["${cleanNoSuffix}TRY=X"];
+    }
 
     // Legacy Mapping
     final legacyMap = {
@@ -259,6 +318,9 @@ class ApiService {
   }
 
   bool get isCacheEmpty => _cache.isEmpty;
+
+  double get usdTryRate => _cachedUsdTry ?? 35.0;
+
 
   /// 3. FETCH: BIST & Gold (Yahoo Chart)
   Future<void> fetchBist() async {
@@ -323,9 +385,6 @@ class ApiService {
       if (response.statusCode == 200) {
         final List<dynamic> all = jsonDecode(response.body);
 
-        await _ensureUsdRate(); // Need USD for conversion
-        if (_cachedUsdTry == null) return; // Cannot convert without USD
-
         for (var item in all) {
           final String symbol = item['symbol'];
           if (_whitelistCrypto.contains(symbol)) {
@@ -334,13 +393,12 @@ class ApiService {
             final double change =
                 double.tryParse(item['priceChangePercent'].toString()) ?? 0.0;
 
-            final double priceTl = priceUsd * _cachedUsdTry!;
             final String simpleSymbol = symbol.replaceAll(
               "USDT",
               "",
             ); // BTCUSDT -> BTC
 
-            _updateCache(simpleSymbol, priceTl, change);
+            _updateCache(simpleSymbol, priceUsd, change);
           }
         }
         await _saveCache();
@@ -351,53 +409,69 @@ class ApiService {
   }
 
   Future<void> fetchForex() async {
+    // 1. Fetch Major Currencies via Yahoo (Real-Time)
     final List<String> yahooForex = ["USDTRY=X", "EURTRY=X"];
-
-    await Future.wait(
-      yahooForex.map((s) async {
-        await _fetchYahooSingle(s);
-      }),
-    );
-
-    // Map Yahoo results to our internal keys
-    if (_cache.containsKey("USDTRY=X")) {
-      final item = _cache["USDTRY=X"]!;
-      _cachedUsdTry = item.price;
-      _updateCache("USD/TRY", item.price, item.change);
-    }
-
-    if (_cache.containsKey("EURTRY=X")) {
-      final item = _cache["EURTRY=X"]!;
-      _updateCache("EUR/TRY", item.price, item.change);
-    }
-
-    await _fetchFrankfurterForex();
-    _calculateGold();
-
-    await _saveCache();
-  }
-
-  Future<void> _fetchFrankfurterForex() async {
     try {
-      const targets = [
-        "TRY",
-        "GBP",
-        "CHF",
-        "CAD",
-        "JPY",
-        "AUD",
-        "SEK",
-        "NOK",
-        "DKK",
-        "SAR",
-        "RUB",
-        "CNY",
-        "AZN",
-        "BGN",
-      ];
-      final symbolsStr = targets.join(",");
+      await Future.wait(
+        yahooForex.map((s) async {
+          await _fetchYahooSingle(s);
+        }),
+      );
 
-      // 2. Fetch Latest
+      // Map Yahoo results to our internal keys
+      if (_cache.containsKey("USDTRY=X")) {
+        final item = _cache["USDTRY=X"]!;
+        _cachedUsdTry = item.price;
+        _updateCache("USD/TRY", item.price, item.change);
+      }
+
+      if (_cache.containsKey("EURTRY=X")) {
+        final item = _cache["EURTRY=X"]!;
+        _updateCache("EUR/TRY", item.price, item.change);
+      }
+    } catch (e) {
+      debugPrint("Yahoo Forex Fetch Error: $e");
+    }
+
+    // 2. Fetch Minor Currencies via Frankfurter (Lazy Fetch)
+    final Set<String> targetSet = {"GBP", "TRY"}; // Core targets (excluding USD and EUR)
+
+    try {
+      final assetService = AssetService();
+      if (assetService.userId != null) {
+        final favs = await assetService.getFavorites();
+        for (var f in favs) {
+          if (f['type'] == 'FOREX' && _whitelistForex.contains(f['symbol'])) {
+            targetSet.add(f['symbol']);
+          }
+        }
+        
+        final alerts = await assetService.getActiveAlerts();
+        for (var a in alerts) {
+          if (_whitelistForex.contains(a.symbol)) {
+            targetSet.add(a.symbol);
+          }
+        }
+        
+        final ports = await assetService.getPortfolios();
+        for (var p in ports) {
+          final holds = await assetService.getHoldings(p.id!);
+          for (var h in holds) {
+            if (h.type == AssetType.FOREX && _whitelistForex.contains(h.symbol)) {
+              targetSet.add(h.symbol);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Dynamic Forex Target Fetch Error: $e");
+    }
+
+    try {
+      final List<String> queryTargets = targetSet.where((s) => s != 'EUR').toList();
+      final symbolsStr = queryTargets.join(",");
+
+      // 1. Fetch Latest
       final latestUrl = Uri.parse("$_frankfurterBaseUrl?to=$symbolsStr");
       final latestResp = await http.get(latestUrl);
 
@@ -420,10 +494,8 @@ class ApiService {
       final String prevDateStr =
           "${prevDate.year}-${prevDate.month.toString().padLeft(2, '0')}-${prevDate.day.toString().padLeft(2, '0')}";
 
-      // 4. Fetch Previous
-      final prevUrl = Uri.parse(
-        "https://api.frankfurter.app/$prevDateStr?to=$symbolsStr",
-      );
+      // 2. Fetch Previous
+      final prevUrl = Uri.parse("https://api.frankfurter.app/$prevDateStr?to=$symbolsStr");
       final prevResp = await http.get(prevUrl);
 
       Map<String, dynamic> prevRates = {};
@@ -431,47 +503,43 @@ class ApiService {
         prevRates = jsonDecode(prevResp.body)['rates'];
       }
 
-      // 5. Calculate and Update Cache for each target
-      final currencies = [
-        "GBP",
-        "CHF",
-        "CAD",
-        "JPY",
-        "AUD",
-        "SEK",
-        "NOK",
-        "DKK",
-        "SAR",
-        "RUB",
-        "CNY",
-        "AZN",
-        "BGN",
-      ];
+      // 3. Calculate and Update Cache for each target
+      for (var curr in targetSet) {
+        if (curr == 'TRY') continue;
 
-      for (var curr in currencies) {
-        if (latestRates.containsKey(curr)) {
-          // Calculate Today
-          final double eurXToday = (latestRates[curr] as num).toDouble();
-          final double priceToday = eurTryToday / eurXToday;
+        double eurXToday = 1.0;
+        double eurXPrev = 1.0;
 
-          // Calculate Change
-          double change = 0.0;
-          if (prevRates.isNotEmpty &&
-              prevRates.containsKey(curr) &&
-              prevRates.containsKey('TRY')) {
-            final double eurTryPrev = (prevRates['TRY'] as num).toDouble();
-            final double eurXPrev = (prevRates[curr] as num).toDouble();
-            final double pricePrev = eurTryPrev / eurXPrev;
-
-            change = ((priceToday - pricePrev) / pricePrev) * 100;
+        if (curr != 'EUR') {
+          if (!latestRates.containsKey(curr)) continue;
+          eurXToday = (latestRates[curr] as num).toDouble();
+          if (prevRates.isNotEmpty && prevRates.containsKey(curr)) {
+            eurXPrev = (prevRates[curr] as num).toDouble();
           }
+        }
 
+        // Calculate Today
+        final double priceToday = eurTryToday / eurXToday;
+
+        // Calculate Change
+        double change = 0.0;
+        if (prevRates.isNotEmpty && prevRates.containsKey('TRY')) {
+          final double eurTryPrev = (prevRates['TRY'] as num).toDouble();
+          final double pricePrev = eurTryPrev / eurXPrev;
+          change = ((priceToday - pricePrev) / pricePrev) * 100;
+        }
+
+        // Update Cache (Only for minor currencies, USD and EUR are handled by Yahoo)
+        if (curr != 'USD' && curr != 'EUR') {
           _updateCache("$curr/TRY", priceToday, change);
         }
       }
     } catch (e) {
-      debugPrint("Frankfurter Fetch Error: $e");
+      debugPrint("Frankfurter Lazy Fetch Error: $e");
     }
+
+    _calculateGold();
+    await _saveCache();
   }
 
   // --- FETCH: Global (Tiingo IEX) ---
@@ -497,9 +565,8 @@ class ApiService {
           final double prevClose = (item['prevClose'] as num?)?.toDouble() ?? last;
 
           if (last > 0) {
-            final priceTl = last * _cachedUsdTry!;
             final change = prevClose > 0 ? ((last - prevClose) / prevClose) * 100 : 0.0;
-            _updateCache(ticker, priceTl, change);
+            _updateCache(ticker, last, change);
           }
         }
         await _saveCache();
@@ -610,14 +677,14 @@ class ApiService {
       _updateCache("Yarım Altın", gramPrice * 3.216, chg);
       _updateCache("Tam Altın", gramPrice * 6.432, chg);
       _updateCache("Cumhuriyet Altın", gramPrice * 6.672, chg);
-      _updateCache("Ons Altın", ons.price * _cachedUsdTry!, chg);
+      _updateCache("Ons Altın", ons.price, chg);
     }
 
     // 2. SILVER (SI=F)
     if (_cache.containsKey('SI=F')) {
       final ons = _cache['SI=F']!;
       final double gram = (ons.price / 31.1035) * _cachedUsdTry!;
-      _updateCache("Ons Gümüş", ons.price * _cachedUsdTry!, ons.change);
+      _updateCache("Ons Gümüş", ons.price, ons.change);
       _updateCache("Gram Gümüş", gram, ons.change);
     }
 
@@ -625,7 +692,7 @@ class ApiService {
     if (_cache.containsKey('PL=F')) {
       final ons = _cache['PL=F']!;
       final double gram = (ons.price / 31.1035) * _cachedUsdTry!;
-      _updateCache("Ons Platin", ons.price * _cachedUsdTry!, ons.change);
+      _updateCache("Ons Platin", ons.price, ons.change);
       _updateCache("Gram Platin", gram, ons.change);
     }
 
@@ -633,7 +700,7 @@ class ApiService {
     if (_cache.containsKey('PA=F')) {
       final ons = _cache['PA=F']!;
       final double gram = (ons.price / 31.1035) * _cachedUsdTry!;
-      _updateCache("Ons Paladyum", ons.price * _cachedUsdTry!, ons.change);
+      _updateCache("Ons Paladyum", ons.price, ons.change);
       _updateCache("Gram Paladyum", gram, ons.change);
     }
   }
@@ -703,8 +770,10 @@ class ApiService {
     final timeStr =
         "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
 
+    final stockKeys = _allBistStocks.map((s) => "$s.IS").toSet();
+
     final items = _cache.entries
-        .where((e) => e.key.endsWith(".IS") && e.key != "XU100.IS")
+        .where((e) => stockKeys.contains(e.key) && e.key != "XU100.IS")
         .map(
           (e) => {
             'symbol': e.key.replaceAll(".IS", ""),
@@ -782,17 +851,18 @@ class ApiService {
         for (var s in _allBistStocks) {
           final cachedSym = '$s.IS';
           final d = _cache[cachedSym];
+          final displayName = bistNames[s] ?? s;
           if (d != null) {
             results.add({
               'symbol': s,
-              'name': s,
+              'name': displayName,
               'price': d.price,
               'change': d.change,
             });
           } else {
             results.add({
               'symbol': s,
-              'name': s,
+              'name': displayName,
               'price': 0.0,
               'change': 0.0,
             });
@@ -844,26 +914,21 @@ class ApiService {
         break;
       case AssetType.FOREX:
         for (var s in _whitelistForex) {
-          if (s == "USD") {
-            final d = _cache["USD/TRY"];
-            if (d != null) {
-              results.add({
-                'symbol': 'USD',
-                'name': 'Dolar',
-                'price': d.price,
-                'change': d.change,
-              });
-            }
+          if (s == "TRY") {
+            results.add({
+              'symbol': 'TRY',
+              'name': 'Türk Lirası',
+              'price': 1.0,
+              'change': 0.0,
+            });
           } else {
             final d = _cache["$s/TRY"];
-            if (d != null) {
-              results.add({
-                'symbol': s,
-                'name': s,
-                'price': d.price,
-                'change': d.change,
-              });
-            }
+            results.add({
+              'symbol': s,
+              'name': _forexNames[s] ?? s,
+              'price': d?.price ?? 0.0,
+              'change': d?.change ?? 0.0,
+            });
           }
         }
         break;
@@ -939,7 +1004,12 @@ class ApiService {
 
     for (var s in symbols) {
       final String inputSym = s.toString();
-      final item = getAsset(inputSym);
+      var item = getAsset(inputSym);
+
+      if (item == null) {
+        await fetchSingle(inputSym, isTransient: true);
+        item = getAsset(inputSym);
+      }
 
       if (item != null) {
         results.add({
@@ -960,7 +1030,28 @@ class ApiService {
 
   Future<void> fetchSingle(String symbol, {bool isTransient = false}) async {
     try {
-      if (_allBistStocks.contains(symbol)) {
+      if (_whitelistForex.contains(symbol)) {
+        if (symbol == 'USD' || symbol == 'EUR') {
+          await _fetchYahooSingle('${symbol}TRY=X', isTransient: isTransient);
+        } else {
+          // Fetch from Frankfurter dynamically for Lazy Fetch fallback
+          final latestUrl = Uri.parse("$_frankfurterBaseUrl?to=$symbol,TRY");
+          final latestResp = await http.get(latestUrl);
+          
+          if (latestResp.statusCode == 200) {
+            final latestJson = jsonDecode(latestResp.body);
+            final Map<String, dynamic> latestRates = latestJson['rates'];
+            
+            if (latestRates.containsKey('TRY') && latestRates.containsKey(symbol)) {
+              final double eurTryToday = (latestRates['TRY'] as num).toDouble();
+              final double eurXToday = (latestRates[symbol] as num).toDouble();
+              final double priceToday = eurTryToday / eurXToday;
+              
+              _updateCache("$symbol/TRY", priceToday, 0.0, isTransient: isTransient);
+            }
+          }
+        }
+      } else if (_allBistStocks.contains(symbol)) {
         await _fetchYahooSingle('$symbol.IS', isTransient: isTransient);
       } else {
         await _fetchYahooSingle(symbol, isTransient: isTransient);

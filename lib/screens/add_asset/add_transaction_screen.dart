@@ -315,7 +315,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 ),
               )
             : Text(
-                '₺$_currentPrice',
+                '${widget.type.getCurrencySymbol(widget.symbol)}$_currentPrice',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -481,7 +481,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               _buildInputField(
                 context,
                 controller: _priceController,
-                label: 'Fiyat (TL)',
+                label: 'Fiyat (${widget.type.getCurrencySymbol(widget.symbol)})',
                 inputType: const TextInputType.numberWithOptions(decimal: true),
                 icon: Icons.price_change_rounded,
               ),
@@ -656,7 +656,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 ),
               ),
               Text(
-                '₺${NumberFormat('#,##0.00', 'tr_TR').format(_total)}',
+                '${widget.type.getCurrencySymbol(widget.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(_total)}',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   fontSize: 22,

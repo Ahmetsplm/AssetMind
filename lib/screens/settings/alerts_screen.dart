@@ -123,6 +123,18 @@ class _AlertsScreenState extends State<AlertsScreen> {
     );
   }
 
+  String _getCurrencySymbol(String symbol) {
+    if (symbol.endsWith('USDT') || symbol.toLowerCase().contains('ons')) {
+      return '\$';
+    }
+    final globals = [
+      'AAPL', 'MSFT', 'TSLA', 'AMZN', 'GOOGL', 'NVDA', 'META', 'NFLX',
+      'AMD', 'INTC', 'JPM', 'V', 'DIS', 'SPY', 'QQQ',
+    ];
+    if (globals.contains(symbol)) return '\$';
+    return '₺';
+  }
+
   Widget _buildAlertCard(Alert alert, bool isDark) {
     final isAbove = alert.condition == 'above';
     final DateFormat formatter = DateFormat('dd MMM yyyy, HH:mm');
@@ -177,7 +189,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
           children: [
             const SizedBox(height: 4),
             Text(
-              'Hedef: \$${alert.targetPrice.toStringAsFixed(2)}',
+              'Hedef: ${_getCurrencySymbol(alert.symbol)}${alert.targetPrice.toStringAsFixed(2)}',
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w600,
                 color: isDark ? Colors.white : Colors.black87,

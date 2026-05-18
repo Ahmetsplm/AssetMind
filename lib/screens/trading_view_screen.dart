@@ -109,6 +109,7 @@ class _TradingViewScreenState extends State<TradingViewScreen> {
                 builder: (context) => AlertBottomSheet(
                   symbol: widget.symbol,
                   currentPrice: currentPrice,
+                  type: widget.type,
                 ),
               );
             },

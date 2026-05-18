@@ -83,13 +83,21 @@ class PortfolioProvider extends ChangeNotifier {
   // Stats
   double get totalPortfolioValue => _holdings.fold(0, (sum, h) {
         if (h.quantity <= 0) return sum; // Skip closed positions
-        final price = _assetPrices[h.symbol] ?? h.averageCost;
-        return sum + (h.quantity * price);
+        double price = _assetPrices[h.symbol] ?? h.averageCost;
+        double value = h.quantity * price;
+        if (h.type == AssetType.CRYPTO || h.type == AssetType.GLOBAL) {
+            value *= ApiService().usdTryRate;
+        }
+        return sum + value;
       });
 
   double get totalPortfolioCost => _holdings.fold(0, (sum, h) {
         if (h.quantity <= 0) return sum;
-        return sum + (h.quantity * h.averageCost);
+        double cost = h.quantity * h.averageCost;
+        if (h.type == AssetType.CRYPTO || h.type == AssetType.GLOBAL) {
+            cost *= ApiService().usdTryRate;
+        }
+        return sum + cost;
       });
 
   double get totalProfitLoss => totalPortfolioValue - totalPortfolioCost;
@@ -105,7 +113,10 @@ class PortfolioProvider extends ChangeNotifier {
     for (var h in _holdings) {
       if (h.quantity <= 0) continue; 
       final price = _assetPrices[h.symbol] ?? h.averageCost;
-      final value = h.quantity * price;
+      double value = h.quantity * price;
+      if (h.type == AssetType.CRYPTO || h.type == AssetType.GLOBAL) {
+          value *= ApiService().usdTryRate;
+      }
       map[h.type] = (map[h.type] ?? 0) + value;
     }
     return map;
