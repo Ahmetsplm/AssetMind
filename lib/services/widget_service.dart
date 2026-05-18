@@ -46,6 +46,7 @@ class WidgetService {
         await HomeWidget.saveWidgetData<String>('fav_${i}_price', price.toStringAsFixed(2));
         await HomeWidget.saveWidgetData<String>('fav_${i}_change', '%${change.toStringAsFixed(2)}');
         await HomeWidget.saveWidgetData<bool>('fav_${i}_is_positive', change >= 0);
+        await HomeWidget.saveWidgetData<String>('fav_${i}_currency_symbol', fav['currencySymbol'] ?? '₺');
       }
       
       await HomeWidget.updateWidget(name: watchlistWidgetName);

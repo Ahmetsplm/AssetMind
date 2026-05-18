@@ -49,14 +49,16 @@ class WatchlistWidgetProvider : HomeWidgetProvider() {
                     val priceKey = "fav_" + i + "_price"
                     val changeKey = "fav_" + i + "_change"
                     val isPosKey = "fav_" + i + "_is_positive"
+                    val currencySymbolKey = "fav_" + i + "_currency_symbol"
 
                     val symbol = widgetData.getString(symbolKey, "") ?: ""
                     val price = widgetData.getString(priceKey, "0.00") ?: "0.00"
                     val change = widgetData.getString(changeKey, "%0.00") ?: "%0.00"
                     val isPos = widgetData.getBoolean(isPosKey, true)
+                    val currencySymbol = widgetData.getString(currencySymbolKey, "₺") ?: "₺"
 
                     views.setTextViewText(symbolIds[i], symbol)
-                    views.setTextViewText(priceIds[i], "₺" + price)
+                    views.setTextViewText(priceIds[i], currencySymbol + price)
                     views.setTextViewText(changeIds[i], (if (isPos) "+" else "") + change)
                     
                     // DYNAMIC BACKGROUND SETTING

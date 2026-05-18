@@ -18,6 +18,7 @@ import 'services/asset_service.dart';
 import 'services/api_service.dart';
 import 'services/widget_service.dart';
 import 'package:home_widget/home_widget.dart';
+import 'models/holding.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -78,13 +79,21 @@ void callbackDispatcher() {
         List<Map<String, dynamic>> favWidgetData = [];
         for (var f in favs) {
           final sym = f['symbol'] as String? ?? '';
+          final typeStr = f['type'] as String? ?? '';
           if (sym.isEmpty) continue;
+
+          final type = AssetType.values.firstWhere(
+            (e) => e.name == typeStr,
+            orElse: () => AssetType.STOCK,
+          );
+
           var asset = api.getAsset(sym) ?? api.getAsset('$sym.IS');
           if (asset != null) {
             favWidgetData.add({
               'symbol': sym.replaceAll('.IS', ''),
               'price': asset.price,
               'change': asset.change,
+              'currencySymbol': type.getCurrencySymbol(sym),
             });
           }
         }

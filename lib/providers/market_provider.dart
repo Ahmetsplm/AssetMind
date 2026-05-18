@@ -90,13 +90,21 @@ class MarketProvider extends ChangeNotifier with WidgetsBindingObserver {
       List<Map<String, dynamic>> favWidgetData = [];
       for (var f in favs) {
         final sym = f['symbol'] as String? ?? '';
+        final typeStr = f['type'] as String? ?? '';
         if (sym.isEmpty) continue;
+        
+        final type = AssetType.values.firstWhere(
+          (e) => e.name == typeStr,
+          orElse: () => AssetType.STOCK,
+        );
+        
         var asset = _api.getAsset(sym) ?? _api.getAsset('$sym.IS');
         if (asset != null) {
           favWidgetData.add({
             'symbol': sym.replaceAll('.IS', ''),
             'price': asset.price,
             'change': asset.change,
+            'currencySymbol': type.getCurrencySymbol(sym),
           });
         }
       }
