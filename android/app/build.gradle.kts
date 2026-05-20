@@ -47,3 +47,11 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
+
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "androidx.glance" && requested.name.startsWith("glance")) {
+            useVersion("1.1.0")
+        }
+    }
+}

@@ -5,6 +5,8 @@ import '../services/asset_service.dart';
 import '../providers/theme_provider.dart';
 import '../models/holding.dart';
 
+import '../providers/market_provider.dart';
+
 class AlertBottomSheet extends StatefulWidget {
   final String symbol;
   final double currentPrice;
@@ -25,11 +27,38 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
   late TextEditingController _priceController;
   String _selectedCondition = 'above';
   bool _isLoading = false;
+  late double _currentPrice;
 
   @override
   void initState() {
     super.initState();
-    _priceController = TextEditingController(text: widget.currentPrice.toStringAsFixed(2));
+    _currentPrice = widget.currentPrice;
+    _priceController = TextEditingController(
+        text: _currentPrice > 0 ? _currentPrice.toStringAsFixed(2) : '');
+        
+    if (_currentPrice == 0.0) {
+      _fetchInitialPrice();
+    }
+  }
+
+  Future<void> _fetchInitialPrice() async {
+    setState(() => _isLoading = true);
+    try {
+      final market = Provider.of<MarketProvider>(context, listen: false);
+      await market.fetchSingleAndNotify(widget.symbol);
+      
+      final asset = market.getAsset(widget.symbol);
+      if (asset != null && asset.price > 0 && mounted) {
+        setState(() {
+          _currentPrice = asset.price;
+          _priceController.text = _currentPrice.toStringAsFixed(2);
+        });
+      }
+    } catch (e) {
+      debugPrint("AlertBottomSheet fetch error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -125,7 +154,7 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Güncel Fiyat: ${widget.type.getCurrencySymbol(widget.symbol)}${widget.currentPrice.toStringAsFixed(2)}',
+            'Güncel Fiyat: ${widget.type.getCurrencySymbol(widget.symbol)}${_currentPrice.toStringAsFixed(2)}',
             style: TextStyle(
               color: isDark ? Colors.grey[400] : Colors.grey[600],
               fontSize: 14,

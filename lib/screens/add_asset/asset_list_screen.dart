@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../services/api_service.dart';
 import '../../models/holding.dart'; // For AssetType
 import '../../models/favorite.dart';
@@ -167,7 +168,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
                 child: Showcase(
                   key: _searchKey,
                   title: 'Arama ve Fiyat Görüntüleme',
-                  description: 'İstediğiniz varlığı buradan arayabilirsiniz.\nListede fiyatı görünmeyen varlıkların güncel fiyatını çekmek için üzerine tıklamanız yeterlidir.',
+                  description: 'İstediğiniz varlığı buradan arayabilirsiniz.\n\n💡 İPUCU: Listede fiyatı yüklenmeyen (yanıp sönen) varlıkların fiyatını anında çekmek için üzerine veya yıldız ikonuna tıklamanız yeterlidir!',
                   child: Container(
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
@@ -373,7 +374,6 @@ class _AssetListScreenState extends State<AssetListScreen> {
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (currentPrice != 0.0) ...[
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -387,21 +387,35 @@ class _AssetListScreenState extends State<AssetListScreen> {
                           color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: trendColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${isUp ? '' : '-'}%${currentChange.abs().toStringAsFixed(2)}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: trendColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 4),
+                      currentPrice == 0.0
+                          ? Shimmer.fromColors(
+                              baseColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800]! : Colors.grey[300]!,
+                              highlightColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[700]! : Colors.grey[100]!,
+                              child: Container(
+                                width: 80,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: trendColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${isUp ? '' : '-'}%${currentChange.abs().toStringAsFixed(2)}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: trendColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                     ],
                   ),
                   const SizedBox(width: 8),
@@ -425,7 +439,6 @@ class _AssetListScreenState extends State<AssetListScreen> {
                     constraints: const BoxConstraints(),
                     padding: const EdgeInsets.all(4),
                   ),
-                ],
                 TechAnalysisButton(symbol: item['symbol'], type: widget.type),
               ],
             );

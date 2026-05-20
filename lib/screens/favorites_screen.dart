@@ -6,6 +6,8 @@ import '../models/holding.dart'; // For AssetType enum
 import '../services/api_service.dart';
 import '../providers/favorite_provider.dart';
 import '../providers/market_provider.dart';
+import '../widgets/animated_price_widget.dart';
+import 'package:shimmer/shimmer.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -254,8 +256,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    '${item.type.getCurrencySymbol(item.symbol)}${currentPrice.toStringAsFixed(2)}',
+                  AnimatedPriceWidget(
+                    numericValue: currentPrice,
+                    displayString: '${item.type.getCurrencySymbol(item.symbol)}${currentPrice.toStringAsFixed(2)}',
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: 24,
@@ -453,8 +456,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       ),
                     )
                   else ...[
-                    Text(
-                      '${item.type.getCurrencySymbol(item.symbol)}${currentPrice.toStringAsFixed(2)}',
+                    AnimatedPriceWidget(
+                      numericValue: currentPrice,
+                      displayString: '${item.type.getCurrencySymbol(item.symbol)}${currentPrice.toStringAsFixed(2)}',
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -462,23 +466,36 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isUp
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
-                        style: GoogleFonts.poppins(
-                          color: isUp ? Colors.green : Colors.red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
+                    currentPrice == 0.0
+                        ? Shimmer.fromColors(
+                            baseColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800]! : Colors.grey[300]!,
+                            highlightColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[700]! : Colors.grey[100]!,
+                            child: Container(
+                              width: 80,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isUp
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${isUp ? '' : '-'}%${change.abs().toStringAsFixed(2)}',
+                              style: GoogleFonts.poppins(
+                                color: isUp ? Colors.green : Colors.red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                   ],
                 ],
               ),

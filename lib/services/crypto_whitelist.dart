@@ -1,0 +1,40 @@
+const List<String> defaultCryptoTargets = [
+  "BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "DOGE", "TRX", "TON", "AVAX",
+  "SHIB", "DOT", "LINK", "MATIC", "BCH", "LTC", "NEAR", "UNI", "ATOM", "XLM",
+  "APT", "ARB", "OP", "INJ", "RNDR", "PEPE", "WIF", "SUI", "SEI", "FET"
+];
+
+const List<String> cryptoWhitelist = [
+  "BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "DOGE", "TRX", "TON", "AVAX",
+  "SHIB", "DOT", "LINK", "MATIC", "BCH", "LTC", "NEAR", "UNI", "ATOM", "XLM",
+  "ICP", "APT", "ARB", "OP", "HBAR", "VET", "FIL", "ETC", "STX", "INJ",
+  "RNDR", "IMX", "RUNE", "AAVE", "THETA", "ALGO", "MKR", "GRT", "LDO", "SNX",
+  "SAND", "MANA", "FLOW", "AXS", "CHZ", "EOS", "KAVA", "MINA", "COMP", "1INCH",
+  "CRV", "DYDX", "GMX", "PEPE", "WIF", "BONK", "FLOKI", "JUP", "PYTH", "SEI",
+  "TIA", "SUI", "BLUR", "STRK", "PENDLE", "ORDI", "CFX", "FTM", "ROSE", "CELO",
+  "ZEC", "DASH", "ENJ", "BAT", "ZIL", "QTUM", "HOT", "ICX", "ONT", "WAVES",
+  "IOST", "ANKR", "KSM", "YFI", "BAL", "SUSHI", "RVN", "SC", "SKL", "API3",
+  "TRB", "WOO", "MASK", "AUDIO", "GLM", "LRC", "ONE", "ZEN", "RSR", "CKB",
+  "DCR", "FLUX", "STORJ", "SSV", "ARKM", "FET", "SUPER", "MANTA",
+  "AEVO", "GALA", "ILV", "MAGIC", "YGG", "CHR", "AR", "HOOK", "EDU", "ID",
+  "CYBER", "JOE", "TWT", "COTI", "MTL", "CTSI", "BAND", "SXP", "REQ", "NMR",
+  "CELR", "STG", "UMA", "ACH", "ARPA", "DENT", "PHA", "SYS", "STEEM", "STRAX",
+  "LSK", "CVC", "BICO", "SPELL", "MOVR", "GLMR", "ASTR", "JASMY", "XVG", "PUNDIX",
+  "HIVE", "PROM", "SFP", "DUSK", "ALICE", "TLM", "SLP", "RLC", "TRU", "ONG",
+  "DGB", "POLYX", "RAD", "SNT", "KNC", "SCRT", "AERGO", "NKN", "CTK", "MBL",
+  "ELF", "ERN", "OGN", "HIGH", "RARE", "FORTH", "DAR", "BAKE", "ALPHA", "HFT",
+  "PERP", "C98", "LIT", "ATA", "DODO", "NULS", "POND", "VOXEL", "SYN", "ACA",
+  "XVS", "BADGER", "BNT", "MLN", "FRONT", "VTHO", "PLA", "CLV", "FARM",
+  "AKRO", "WAN", "BEL", "REEF", "OM", "NTRN", "GNS", "HIFI", "MAV", "ARK",
+  "BLZ", "DIA", "KEY", "LOKA", "FIDA", "DEGO", "LINA", "COMBO", "LEVER", "AMB",
+  "BTS", "WRX", "TROY", "COS", "DATA", "IRIS", "ALPACA", "EPX", "FIRO", "VIDT",
+  "BTG", "CTXC", "FUN", "HARD", "KP3R", "NEO", "GAS", "TFUEL", "XEC", "USTC",
+  "LUNC", "PHB", "WAXP", "ADX", "AVA", "BURGER", "FLM", "GHST", "MDX", "QI",
+  "REN", "REP", "SUN", "TKO", "UTK", "YFII", "ZRX", "AUCTION", "BETA", "CREAM",
+  "FIS", "KMD", "LOOM", "MBOX", "OG", "POLS", "PROS", "QKC", "RAY", "STMX",
+  "TVK", "UNFI", "VIB", "WIN", "WNXM", "XEM", "AI", "TURBO", "MEME", "NOT",
+  "HMSTR", "EIGEN", "SAGA", "AXL", "DYM", "CGPT", "HNT", "IOTX", "KDA", "IQ",
+  "TNSR", "TAO", "JTO", "ZRO", "LQTY", "CFG", "NEXO", "ONDO", "WLD", "AMP",
+  "BIFI", "COW", "GTC", "IDEX", "ORCA", "SYN", "USDT", "USDC", "FDUSD", "TUSD",
+  "USDP", "EUR", "AEUR", "PAXG", "XAUT"
+];

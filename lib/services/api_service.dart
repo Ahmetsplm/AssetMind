@@ -6,6 +6,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/holding.dart';
 import 'asset_service.dart';
 import 'bist_names.dart';
+import 'crypto_whitelist.dart';
+import 'global_whitelist.dart';
+import 'global_names.dart';
 
 // Helper Model for Cache
 class AssetCacheModel {
@@ -113,55 +116,7 @@ class ApiService {
     "ZPBDL","ZPLIB","ZPT10","ZPX30","ZRE20","ZRGYO","ZSR25","ZTLRF","ZTLRK","ZTM25"
   ];
 
-  static const List<String> _whitelistCrypto = [
-    'BTCUSDT',
-    'ETHUSDT',
-    'BNBUSDT',
-    'SOLUSDT',
-    'XRPUSDT',
-    'ADAUSDT',
-    'DOGEUSDT',
-    'AVAXUSDT',
-    'TRXUSDT',
-    'LINKUSDT',
-    'MATICUSDT',
-    'DOTUSDT',
-    'LTCUSDT',
-    'SHIBUSDT',
-    'ATOMUSDT',
-    'UNIUSDT',
-    'XLMUSDT',
-    'BCHUSDT',
-    'NEARUSDT',
-    'FILUSDT',
-    'HBARUSDT',
-    'APTUSDT',
-    'ICPUSDT',
-    'LDOUSDT',
-    'ARBUSDT',
-    'VETUSDT',
-    'QNTUSDT',
-    'MKRUSDT',
-    'GRTUSDT',
-    'AAVEUSDT',
-    'OPUSDT',
-    'ALGOUSDT',
-    'STXUSDT',
-    'EGLDUSDT',
-    'SANDUSDT',
-    'THETAUSDT',
-    'FTMUSDT',
-    'EOSUSDT',
-    'MANAUSDT',
-    'XTZUSDT',
-    'AXSUSDT',
-    'CAKEUSDT',
-    'NEOUSDT',
-    'KAVAUSDT',
-    'RUNEUSDT',
-    'FLOWUSDT',
-    'CHZUSDT',
-  ];
+
 
   static const List<String> _whitelistForex = [
     "USD", "EUR", "GBP", "JPY", "CHF", "TRY", "CAD", "AUD", "NZD", "CNY",
@@ -203,12 +158,7 @@ class ApiService {
     "THB": "Tayland Bahtı",
   };
 
-  static const List<String> _whitelistGlobal = [
-    'AAPL', 'MSFT', 'TSLA', 'AMZN', 'GOOGL', 'NVDA', 'META', 'NFLX',
-    'AMD', 'INTC', 'JPM', 'V', 'DIS',
-    'SPY', // S&P 500 ETF
-    'QQQ', // NASDAQ 100 ETF
-  ];
+  // _whitelistGlobal removed, now using globalWhitelist from global_whitelist.dart
 
   static const List<String> _whitelistFund = [
     // Borsa Yatırım Fonları (Aktif/Çalışanlar)
@@ -223,8 +173,6 @@ class ApiService {
   ];
 
   // --- CONFIG ---
-  static const String _binance24hrUrl =
-      "https://api.binance.com/api/v3/ticker/24hr";
   static const String _frankfurterBaseUrl =
       "https://api.frankfurter.app/latest";
   static const Map<String, String> _headers = {
@@ -275,6 +223,12 @@ class ApiService {
     if (_cache.containsKey("$symbol.IS")) return _cache["$symbol.IS"];
     if (_cache.containsKey("$symbol/TRY")) return _cache["$symbol/TRY"];
     if (_cache.containsKey("${symbol}TRY=X")) return _cache["${symbol}TRY=X"];
+
+    // Dynamic Crypto Fallback (BTCUSDT -> BTC)
+    if (symbol.toUpperCase().endsWith("USDT") && symbol.length > 4) {
+      final clean = symbol.toUpperCase().replaceAll("USDT", "");
+      if (_cache.containsKey(clean)) return _cache[clean];
+    }
 
     // Dynamic Forex Fallbacks (USD -> USD/TRY or USDTRY=X)
     if (symbol.length == 3 && _whitelistForex.contains(symbol.toUpperCase())) {
@@ -378,34 +332,118 @@ class ApiService {
     await _saveCache();
   }
 
-  /// 4. FETCH: Crypto (Binance)
+  /// 4. FETCH: Crypto (Binance) - True Lazy Fetch
   Future<void> fetchCrypto() async {
+    final Set<String> targetSet = {};
+
     try {
-      final response = await http.get(Uri.parse(_binance24hrUrl));
-      if (response.statusCode == 200) {
-        final List<dynamic> all = jsonDecode(response.body);
+      // 1. Default Crypto Targets
+      targetSet.addAll(defaultCryptoTargets);
 
-        for (var item in all) {
-          final String symbol = item['symbol'];
-          if (_whitelistCrypto.contains(symbol)) {
-            final double priceUsd =
-                double.tryParse(item['lastPrice'].toString()) ?? 0.0;
-            final double change =
-                double.tryParse(item['priceChangePercent'].toString()) ?? 0.0;
-
-            final String simpleSymbol = symbol.replaceAll(
-              "USDT",
-              "",
-            ); // BTCUSDT -> BTC
-
-            _updateCache(simpleSymbol, priceUsd, change);
+      // 2. Dynamic Targets (Favorites, Alerts, Portfolio)
+      final assetService = AssetService();
+      if (assetService.userId != null) {
+        // Favoriler
+        final favs = await assetService.getFavorites();
+        for (var f in favs) {
+          if (f['type'] == 'CRYPTO' && cryptoWhitelist.contains(f['symbol'])) {
+            targetSet.add(f['symbol']);
           }
         }
+        
+        // Alarmlar
+        final alerts = await assetService.getActiveAlerts();
+        for (var a in alerts) {
+          if (cryptoWhitelist.contains(a.symbol)) {
+            targetSet.add(a.symbol);
+          }
+        }
+        
+        // Portföyler
+        final ports = await assetService.getPortfolios();
+        for (var p in ports) {
+          final holds = await assetService.getHoldings(p.id!);
+          for (var h in holds) {
+            if (h.type == AssetType.CRYPTO && cryptoWhitelist.contains(h.symbol)) {
+              targetSet.add(h.symbol);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Dynamic Crypto Target Fetch Error: $e");
+    }
+
+    final List<String> querySymbols = [];
+    for (var sym in targetSet) {
+      if (sym == 'USDT') {
+        querySymbols.add('"USDCUSDT"');
+      } else {
+        // Strip out 'USDT' just in case it was added to a favorite
+        String cleanSym = sym.replaceAll('USDT', '');
+        querySymbols.add('"${cleanSym}USDT"');
+      }
+    }
+
+    if (querySymbols.isEmpty) return;
+
+    try {
+      final String symbolsStr = '[${querySymbols.join(",")}]';
+      final Uri uri = Uri.parse("https://api.binance.com/api/v3/ticker/24hr?symbols=$symbolsStr");
+      
+      final response = await http.get(uri);
+      
+      if (response.statusCode == 200) {
+        _processBinanceResponse(jsonDecode(response.body));
         await _saveCache();
+      } else {
+        // Fallback: 400 Bad Request Koruma Mekanizması (Tekli Fetch)
+        debugPrint("Binance Batch Fetch Failed (${response.statusCode}), triggering fallback.");
+        await _fallbackSingleCryptoFetch(querySymbols);
       }
     } catch (e) {
       debugPrint("Binance Fetch Error: $e");
     }
+  }
+
+  void _processBinanceResponse(dynamic data) {
+    List<dynamic> dataList;
+    if (data is List) {
+      dataList = data;
+    } else {
+      dataList = [data]; // Tekli obje geldiyse listeye çevir
+    }
+
+    for (var item in dataList) {
+      final String symbol = item['symbol'] as String? ?? '';
+      final double priceUsd = double.tryParse(item['lastPrice'].toString()) ?? 0.0;
+      final double change = double.tryParse(item['priceChangePercent'].toString()) ?? 0.0;
+
+      if (symbol == 'USDCUSDT') {
+        _updateCache("USDT", priceUsd > 0 ? 1 / priceUsd : 1.0, change);
+      } else if (symbol.endsWith('USDT')) {
+        final String simpleSymbol = symbol.replaceAll("USDT", "");
+        _updateCache(simpleSymbol, priceUsd, change);
+      }
+    }
+  }
+
+  Future<void> _fallbackSingleCryptoFetch(List<String> querySymbols) async {
+    // Aynı anda çok fazla istek atıp rate limit'e takılmamak için parallel istekler
+    final futures = querySymbols.map((symStr) async {
+      try {
+        final cleanQuerySym = symStr.replaceAll('"', '');
+        final Uri uri = Uri.parse("https://api.binance.com/api/v3/ticker/24hr?symbol=$cleanQuerySym");
+        final response = await http.get(uri);
+        
+        if (response.statusCode == 200) {
+          _processBinanceResponse(jsonDecode(response.body));
+        }
+      } catch (_) {} // Tekli hata olursa ignore et, diğerleri devam etsin
+    });
+
+    await Future.wait(futures);
+    await _saveCache();
   }
 
   Future<void> fetchForex() async {
@@ -553,7 +591,45 @@ class ApiService {
     await _ensureUsdRate();
     if (_cachedUsdTry == null) return;
 
-    final symbols = _whitelistGlobal.join(",");
+    final Set<String> targetSet = {};
+
+    try {
+      final assetService = AssetService();
+      if (assetService.userId != null) {
+        // Favoriler
+        final favs = await assetService.getFavorites();
+        for (var f in favs) {
+          if (f['type'] == 'GLOBAL' && globalWhitelist.contains(f['symbol'])) {
+            targetSet.add(f['symbol']);
+          }
+        }
+        
+        // Alarmlar
+        final alerts = await assetService.getActiveAlerts();
+        for (var a in alerts) {
+          if (globalWhitelist.contains(a.symbol)) {
+            targetSet.add(a.symbol);
+          }
+        }
+        
+        // Portföyler
+        final ports = await assetService.getPortfolios();
+        for (var p in ports) {
+          final holds = await assetService.getHoldings(p.id!);
+          for (var h in holds) {
+            if (h.type == AssetType.GLOBAL && globalWhitelist.contains(h.symbol)) {
+              targetSet.add(h.symbol);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Dynamic Global Target Fetch Error: $e");
+    }
+
+    if (targetSet.isEmpty) return; // Sıfır İsraf!
+
+    final symbols = targetSet.join(",");
     try {
       final url = Uri.parse("https://api.tiingo.com/iex/?tickers=$symbols&token=$apiKey");
       final response = await http.get(url);
@@ -813,7 +889,7 @@ class ApiService {
     final timeStr =
         "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
 
-    final cryptoKeys = _whitelistCrypto.map((s) => s.replaceAll("USDT", "")).toSet();
+    final cryptoKeys = cryptoWhitelist.toSet();
 
     final items = _cache.entries
         .where((e) => cryptoKeys.contains(e.key))
@@ -870,15 +946,21 @@ class ApiService {
         }
         break;
       case AssetType.CRYPTO:
-        for (var s in _whitelistCrypto) {
-          final outputSym = s.replaceAll("USDT", "");
-          final d = _cache[outputSym];
+        for (var s in cryptoWhitelist) {
+          final d = _cache[s];
           if (d != null) {
             results.add({
-              'symbol': outputSym,
+              'symbol': s,
               'name': s,
               'price': d.price,
               'change': d.change,
+            });
+          } else {
+            results.add({
+              'symbol': s,
+              'name': s,
+              'price': 0.0,
+              'change': 0.0,
             });
           }
         }
@@ -933,14 +1015,22 @@ class ApiService {
         }
         break;
       case AssetType.GLOBAL:
-        for (var s in _whitelistGlobal) {
+        for (var s in globalWhitelist) {
           final d = _cache[s];
+          final displayName = globalNames[s] ?? s;
           if (d != null) {
             results.add({
               'symbol': s,
-              'name': s,
+              'name': displayName,
               'price': d.price,
               'change': d.change,
+            });
+          } else {
+            results.add({
+              'symbol': s,
+              'name': displayName,
+              'price': 0.0,
+              'change': 0.0,
             });
           }
         }
@@ -1053,6 +1143,46 @@ class ApiService {
         }
       } else if (_allBistStocks.contains(symbol)) {
         await _fetchYahooSingle('$symbol.IS', isTransient: isTransient);
+      } else if (cryptoWhitelist.contains(symbol)) {
+        // Fetch single crypto from Binance directly
+        final querySym = symbol == 'USDT' ? 'USDCUSDT' : '${symbol}USDT';
+        final url = Uri.parse("https://api.binance.com/api/v3/ticker/24hr?symbol=$querySym");
+        final response = await http.get(url);
+        if (response.statusCode == 200) {
+          final item = jsonDecode(response.body);
+          double p = double.parse(item['lastPrice']);
+          double c = double.parse(item['priceChangePercent']);
+          
+          if (symbol == 'USDT') {
+            if (p > 0) {
+              p = 1 / p;
+              c = -c;
+            }
+          }
+          _updateCache(symbol, p, c, isTransient: isTransient);
+        } else {
+          debugPrint("Binance Single Fetch Error for $querySym: ${response.statusCode}");
+        }
+      } else if (globalWhitelist.contains(symbol)) {
+        final apiKey = dotenv.env['TIINGO_API_KEY'];
+        if (apiKey != null && apiKey.isNotEmpty) {
+          final url = Uri.parse("https://api.tiingo.com/iex/?tickers=$symbol&token=$apiKey");
+          final response = await http.get(url);
+          if (response.statusCode == 200) {
+            final List<dynamic> jsonList = jsonDecode(response.body);
+            if (jsonList.isNotEmpty) {
+              final item = jsonList.first;
+              final double last = (item['tngoLast'] as num?)?.toDouble() ?? (item['last'] as num?)?.toDouble() ?? 0.0;
+              final double prevClose = (item['prevClose'] as num?)?.toDouble() ?? last;
+              if (last > 0) {
+                final change = prevClose > 0 ? ((last - prevClose) / prevClose) * 100 : 0.0;
+                _updateCache(symbol, last, change, isTransient: isTransient);
+              }
+            }
+          } else {
+            debugPrint("Tiingo Single Fetch Error for $symbol: ${response.statusCode}");
+          }
+        }
       } else {
         await _fetchYahooSingle(symbol, isTransient: isTransient);
       }

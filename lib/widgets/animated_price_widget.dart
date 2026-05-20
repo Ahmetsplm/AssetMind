@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 
 class AnimatedPriceWidget extends StatefulWidget {
   final double numericValue;
@@ -63,6 +64,34 @@ class _AnimatedPriceWidgetState extends State<AnimatedPriceWidget>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.numericValue == 0.0) {
+      final double height = widget.style.fontSize != null ? widget.style.fontSize! * 1.2 : 20;
+      final bool isDark = Theme.of(context).brightness == Brightness.dark;
+      
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          Shimmer.fromColors(
+            baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+            highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
+            child: Container(
+              width: 80,
+              height: height,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[800] : Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+          ),
+          Icon(
+            Icons.touch_app,
+            size: height * 0.8,
+            color: Theme.of(context).disabledColor.withValues(alpha: 0.5),
+          ),
+        ],
+      );
+    }
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {

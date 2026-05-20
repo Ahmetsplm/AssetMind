@@ -17,6 +17,11 @@ class TradingViewHelper {
         // TradingView needs "BINANCE:BTCUSDT"
         return "BINANCE:${cleanSymbol}USDT";
 
+      case AssetType.GLOBAL:
+        // App format: "AAPL", "MSFT"
+        final cleanSymbol = symbol.trim().toUpperCase();
+        return cleanSymbol; // TradingView auto-resolves AAPL, MSFT, etc.
+
       default:
         // For Gold/Forex, maybe handle later.
         // Gold: "XAUUSD" -> "OANDA:XAUUSD"?

@@ -16,7 +16,7 @@ class TechAnalysisButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (type != AssetType.STOCK && type != AssetType.CRYPTO) {
+    if (type != AssetType.STOCK && type != AssetType.CRYPTO && type != AssetType.GLOBAL) {
       return const SizedBox.shrink();
     }
 
