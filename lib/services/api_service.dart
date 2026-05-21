@@ -3,12 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/holding.dart';
 import 'asset_service.dart';
 import 'bist_names.dart';
 import 'crypto_whitelist.dart';
 import 'global_whitelist.dart';
 import 'global_names.dart';
+import 'fund_whitelist.dart';
 
 // Helper Model for Cache
 class AssetCacheModel {
@@ -160,17 +162,17 @@ class ApiService {
 
   // _whitelistGlobal removed, now using globalWhitelist from global_whitelist.dart
 
-  static const List<String> _whitelistFund = [
-    // Borsa Yatırım Fonları (Aktif/Çalışanlar)
-    'ZGOLD.IS', 'Z30EA.IS', 'ZRE20.IS', 'GMSTR.IS', 
-    'GLDTR.IS', 'USDTR.IS', 'ZPT10.IS', 'Z30KE.IS', 'ZTLRK.IS',
-    // Garanti Portföy Fonları (Sadece Tıklanınca / Favoriye Alınınca Çekilecek)
-    'GAV.IS', 'GTL.IS', 'GTZ.IS', 'GL1.IS', 'GPA.IS', 'GTA.IS', 'GAU.IS', 
-    'GZH.IS', 'GMA.IS', 'GMR.IS', 'GBG.IS', 'GZG.IS', 'GHK.IS', 'GSU.IS',
-    'GZP.IS', 'GZJ.IS', 'GVI.IS', 'GZV.IS', 'GAL.IS', 'GPZ.IS', 'GJH.IS', 
-    'PIP.IS', 'GNP.IS', 'TGT.IS', 'GA1.IS', 'GUB.IS', 'GUV.IS', 'GAH.IS',
-    'GID.IS', 'GZL.IS', 'GBV.IS', 'GZZ.IS', 'GZY.IS', 'MET.IS', 'GVA.IS',
-  ];
+  // _whitelistFund removed, now using tefasFundsWhitelist from fund_whitelist.dart
+
+  // TEFAS API config
+  static const String _tefasBaseUrl = 'https://www.tefas.gov.tr/api/funds';
+  static const Map<String, String> _tefasHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Content-Type': 'application/json',
+    'Accept': 'application/json, text/plain, */*',
+    'Origin': 'https://www.tefas.gov.tr',
+    'Referer': 'https://www.tefas.gov.tr/TarihselVeriler.aspx',
+  };
 
   // --- CONFIG ---
   static const String _frankfurterBaseUrl =
@@ -580,14 +582,8 @@ class ApiService {
     await _saveCache();
   }
 
-  // --- FETCH: Global (Tiingo IEX) ---
+  // --- FETCH: Global (Tiingo IEX via Supabase Edge Function) ---
   Future<void> fetchGlobal() async {
-    final apiKey = dotenv.env['TIINGO_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty) {
-      debugPrint("Tiingo API Key is missing.");
-      return;
-    }
-
     await _ensureUsdRate();
     if (_cachedUsdTry == null) return;
 
@@ -631,38 +627,39 @@ class ApiService {
 
     final symbols = targetSet.join(",");
     try {
-      final url = Uri.parse("https://api.tiingo.com/iex/?tickers=$symbols&token=$apiKey");
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final List<dynamic> json = jsonDecode(response.body);
-        for (var item in json) {
-          final String ticker = item['ticker'];
-          final double last = (item['tngoLast'] as num?)?.toDouble() ?? (item['last'] as num?)?.toDouble() ?? 0.0;
-          final double prevClose = (item['prevClose'] as num?)?.toDouble() ?? last;
+      final response = await Supabase.instance.client.functions.invoke(
+        'tiingo-proxy',
+        body: {'symbols': symbols},
+      );
 
-          if (last > 0) {
-            final change = prevClose > 0 ? ((last - prevClose) / prevClose) * 100 : 0.0;
-            _updateCache(ticker, last, change);
+      if (response.status == 200) {
+        if (response.data is List) {
+          final List<dynamic> json = response.data as List<dynamic>;
+          for (var item in json) {
+            final String ticker = item['ticker'];
+            final double last = (item['tngoLast'] as num?)?.toDouble() ?? (item['last'] as num?)?.toDouble() ?? 0.0;
+            final double prevClose = (item['prevClose'] as num?)?.toDouble() ?? last;
+
+            if (last > 0) {
+              final change = prevClose > 0 ? ((last - prevClose) / prevClose) * 100 : 0.0;
+              _updateCache(ticker, last, change);
+            }
           }
+          await _saveCache();
+        } else {
+          debugPrint("Tiingo Proxy returned object (probably an error): ${response.data}");
         }
-        await _saveCache();
       } else {
-        debugPrint("Tiingo API Error: ${response.statusCode}");
+        debugPrint("Tiingo API (Proxy) Error: ${response.status}");
       }
     } catch (e) {
-      debugPrint("Tiingo Global Fetch Error: $e");
+      debugPrint("Tiingo Global Fetch (Proxy) Error: $e");
     }
   }
 
-  // --- FETCH: Funds (BIST ETFs & Lazy Garanti via Yahoo) ---
+  // --- FETCH: TEFAS Funds (Lazy Fetch - sadece kullanıcı varlıkları) ---
   Future<void> fetchFunds() async {
-    // 1. Sadece her 15 dakikada aktif olarak çekilecek "Çalışan" BIST BYF listesi
-    // Garanti fonları (GTL.IS vb.) bu listeye girmez, sadece tıklanınca (transient) 
-    // veya favori/alarm/portföye alınınca hedeflere eklenir.
-    final List<String> targets = [
-      'ZGOLD.IS', 'Z30EA.IS', 'ZRE20.IS', 'GMSTR.IS', 
-      'GLDTR.IS', 'USDTR.IS', 'ZPT10.IS', 'Z30KE.IS', 'ZTLRK.IS'
-    ];
+    final Set<String> targetSet = {};
 
     try {
       final assetService = AssetService();
@@ -671,28 +668,26 @@ class ApiService {
         final favs = await assetService.getFavorites();
         for (var f in favs) {
           if (f['type'] == 'FUND') {
-            final sym = f['symbol'];
-            if (!targets.contains(sym)) targets.add(sym);
+            final sym = (f['symbol'] as String).replaceAll('.IS', '');
+            if (tefasFundsWhitelist.containsKey(sym)) targetSet.add(sym);
           }
         }
-        
+
         // Alarmlar
         final alerts = await assetService.getActiveAlerts();
         for (var a in alerts) {
-          if (_whitelistFund.contains(a.symbol) || _whitelistFund.contains('${a.symbol}.IS')) {
-            final sym = _whitelistFund.contains(a.symbol) ? a.symbol : '${a.symbol}.IS';
-            if (!targets.contains(sym)) targets.add(sym);
-          }
+          final sym = a.symbol.replaceAll('.IS', '');
+          if (tefasFundsWhitelist.containsKey(sym)) targetSet.add(sym);
         }
-        
+
         // Portföyler
         final ports = await assetService.getPortfolios();
         for (var p in ports) {
           final holds = await assetService.getHoldings(p.id!);
           for (var h in holds) {
             if (h.type == AssetType.FUND) {
-              final sym = h.symbol;
-              if (!targets.contains(sym)) targets.add(sym);
+              final sym = h.symbol.replaceAll('.IS', '');
+              if (tefasFundsWhitelist.containsKey(sym)) targetSet.add(sym);
             }
           }
         }
@@ -701,15 +696,50 @@ class ApiService {
       debugPrint("Dynamic Fund Target Fetch Error: $e");
     }
 
+    if (targetSet.isEmpty) return; // Sıfır İsraf!
+
     try {
       await Future.wait(
-        targets.map((s) async {
-          await _fetchYahooSingle(s);
-        }),
+        targetSet.map((code) => _fetchTefasSingle(code)),
       );
       await _saveCache();
     } catch (e) {
-      debugPrint("Funds Fetch Error: $e");
+      debugPrint("TEFAS Funds Fetch Error: $e");
+    }
+  }
+
+  /// TEFAS API'den tek bir fonun güncel fiyatını çeker
+  Future<void> _fetchTefasSingle(String fonKodu, {bool isTransient = false}) async {
+    try {
+      final url = Uri.parse('$_tefasBaseUrl/fonFiyatBilgiGetir');
+      final response = await http.post(
+        url,
+        headers: _tefasHeaders,
+        body: jsonEncode({'fonKodu': fonKodu, 'periyod': 1}),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic>? resultList = data['resultList'];
+        if (resultList != null && resultList.isNotEmpty) {
+          // Son (en güncel) tarihli kaydı al
+          final latest = resultList.last;
+          final double price = (latest['fiyat'] as num?)?.toDouble() ?? 0.0;
+          if (price > 0) {
+            // Bir önceki günle karşılaştırarak yüzde değişimi hesapla
+            double change = 0.0;
+            if (resultList.length >= 2) {
+              final prev = resultList[resultList.length - 2];
+              final double prevPrice = (prev['fiyat'] as num?)?.toDouble() ?? price;
+              if (prevPrice > 0) {
+                change = ((price - prevPrice) / prevPrice) * 100;
+              }
+            }
+            _updateCache(fonKodu, price, change, isTransient: isTransient);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('TEFAS fetch error for $fonKodu: $e');
     }
   }
 
@@ -1036,38 +1066,16 @@ class ApiService {
         }
         break;
       case AssetType.FUND:
-        final fundNames = {
-          'ZGOLD.IS': 'Ziraat Altın',
-          'Z30EA.IS': 'Ziraat BIST 30',
-          'ZRE20.IS': 'Ziraat Gayrimenkul',
-          'GMSTR.IS': 'QNB Gümüş',
-          'GLDTR.IS': 'QNB Altın',
-          'USDTR.IS': 'QNB Dolar',
-          'ZPT10.IS': 'Ziraat BIST 10',
-          'Z30KE.IS': 'Ziraat Katılım',
-          'ZTLRK.IS': 'Ziraat Likit Banka',
-        };
-        for (var s in _whitelistFund) {
-          final d = _cache[s];
-          // .IS takısını silerek listeye ekleyelim
-          final String cleanSymbol = s.replaceAll('.IS', '');
-          final String displayName = fundNames[s] ?? 'Garanti Portföy $cleanSymbol';
-          if (d != null) {
-            results.add({
-              'symbol': s, // Fetch vs için hala .IS kullanılıyor
-              'name': displayName,
-              'price': d.price,
-              'change': d.change,
-            });
-          } else {
-            // Eğer çekilemediyse fallback (UI'da uyarı gösterilecek)
-            results.add({
-              'symbol': s,
-              'name': displayName,
-              'price': 0.0,
-              'change': 0.0,
-            });
-          }
+        for (var entry in tefasFundsWhitelist.entries) {
+          final String code = entry.key;
+          final String fullName = entry.value;
+          final d = _cache[code];
+          results.add({
+            'symbol': code,
+            'name': fullName,
+            'price': d?.price ?? 0.0,
+            'change': d?.change ?? 0.0,
+          });
         }
         break;
     }
@@ -1164,12 +1172,13 @@ class ApiService {
           debugPrint("Binance Single Fetch Error for $querySym: ${response.statusCode}");
         }
       } else if (globalWhitelist.contains(symbol)) {
-        final apiKey = dotenv.env['TIINGO_API_KEY'];
-        if (apiKey != null && apiKey.isNotEmpty) {
-          final url = Uri.parse("https://api.tiingo.com/iex/?tickers=$symbol&token=$apiKey");
-          final response = await http.get(url);
-          if (response.statusCode == 200) {
-            final List<dynamic> jsonList = jsonDecode(response.body);
+        final response = await Supabase.instance.client.functions.invoke(
+          'tiingo-proxy',
+          body: {'symbols': symbol},
+        );
+        if (response.status == 200) {
+          if (response.data is List) {
+            final List<dynamic> jsonList = response.data as List<dynamic>;
             if (jsonList.isNotEmpty) {
               final item = jsonList.first;
               final double last = (item['tngoLast'] as num?)?.toDouble() ?? (item['last'] as num?)?.toDouble() ?? 0.0;
@@ -1180,9 +1189,15 @@ class ApiService {
               }
             }
           } else {
-            debugPrint("Tiingo Single Fetch Error for $symbol: ${response.statusCode}");
+            debugPrint("Tiingo Single Proxy returned object (probably an error) for $symbol: ${response.data}");
           }
+        } else {
+          debugPrint("Tiingo Single Fetch (Proxy) Error for $symbol: ${response.status}");
         }
+      } else if (tefasFundsWhitelist.containsKey(symbol) || tefasFundsWhitelist.containsKey(symbol.replaceAll('.IS', ''))) {
+        // TEFAS Fund - doğrudan TEFAS API'den çek
+        final cleanCode = symbol.replaceAll('.IS', '');
+        await _fetchTefasSingle(cleanCode, isTransient: isTransient);
       } else {
         await _fetchYahooSingle(symbol, isTransient: isTransient);
       }

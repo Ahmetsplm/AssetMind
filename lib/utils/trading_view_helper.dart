@@ -22,56 +22,88 @@ class TradingViewHelper {
         final cleanSymbol = symbol.trim().toUpperCase();
         return cleanSymbol; // TradingView auto-resolves AAPL, MSFT, etc.
 
+      case AssetType.FUND:
+        final cleanSymbol = symbol.trim().toUpperCase();
+        return "TEFAS:$cleanSymbol";
+
+      case AssetType.FOREX:
+        final cleanSymbol = symbol.trim().toUpperCase();
+        if (cleanSymbol.contains('/')) {
+          return cleanSymbol.replaceAll('/', '');
+        }
+        return "${cleanSymbol}TRY";
+
+      case AssetType.GOLD:
+        switch(symbol) {
+          case 'Ons Altın': return 'OANDA:XAUUSD';
+          case 'Gram Altın': return 'FX_IDC:XAUTRYG';
+          case 'Çeyrek Altın': return 'FX_IDC:XAUTRYG';
+          case 'Yarım Altın': return 'FX_IDC:XAUTRYG';
+          case 'Tam Altın': return 'FX_IDC:XAUTRYG';
+          case 'Cumhuriyet Altın': return 'FX_IDC:XAUTRYG';
+          case 'Ons Gümüş': return 'OANDA:XAGUSD';
+          case 'Gram Gümüş': return 'FX_IDC:XAGTRYG';
+          case 'Ons Platin': return 'OANDA:XPTUSD';
+          case 'Gram Platin': return 'FX_IDC:XPTTRYG';
+          case 'Ons Paladyum': return 'OANDA:XPDUSD';
+          case 'Gram Paladyum': return 'FX_IDC:XPDTRYG';
+          default: return null;
+        }
+
       default:
-        // For Gold/Forex, maybe handle later.
-        // Gold: "XAUUSD" -> "OANDA:XAUUSD"?
-        // Forex: "USD/TRY" -> "FX:USDTRY"?
         return null;
     }
   }
 
   static String? getTradingViewUrl(String symbol, AssetType type) {
-    if (type == AssetType.STOCK) {
-      // https://tr.tradingview.com/symbols/BIST-THYAO/
-      final clean = symbol.trim().toUpperCase();
-      return "https://tr.tradingview.com/symbols/BIST-$clean/";
+    final clean = symbol.trim().toUpperCase();
+    switch (type) {
+      case AssetType.STOCK:
+        return "https://tr.tradingview.com/symbols/BIST-$clean/";
+      case AssetType.CRYPTO:
+        return "https://tr.tradingview.com/symbols/${clean}USDT/";
+      case AssetType.GLOBAL:
+        return "https://tr.tradingview.com/symbols/$clean/";
+      case AssetType.FUND:
+        return "https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=$clean";
+      case AssetType.FOREX:
+        final tvSym = getTradingViewSymbol(symbol, type)?.replaceAll('FX:', '');
+        return "https://tr.tradingview.com/symbols/$tvSym/";
+      case AssetType.GOLD:
+        final tvSym = getTradingViewSymbol(symbol, type)?.split(':').last;
+        if (tvSym != null) {
+          return "https://tr.tradingview.com/symbols/$tvSym/";
+        }
+        return null;
+      default:
+        return null;
     }
-    return null;
   }
 
-  static String getHtmlContent(String tvSymbol, bool isDark) {
+  /// Returns TradingView's official embed URL (loaded directly, no origin issues)
+  static String getEmbedUrl(String tvSymbol, bool isDark) {
     final theme = isDark ? "dark" : "light";
-    return """
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <style>
-          body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: ${isDark ? '#131722' : '#ffffff'}; }
-          #tradingview_widget { width: 100%; height: 100%; }
-        </style>
-      </head>
-      <body>
-        <div class="tradingview-widget-container" id="tradingview_widget"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-        <script type="text/javascript">
-          new TradingView.widget({
-            "autosize": true,
-            "symbol": "$tvSymbol",
-            "interval": "D",
-            "timezone": "Etc/UTC",
-            "theme": "$theme",
-            "style": "1",
-            "locale": "tr",
-            "toolbar_bg": "#f1f3f6",
-            "enable_publishing": false,
-            "allow_symbol_change": false,
-            "container_id": "tradingview_widget",
-            "hide_side_toolbar": false
-          });
-        </script>
-      </body>
-      </html>
-    """;
+    final encodedSymbol = Uri.encodeComponent(tvSymbol);
+    return "https://s.tradingview.com/widgetembed/?"
+        "hideideas=1&"
+        "overrides=%7B%7D&"
+        "enabled_features=%5B%5D&"
+        "disabled_features=%5B%5D&"
+        "locale=tr&"
+        "utm_source=www.tradingview.com&"
+        "utm_medium=widget_new&"
+        "utm_campaign=chart&"
+        "utm_term=$encodedSymbol&"
+        "symbol=$encodedSymbol&"
+        "interval=D&"
+        "theme=$theme&"
+        "style=1&"
+        "timezone=Etc%2FUTC&"
+        "studies=%5B%5D&"
+        "hide_side_toolbar=0&"
+        "allow_symbol_change=0&"
+        "save_image=0&"
+        "show_popup_button=0";
   }
 }
+
