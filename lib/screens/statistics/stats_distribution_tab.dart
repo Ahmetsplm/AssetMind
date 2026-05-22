@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/portfolio_provider.dart';
 import '../../models/holding.dart';
+import '../../services/api_service.dart';
 
 class StatsDistributionTab extends StatelessWidget {
   const StatsDistributionTab({super.key});
@@ -16,14 +17,33 @@ class StatsDistributionTab extends StatelessWidget {
         // Calculate data
         final holdings =
             provider.holdings.where((h) => h.quantity > 0).toList();
+            
+        double realTotalValue = 0.0;
+        for (var h in holdings) {
+          double val = h.quantity * provider.getCurrentPrice(h.symbol);
+          if (h.type == AssetType.CRYPTO || h.type == AssetType.GLOBAL) {
+            val *= ApiService().usdTryRate;
+          }
+          realTotalValue += val;
+        }
+
         final List<Map<String, dynamic>> distData = holdings.map((h) {
           final price = provider.getCurrentPrice(h.symbol);
-          final val = h.quantity * price;
-          final percent = totalValue > 0 ? (val / totalValue) * 100 : 0.0;
+          double val = h.quantity * price;
+          double cost = h.quantity * h.averageCost;
+          if (h.type == AssetType.CRYPTO || h.type == AssetType.GLOBAL) {
+            val *= ApiService().usdTryRate;
+            cost *= ApiService().usdTryRate;
+          }
+          final profit = val - cost;
+          final profitPercent = cost > 0 ? (profit / cost) * 100 : 0.0;
+          final percent = realTotalValue > 0 ? (val / realTotalValue) * 100 : 0.0;
           return {
             'holding': h,
             'percent': percent, // 0-100
             'value': val,
+            'profit': profit,
+            'profitPercent': profitPercent,
           };
         }).toList();
 
@@ -43,7 +63,10 @@ class StatsDistributionTab extends StatelessWidget {
             final item = distData[index];
             final h = item['holding'] as Holding;
             final percent = item['percent'] as double;
-            // final value = item['value'] as double;
+            final val = item['value'] as double;
+            final profit = item['profit'] as double;
+            final profitPercent = item['profitPercent'] as double;
+            final isProfit = profit >= 0;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
@@ -87,7 +110,7 @@ class StatsDistributionTab extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          "%${percent.toStringAsFixed(1)}",
+                          "%${percent.toStringAsFixed(2)}",
                           style: GoogleFonts.outfit(
                             fontWeight: FontWeight.w900,
                             fontSize: 16,
@@ -97,7 +120,38 @@ class StatsDistributionTab extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "${val.toStringAsFixed(2)} ₺",
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Icon(
+                            isProfit ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                            color: isProfit ? Colors.green : Colors.red,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            "${profit.abs().toStringAsFixed(2)} ₺ (%${profitPercent.abs().toStringAsFixed(2)})",
+                            style: GoogleFonts.outfit(
+                              fontSize: 12,
+                              color: isProfit ? Colors.green : Colors.red,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   Stack(
                     children: [
                       Container(

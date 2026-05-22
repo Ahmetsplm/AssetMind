@@ -57,14 +57,19 @@ class AssetTypeSelectionScreen extends StatelessWidget {
 
           // Grid Menu
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GridView.count(
-                crossAxisCount: 2, // 2 Columns
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.85, // Taller cards to fill screen
-                children: [
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2, // 2 Columns
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.12, // Adjusted to fit screen without overflow
+                    children: [
                   _buildCategoryCard(
                     context,
                     title: 'Borsa İstanbul',
@@ -116,11 +121,14 @@ class AssetTypeSelectionScreen extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8), // Minimal bottom padding to prevent overflow
+          ],
+        ),
       ),
-    );
-  }
+    ],
+  ),
+);
+}
 
   Widget _buildPortfolioSelector(BuildContext context) {
     return Consumer<PortfolioProvider>(
@@ -244,35 +252,35 @@ class AssetTypeSelectionScreen extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center, // Center Horizontally
           mainAxisAlignment: MainAxisAlignment.center, // Center Vertically
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 32),
+              child: Icon(icon, color: color, size: 24),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Text(
               title,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: 14,
                 color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
               subtitle,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
-                fontSize: 12,
+                fontSize: 10,
                 color: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),

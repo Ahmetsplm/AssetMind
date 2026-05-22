@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/alert.dart';
+import '../services/api_service.dart';
 import '../services/asset_service.dart';
+import '../services/permission_service.dart';
 import '../providers/theme_provider.dart';
 import '../models/holding.dart';
 
@@ -76,6 +78,48 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
         const SnackBar(content: Text('Lütfen geçerli bir fiyat girin')),
       );
       return;
+    }
+
+    // Contextual Permission Check
+    final hasNotification = await PermissionService.isNotificationGranted();
+    if (!hasNotification) {
+      if (!mounted) return;
+      final requestNotif = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Bildirim İzni Gerekli'),
+          content: const Text('Alarmların çalabilmesi için bildirimlere izin vermelisin.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('İzin Ver')),
+          ],
+        ),
+      );
+      if (requestNotif == true) {
+        final granted = await PermissionService.requestNotificationPermission();
+        if (!granted) return; // İzin vermediyse devam etme
+      } else {
+        return; // İptal ettiyse devam etme
+      }
+    }
+
+    final isBypassed = await PermissionService.isBatteryOptimizationBypassed();
+    if (!isBypassed) {
+      if (!mounted) return;
+      final requestBattery = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Pil Optimizasyonu'),
+          content: const Text('Arka planda fiyatları takip edebilmemiz için pil kısıtlamalarını kapatmalısın.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Belki Sonra')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Ayarlara Git')),
+          ],
+        ),
+      );
+      if (requestBattery == true) {
+        await PermissionService.requestBatteryOptimizationBypass();
+      }
     }
 
     setState(() => _isLoading = true);

@@ -13,6 +13,8 @@ import '../services/auth_service.dart';
 import '../services/data_service.dart';
 import '../services/asset_service.dart';
 import '../providers/auth_provider.dart';
+import '../services/permission_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'settings/alerts_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -22,15 +24,44 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
   final AuthService _auth = AuthService();
   final DataService _dataService = DataService(); // New instance
   bool _isLockEnabled = false;
+  
+  bool _hasNotificationPermission = false;
+  bool _hasBatteryBypass = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadLockState();
+    _checkPermissions();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissions();
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    final notif = await PermissionService.isNotificationGranted();
+    final batt = await PermissionService.isBatteryOptimizationBypassed();
+    if (mounted) {
+      setState(() {
+        _hasNotificationPermission = notif;
+        _hasBatteryBypass = batt;
+      });
+    }
   }
 
   Future<void> _loadLockState() async {
@@ -187,9 +218,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              _buildSectionHeader(context, "Güvenlik"),
+              _buildSectionHeader(context, "Güvenlik & İzinler"),
               _buildSecurityCard(context),
-              const SizedBox(height: 24), // New Section
+              const SizedBox(height: 16),
+              _buildPermissionsCard(context),
+              const SizedBox(height: 24),
               _buildSectionHeader(context, "Veri Yönetimi"),
               _buildDataManagementCard(context),
               const SizedBox(height: 24),
@@ -362,6 +395,102 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildPermissionsCard(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          ListTile(
+            onTap: () => PermissionService.openSettings(),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.notifications_active_outlined,
+                color: Colors.blue,
+                size: 24,
+              ),
+            ),
+            title: Text(
+              "Bildirimler",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+            subtitle: Text(
+              "Alarmların çalması için gereklidir",
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+            ),
+            trailing: Text(
+              _hasNotificationPermission ? "Açık" : "Kapalı",
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: _hasNotificationPermission ? Colors.green : Colors.red,
+              ),
+            ),
+          ),
+          Divider(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+            height: 1,
+          ),
+          ListTile(
+            onTap: () => PermissionService.openSettings(),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.battery_charging_full_rounded,
+                color: Colors.orange,
+                size: 24,
+              ),
+            ),
+            title: Text(
+              "Arka Plan Çalışma (Pil)",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+            subtitle: Text(
+              "Alarmların zamanında çalmasını sağlar",
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+            ),
+            trailing: Text(
+              _hasBatteryBypass ? "Kısıtlama Yok" : "Kısıtlı",
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: _hasBatteryBypass ? Colors.green : Colors.red,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 4),
@@ -392,42 +521,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          ListTile(
-            contentPadding: const EdgeInsets.all(20),
-            leading: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.info_outline_rounded,
-                color: Theme.of(context).primaryColor,
-                size: 28,
-              ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.all(20),
+          leading: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
             ),
-            title: Text(
-              "Hakkında",
+            child: Icon(
+              Icons.info_outline_rounded,
+              color: Theme.of(context).primaryColor,
+              size: 28,
+            ),
+          ),
+          title: Text(
+            "AssetMind Hakkında",
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+          ),
+          subtitle: Text(
+            "Sürüm 1.0.0 • Gelişmiş Özellikler",
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Theme.of(context).disabledColor,
+            ),
+          ),
+          childrenPadding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+          children: [
+            Text(
+              "AssetMind; Türk Hisse Senetleri, Döviz, Altın, Kripto, TEFAS Fonları ve Global piyasaları tek bir ekrandan takip etmenizi sağlayan yeni nesil portföy asistanıdır.",
               style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontSize: 13,
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                height: 1.5,
               ),
             ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text(
-                "AssetMind; Türk Hisse Senetleri, Döviz, Altın ve Kripto paralarınızı tek bir yerden takip etmenizi sağlar.\n\n⚠️ Veri Politikası:\n• Kripto paralar anlık (canlı) verilerdir.\n• Borsa İstanbul, Altın ve Döviz verileri 15 dakika gecikmelidir.\n\nUygulama içerisindeki veriler bilgilendirme amaçlıdır, yatırım tavsiyesi değildir.",
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                  height: 1.5,
+            const SizedBox(height: 16),
+            _buildFeatureRow(context, Icons.security_rounded, Colors.green, "Supabase Sunucusuz Mimari & Güvenli Proxy", "API anahtarlarınız gizlenir ve güvenle işlenir."),
+            _buildFeatureRow(context, Icons.language_rounded, Colors.blue, "TEFAS ve Global Borsa Canlı Veri Motoru", "Tüm varlıklar için kapsamlı veri entegrasyonu."),
+            _buildFeatureRow(context, Icons.bolt_rounded, Colors.orange, "Lazy Fetch & Sıfır Gecikmeli Veri Akışı", "Sayfa değiştirmeden, kaydırdıkça anında yüklenen veriler."),
+            _buildFeatureRow(context, Icons.notifications_active_rounded, Colors.redAccent, "Akıllı Alarm Sistemi & Pil Optimizasyon Koruması", "Arka planda kesintisiz, bağlamsal bildirimler."),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureRow(BuildContext context, IconData icon, Color color, String title, String desc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
                 ),
-              ),
+                Text(
+                  desc,
+                  style: GoogleFonts.poppins(fontSize: 11, color: Theme.of(context).disabledColor),
+                ),
+              ],
             ),
           ),
         ],
@@ -599,7 +765,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
       child: ListTile(
-        onTap: null, // Inactive as requested
+        onTap: () async {
+          final Uri emailLaunchUri = Uri(
+            scheme: 'mailto',
+            path: 'assetmindapp@gmail.com',
+            query: 'subject=AssetMind%20Geri%20Bildirim',
+          );
+          try {
+            await launchUrl(emailLaunchUri);
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('E-posta uygulaması açılamadı.')),
+              );
+            }
+          }
+        },
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(10),
@@ -625,20 +806,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           "Geri bildirim gönder",
           style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
         ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            "Yakında",
-            style: GoogleFonts.poppins(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).disabledColor,
-            ),
-          ),
+        trailing: Icon(
+          Icons.arrow_forward_ios_rounded,
+          size: 16,
+          color: Theme.of(context).disabledColor,
         ),
       ),
     );

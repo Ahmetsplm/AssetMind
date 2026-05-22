@@ -237,8 +237,8 @@ class _AnalysisSheetState extends State<AnalysisSheet> with SingleTickerProvider
                     sectionsSpace: 2,
                     centerSpaceRadius: 40,
                     sections: result.sectorDistribution.entries.map((e) {
-                      final double total = result.sectorDistribution.values.fold(0, (p, c) => p + c);
-                      final double percentage = (e.value / total) * 100;
+                      final double total = result.sectorDistribution.values.fold(0.0, (p, c) => p + c);
+                      final double percentage = total > 0 ? (e.value / total) * 100 : 0.0;
                       return PieChartSectionData(
                         color: _getSectorColor(e.key),
                         value: percentage,
@@ -254,8 +254,8 @@ class _AnalysisSheetState extends State<AnalysisSheet> with SingleTickerProvider
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: result.sectorDistribution.entries.map((e) {
-                    final double total = result.sectorDistribution.values.fold(0, (p, c) => p + c);
-                    final double percentage = (e.value / total) * 100;
+                    final double total = result.sectorDistribution.values.fold(0.0, (p, c) => p + c);
+                    final double percentage = total > 0 ? (e.value / total) * 100 : 0.0;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
@@ -277,7 +277,7 @@ class _AnalysisSheetState extends State<AnalysisSheet> with SingleTickerProvider
                             ),
                           ),
                           Text(
-                            "%${percentage.toInt()}",
+                            "%${percentage.toStringAsFixed(2)}",
                             style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                         ],
