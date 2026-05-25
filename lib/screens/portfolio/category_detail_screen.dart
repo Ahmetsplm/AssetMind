@@ -259,15 +259,63 @@ class CategoryDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ] else ...[
-                  Text(
-                    'Kâr: ${holding.type.getCurrencySymbol(holding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(holding.totalRealizedProfit)}',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: holding.totalRealizedProfit >= 0
-                          ? Colors.green
-                          : Colors.red,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Kâr: ${holding.type.getCurrencySymbol(holding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(holding.totalRealizedProfit)}',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: holding.totalRealizedProfit >= 0
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: Text("Kalıcı Olarak Sil", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                              content: Text("Bu varlığı ve tüm işlem geçmişini kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve kâr/zarar tablolarınızdan tamamen silinir.", style: GoogleFonts.poppins()),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: Text("İptal", style: GoogleFonts.poppins(color: Colors.grey)),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                  onPressed: () async {
+                                    Navigator.pop(ctx);
+                                    if (holding.id != null) {
+                                      await provider.deleteHoldingCompletely(holding.id!);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text("${holding.symbol} başarıyla silindi.", style: GoogleFonts.poppins()), backgroundColor: Colors.green),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  child: Text("Sil", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        constraints: const BoxConstraints(),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
                   ),
                 ],
               ],

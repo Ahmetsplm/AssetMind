@@ -80,6 +80,19 @@ class _AssetListScreenState extends State<AssetListScreen> {
     super.dispose();
   }
 
+  void _applySort() {
+    final favProvider = Provider.of<FavoriteProvider>(context, listen: false);
+    _filteredAssets.sort((a, b) {
+      final isAFav = favProvider.isFavorite(a['symbol']);
+      final isBFav = favProvider.isFavorite(b['symbol']);
+      
+      if (isAFav && !isBFav) return -1;
+      if (!isAFav && isBFav) return 1;
+      
+      return a['symbol'].toString().compareTo(b['symbol'].toString());
+    });
+  }
+
   Future<void> _loadAssets() async {
     final data = await _api.getAssetsByType(widget.type);
     if (mounted) {
@@ -94,8 +107,9 @@ class _AssetListScreenState extends State<AssetListScreen> {
             return symbol.contains(query) || name.contains(query);
           }).toList();
         } else {
-          _filteredAssets = data;
+          _filteredAssets = List.from(data);
         }
+        _applySort();
         _isLoading = false;
       });
     }
@@ -111,6 +125,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
           final name = item['name'].toString().toLowerCase();
           return symbol.contains(query) || name.contains(query);
         }).toList();
+        _applySort();
       });
     });
   }

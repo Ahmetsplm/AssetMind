@@ -20,7 +20,7 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
 
@@ -34,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward().then((_) async {
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 100));
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
@@ -42,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
             transitionsBuilder: (_, animation, __, child) {
               return FadeTransition(opacity: animation, child: child);
             },
-            transitionDuration: const Duration(milliseconds: 800),
+            transitionDuration: const Duration(milliseconds: 400),
           ),
         );
       }

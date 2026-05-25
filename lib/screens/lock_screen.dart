@@ -13,7 +13,7 @@ class LockScreen extends StatefulWidget {
 
 class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
   final AuthService _auth = AuthService();
-  bool _isLocked = true;
+  bool? _isLocked;
   bool _canCheckBiometrics = false;
   bool _isverifying = false;
   DateTime? _lastAuthTime;
@@ -50,7 +50,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
       return;
     }
 
-    if (!_isLocked) {
+    if (_isLocked != true) {
       setState(() => _isLocked = true);
     }
 
@@ -84,7 +84,14 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isLocked) {
+    if (_isLocked == null) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        // Ekranda kilitli parlamasını engellemek için sadece arkası düz/temiz bir boşluk. (Auth wrapper zaten loading atıyor olabilir).
+      );
+    }
+
+    if (_isLocked == false) {
       return widget.child;
     }
 

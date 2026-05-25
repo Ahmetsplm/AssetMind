@@ -555,6 +555,23 @@ class PortfolioProvider extends ChangeNotifier {
     loadHoldings();
   }
 
+  Future<void> deleteHoldingCompletely(int holdingId) async {
+    if (_assetService.userId == null) throw Exception("Lütfen giriş yapın.");
+    
+    // 1. Cloud (Supabase)
+    await _assetService.deleteHoldingCompletely(holdingId);
+    
+    // 2. Local DB
+    final db = await DatabaseHelper.instance.database;
+    await db.delete('transactions', where: 'holding_id = ?', whereArgs: [holdingId]);
+    await db.delete('holdings', where: 'id = ?', whereArgs: [holdingId]);
+    
+    // 3. Update State
+    _holdings.removeWhere((h) => h.id == holdingId);
+    notifyListeners();
+    await loadHistory();
+  }
+
   // Add Transaction (Buy / Sell Logic)
   Future<void> addTransaction(
     TransactionModel transaction,

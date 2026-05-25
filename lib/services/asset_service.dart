@@ -179,6 +179,16 @@ class AssetService {
         .eq('symbol', symbol);
   }
 
+  Future<void> deleteHoldingCompletely(int holdingId) async {
+    if (userId == null) return;
+    try {
+      await _client.from('transactions').delete().eq('holding_id', holdingId).eq('user_id', userId!);
+      await _client.from('holdings').delete().eq('id', holdingId).eq('user_id', userId!);
+    } catch (e) {
+      debugPrint("Delete holding error: $e");
+    }
+  }
+
   // -- Data Wipe --
   Future<void> wipeAllUserData() async {
     if (userId == null) return;

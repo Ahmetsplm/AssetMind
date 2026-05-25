@@ -747,24 +747,22 @@ class ApiService {
   Future<void> _fetchYahooSingle(String symbol, {bool isTransient = false}) async {
     try {
       final url = Uri.parse(
-        "https://query1.finance.yahoo.com/v8/finance/chart/$symbol?interval=1d&range=1d",
+        "https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbol",
       );
       final response = await http.get(url, headers: _headers);
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        final result = json['chart']['result'][0];
-        final meta = result['meta'];
+        final resultList = json['quoteResponse']['result'] as List;
+        if (resultList.isNotEmpty) {
+          final data = resultList[0];
+          double current = (data['regularMarketPrice'] as num?)?.toDouble() ?? 0.0;
+          double change = (data['regularMarketChangePercent'] as num?)?.toDouble() ?? 0.0;
 
-        double current = (meta['regularMarketPrice'] as num).toDouble();
-        double prev = (meta['chartPreviousClose'] as num).toDouble();
+          // BIST 100 Fix
+          if (symbol == "XU100.IS" && current > 50000) current /= 100;
 
-        double change = 0.0;
-        if (prev > 0) change = ((current - prev) / prev) * 100;
-
-        // BIST 100 Fix
-        if (symbol == "XU100.IS" && current > 50000) current /= 100;
-
-        _updateCache(symbol, current, change, isTransient: isTransient);
+          _updateCache(symbol, current, change, isTransient: isTransient);
+        }
       }
     } catch (_) {}
   }

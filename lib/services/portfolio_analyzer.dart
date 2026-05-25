@@ -317,6 +317,16 @@ class PortfolioAnalyzer {
     if (score > 100) score = 100;
     if (score < 0) score = 0;
 
+    if (score < 100) {
+      recs.add(
+        AnalysisRecommendation(
+          title: "Hedef 100 Puan",
+          description: "Mükemmel (100) puana ulaşmak için: 1) Aşırı yığılma olan sektörlerde (varsa) kâr alarak diğer sektörlere dağılın, 2) Kur şoklarına karşı döviz bazlı varlıkları en az %25'e çıkarın, 3) Nakit/Altın gibi defansif varlıkları ihmal etmeyin, 4) Çok riskli spekülatif oranlarınızı (Kripto vs.) ideal seviyelere çekin.",
+          type: AnalysisType.tip,
+        ),
+      );
+    }
+
     String status = "Zayıf";
     AnalysisStatusColor color = AnalysisStatusColor.red;
     if (score >= 80) {

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/alert.dart';
 import '../../services/asset_service.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/market_provider.dart';
 import 'package:intl/intl.dart';
 
 class AlertsScreen extends StatefulWidget {
@@ -81,12 +82,16 @@ class _AlertsScreenState extends State<AlertsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _alerts.isEmpty
               ? _buildEmptyState(context)
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _alerts.length,
-                  itemBuilder: (context, index) {
-                    final alert = _alerts[index];
-                    return _buildAlertCard(context, alert, isDark);
+              : Consumer<MarketProvider>(
+                  builder: (context, marketProvider, child) {
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _alerts.length,
+                      itemBuilder: (context, index) {
+                        final alert = _alerts[index];
+                        return _buildAlertCard(context, alert, isDark, marketProvider);
+                      },
+                    );
                   },
                 ),
     );
@@ -135,9 +140,31 @@ class _AlertsScreenState extends State<AlertsScreen> {
     return '₺';
   }
 
-  Widget _buildAlertCard(BuildContext context, Alert alert, bool isDark) {
+  Widget _buildAlertCard(BuildContext context, Alert alert, bool isDark, MarketProvider marketProvider) {
     final isAbove = alert.condition == 'above';
     final DateFormat formatter = DateFormat('dd MMM yyyy, HH:mm');
+
+    final assetData = marketProvider.getAsset(alert.symbol) ?? marketProvider.getAsset('${alert.symbol}.IS');
+    final double currentPrice = assetData?.price ?? 0.0;
+    
+    double diffPercent = 0.0;
+    if (currentPrice > 0) {
+      diffPercent = ((alert.targetPrice - currentPrice) / currentPrice) * 100;
+    }
+    
+    // +% veya -% formatı
+    String diffText = "";
+    Color diffColor = Colors.grey;
+    if (currentPrice > 0) {
+      if (diffPercent >= 0) {
+        diffText = "(+100)";
+        diffText = "(+%${diffPercent.abs().toStringAsFixed(2)})";
+        diffColor = Colors.green;
+      } else {
+        diffText = "(-%${diffPercent.abs().toStringAsFixed(2)})";
+        diffColor = Colors.red;
+      }
+    }
 
     return Card(
       color: Theme.of(context).cardColor,
@@ -188,15 +215,59 @@ class _AlertsScreenState extends State<AlertsScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 4),
-            Text(
-              'Hedef: ${_getCurrencySymbol(alert.symbol)}${alert.targetPrice.toStringAsFixed(2)}',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  'Hedef: ',
+                  style: GoogleFonts.poppins(
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  '${_getCurrencySymbol(alert.symbol)}${alert.targetPrice.toStringAsFixed(2)}',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                if (currentPrice > 0)
+                  Text(
+                    diffText,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      color: diffColor,
+                      fontSize: 12,
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                Text(
+                  'Güncel: ',
+                  style: GoogleFonts.poppins(
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  currentPrice > 0 
+                      ? '${_getCurrencySymbol(alert.symbol)}${currentPrice.toStringAsFixed(2)}'
+                      : 'Bekleniyor...',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
             Text(
               formatter.format(alert.createdAt),
               style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey),

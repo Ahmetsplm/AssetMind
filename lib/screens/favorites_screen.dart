@@ -5,11 +5,12 @@ import '../models/favorite.dart';
 import '../models/holding.dart'; // For AssetType enum
 import '../services/api_service.dart';
 import 'home_screen.dart';
-import 'add_asset/asset_type_selection_screen.dart';
 import 'settings/alerts_screen.dart';
 import '../providers/favorite_provider.dart';
 import '../providers/market_provider.dart';
 import '../widgets/animated_price_widget.dart';
+import '../widgets/alert_bottom_sheet.dart';
+import 'trading_view_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -524,41 +525,93 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               const SizedBox(width: 8),
 
               // Action Button
-              Consumer<FavoriteProvider>(
-                builder: (context, provider, child) {
-                  return IconButton(
-                    icon: Icon(Icons.star_rounded, color: const Color(0xFFFFB300)),
-                    onPressed: () {
-                      provider.toggleFavorite(item);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          duration: const Duration(seconds: 1),
-                          backgroundColor: Colors.red[700],
-                          behavior: SnackBarBehavior.floating,
-                          content: Row(
-                            children: [
-                              const Icon(
-                                Icons.delete_outline_rounded,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${item.symbol} favorilerden çıkarıldı',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+              PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_vert_rounded,
+                  color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                onSelected: (value) {
+                  if (value == 'chart') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TradingViewScreen(
+                          symbol: item.symbol,
+                          type: item.type,
                         ),
-                      );
-                    },
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    iconSize: 24,
-                  );
+                      ),
+                    );
+                  } else if (value == 'alert') {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => AlertBottomSheet(
+                        symbol: item.symbol,
+                        currentPrice: currentPrice,
+                        type: item.type,
+                      ),
+                    );
+                  } else if (value == 'remove') {
+                    Provider.of<FavoriteProvider>(context, listen: false).toggleFavorite(item);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        duration: const Duration(seconds: 1),
+                        backgroundColor: Colors.red[700],
+                        behavior: SnackBarBehavior.floating,
+                        content: Row(
+                          children: [
+                            const Icon(
+                              Icons.delete_outline_rounded,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${item.symbol} favorilerden çıkarıldı',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
                 },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'chart',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.candlestick_chart_rounded, size: 20),
+                        const SizedBox(width: 8),
+                        Text('Grafik', style: GoogleFonts.poppins()),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'alert',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.add_alert_rounded, size: 20),
+                        const SizedBox(width: 8),
+                        Text('Alarm Kur', style: GoogleFonts.poppins()),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'remove',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star_rounded, size: 20, color: Color(0xFFFFB300)),
+                        const SizedBox(width: 8),
+                        Text('Favoriden Çıkar', style: GoogleFonts.poppins()),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

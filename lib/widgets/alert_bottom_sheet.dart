@@ -69,6 +69,36 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
     super.dispose();
   }
 
+  String get _marginText {
+    if (_currentPrice == 0) return "";
+    final priceStr = _priceController.text.replaceAll(',', '.');
+    final targetPrice = double.tryParse(priceStr);
+    if (targetPrice == null || targetPrice == 0) return "";
+    
+    final diff = targetPrice - _currentPrice;
+    final percent = (diff / _currentPrice) * 100;
+    
+    if (percent > 0) {
+      return "+%${percent.toStringAsFixed(2)} Yukarıda";
+    } else if (percent < 0) {
+      return "-%${percent.abs().toStringAsFixed(2)} Aşağıda";
+    } else {
+      return "Mevcut Fiyat Seviyesi";
+    }
+  }
+
+  Color get _marginColor {
+    if (_currentPrice == 0) return Colors.grey;
+    final priceStr = _priceController.text.replaceAll(',', '.');
+    final targetPrice = double.tryParse(priceStr);
+    if (targetPrice == null || targetPrice == 0) return Colors.grey;
+    
+    final diff = targetPrice - _currentPrice;
+    if (diff > 0) return Colors.green;
+    if (diff < 0) return Colors.red;
+    return Colors.grey;
+  }
+
   Future<void> _saveAlert() async {
     final priceStr = _priceController.text.replaceAll(',', '.');
     final targetPrice = double.tryParse(priceStr);
@@ -207,6 +237,7 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
           const SizedBox(height: 24),
           TextField(
             controller: _priceController,
+            onChanged: (val) => setState(() {}),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: 'Hedef Fiyat (${widget.type.getCurrencySymbol(widget.symbol)})',
@@ -216,7 +247,23 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
               prefixText: widget.type.getCurrencySymbol(widget.symbol),
             ),
           ),
-          const SizedBox(height: 24),
+          if (_priceController.text.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  _marginText,
+                  style: TextStyle(
+                    color: _marginColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 16),
           Text(
             'Koşul',
             style: TextStyle(
