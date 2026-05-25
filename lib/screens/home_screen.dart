@@ -14,16 +14,29 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialIndex = 0});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
+
+  static void switchTab(BuildContext context, int index) {
+    final state = context.findAncestorStateOfType<HomeScreenState>();
+    if (state != null) {
+      state.changeTab(index);
+    }
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+  }
+
+  void changeTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
   }
 
   final List<Widget> _screens = [

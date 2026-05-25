@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import '../models/favorite.dart';
 import '../models/holding.dart'; // For AssetType enum
 import '../services/api_service.dart';
+import 'home_screen.dart';
+import 'add_asset/asset_type_selection_screen.dart';
+import 'settings/alerts_screen.dart';
 import '../providers/favorite_provider.dart';
 import '../providers/market_provider.dart';
 import '../widgets/animated_price_widget.dart';
@@ -90,6 +93,23 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 fontSize: 24,
               ),
             ),
+            centerTitle: false,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded),
+                tooltip: "Yeni Varlık",
+                onPressed: () {
+                  HomeScreen.switchTab(context, 2);
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.notifications_active_outlined),
+                tooltip: "Alarmlar",
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AlertsScreen()));
+                },
+              ),
+            ],
             backgroundColor: Colors.transparent,
             elevation: 0,
             iconTheme: Theme.of(context).iconTheme,
@@ -430,6 +450,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         fontSize: 16,
                         color: Theme.of(context).textTheme.bodyLarge?.color,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       timeStr,

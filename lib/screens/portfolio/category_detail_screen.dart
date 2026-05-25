@@ -145,11 +145,20 @@ class CategoryDetailScreen extends StatelessWidget {
     PortfolioProvider provider, {
     bool isClosed = false,
   }) {
-    // Current Price Logic Reuse
+    // Current Price & Profit Logic
     double curPrice = 0;
+    double val = 0;
+    double cost = 0;
+    double profit = 0;
+    double profitPercent = 0;
+
     if (!isClosed) {
       curPrice = provider.getCurrentPrice(holding.symbol);
       if (curPrice == 0) curPrice = holding.averageCost;
+      val = holding.quantity * curPrice;
+      cost = holding.quantity * holding.averageCost;
+      profit = val - cost;
+      profitPercent = cost > 0 ? (profit / cost) * 100 : 0;
     }
 
     return Container(
@@ -214,7 +223,9 @@ class CategoryDetailScreen extends StatelessWidget {
           ),
         ),
         subtitle: Text(
-          isClosed ? "Kapandı" : "${holding.quantity} Adet",
+          isClosed
+              ? "Kapandı"
+              : "${holding.quantity} Adet • ${holding.type.getCurrencySymbol(holding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(curPrice)}",
           style: GoogleFonts.poppins(
             color: Theme.of(
               context,
@@ -231,11 +242,20 @@ class CategoryDetailScreen extends StatelessWidget {
               children: [
                 if (!isClosed) ...[
                   Text(
-                    '${holding.type.getCurrencySymbol(holding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(holding.quantity * curPrice)}',
+                    '${holding.type.getCurrencySymbol(holding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(val)}',
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 15,
                       color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${profit >= 0 ? '+' : '-'}${holding.type.getCurrencySymbol(holding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(profit.abs())} (${profit >= 0 ? '+' : '-'}%${profitPercent.abs().toStringAsFixed(2)})',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                      color: profit >= 0 ? Colors.green : Colors.red,
                     ),
                   ),
                 ] else ...[

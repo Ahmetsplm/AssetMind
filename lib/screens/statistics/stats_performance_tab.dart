@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/portfolio_provider.dart';
 import '../../models/holding.dart';
+import '../../services/api_service.dart';
 
 class StatsPerformanceTab extends StatelessWidget {
   const StatsPerformanceTab({super.key});
@@ -18,9 +19,19 @@ class StatsPerformanceTab extends StatelessWidget {
 
         // Map holding to profit info
         final List<Map<String, dynamic>> performanceData = holdings.map((h) {
-          final price = provider.getCurrentPrice(h.symbol);
+          double price = provider.getCurrentPrice(h.symbol);
+          double avgCost = h.averageCost;
+          
+          if (h.type == AssetType.CRYPTO || h.type == AssetType.GLOBAL) {
+              price *= ApiService().usdTryRate;
+              avgCost *= ApiService().usdTryRate;
+          }
+          
+          price = price / provider.getConversionRate();
+          avgCost = avgCost / provider.getConversionRate();
+
           final currentVal = h.quantity * price;
-          final cost = h.quantity * h.averageCost;
+          final cost = h.quantity * avgCost;
           final profit = currentVal - cost;
           final percent = cost > 0 ? (profit / cost) * 100 : 0.0;
           return {
@@ -31,12 +42,16 @@ class StatsPerformanceTab extends StatelessWidget {
           };
         }).toList();
 
-        final bestList = [...performanceData]..sort(
+        final bestList = [...performanceData]
+          ..retainWhere((e) => (e['percent'] as double) > 0)
+          ..sort(
             (a, b) =>
                 (b['percent'] as double).compareTo(a['percent'] as double),
           );
 
-        final worstList = [...performanceData]..sort(
+        final worstList = [...performanceData]
+          ..retainWhere((e) => (e['percent'] as double) < 0)
+          ..sort(
             (a, b) =>
                 (a['percent'] as double).compareTo(b['percent'] as double),
           );
@@ -60,14 +75,14 @@ class StatsPerformanceTab extends StatelessWidget {
             _buildSection(
               context,
               provider,
-              "🏆 EN İYİ PERFORMANS",
+              "EN İYİ PERFORMANS",
               bestList.take(5).toList(),
             ),
             const SizedBox(height: 32),
             _buildSection(
               context,
               provider,
-              "📉 EN KÖTÜ PERFORMANS",
+              "EN KÖTÜ PERFORMANS",
               worstList.take(5).toList(),
             ),
             const SizedBox(height: 120), // Padding for nav
@@ -98,6 +113,18 @@ class StatsPerformanceTab extends StatelessWidget {
             ),
           ),
         ),
+        if (items.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+            child: Text(
+              "Bu kategoriye uygun varlık bulunmuyor.",
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: Theme.of(context).disabledColor,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
         ...items.map((item) {
           final h = item['holding'] as Holding;
           final profit = item['profit'] as double;
@@ -149,7 +176,7 @@ class StatsPerformanceTab extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        "₺${price.toStringAsFixed(2)}",
+                        "${provider.currencySymbol}${price.toStringAsFixed(2)}",
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           color: Theme.of(context).disabledColor,
@@ -162,7 +189,7 @@ class StatsPerformanceTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      "${isUp ? '+' : ''}₺${NumberFormat('#,##0.00', 'tr_TR').format(profit)}",
+                      "${isUp ? '+' : ''}${provider.currencySymbol}${NumberFormat('#,##0.00', 'tr_TR').format(profit)}",
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.w900,
                         fontSize: 15,

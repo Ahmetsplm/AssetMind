@@ -1,5 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../database/database_helper.dart';
 import '../models/portfolio.dart';
 import '../models/holding.dart';
@@ -7,8 +10,27 @@ import '../models/transaction.dart';
 import '../services/api_service.dart';
 import '../services/asset_service.dart';
 import '../services/widget_service.dart';
-import 'dart:async';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../providers/market_provider.dart';
+
+class PortfolioStats {
+  final double liveTotalValue;
+  final double liveTotalCost;
+  final double totalPL;
+  final double plRate;
+  final double dailyChange;
+  final Map<AssetType, double> assetValues;
+  final Map<AssetType, double> assetProfits;
+
+  PortfolioStats({
+    required this.liveTotalValue,
+    required this.liveTotalCost,
+    required this.totalPL,
+    required this.plRate,
+    required this.dailyChange,
+    required this.assetValues,
+    required this.assetProfits,
+  });
+}
 
 enum SortOption { valueDesc, valueAsc, nameAsc }
 
@@ -102,6 +124,18 @@ class PortfolioProvider extends ChangeNotifier {
 
   double get totalProfitLoss => totalPortfolioValue - totalPortfolioCost;
 
+  double get totalRealizedProfit {
+    double total = 0;
+    for (var h in _holdings) {
+      double rp = h.totalRealizedProfit;
+      if (h.type == AssetType.CRYPTO || h.type == AssetType.GLOBAL) {
+        rp *= ApiService().usdTryRate;
+      }
+      total += rp;
+    }
+    return total;
+  }
+
   double get totalProfitLossRate {
     if (totalPortfolioCost == 0) return 0;
     return (totalProfitLoss / totalPortfolioCost) * 100;
@@ -141,6 +175,113 @@ class PortfolioProvider extends ChangeNotifier {
     // Fallback to average cost if available in any holding
     final h = _holdings.where((h) => h.symbol == symbol).firstOrNull;
     return h?.averageCost ?? 0.0;
+  }
+
+  PortfolioStats getPortfolioStats(MarketProvider marketProvider) {
+    double liveTotalValue = 0;
+    double liveTotalCost = 0;
+    double dailyChangeTotal = 0;
+    final Map<AssetType, double> assetValues = {};
+    final Map<AssetType, double> assetProfits = {};
+
+    for (var h in _holdings) {
+      if (h.quantity <= 0) continue;
+      
+      final asset = marketProvider.getAsset(h.symbol) ?? marketProvider.getAsset('${h.symbol}.IS');
+      double price = asset?.price ?? h.averageCost;
+      double cost = h.averageCost;
+      
+      double valueInTl = price * h.quantity;
+      double costInTl = cost * h.quantity;
+      
+      if (h.type == AssetType.CRYPTO || h.type == AssetType.GLOBAL) {
+         valueInTl *= marketProvider.usdTryRate;
+         costInTl *= marketProvider.usdTryRate;
+      }
+      
+      liveTotalValue += valueInTl;
+      liveTotalCost += costInTl;
+      
+      assetValues[h.type] = (assetValues[h.type] ?? 0) + valueInTl;
+      double profit = valueInTl - costInTl;
+      assetProfits[h.type] = (assetProfits[h.type] ?? 0) + profit;
+      
+      dailyChangeTotal += getDailyProfitForHolding(h, marketProvider);
+    }
+
+    final totalPL = liveTotalValue - liveTotalCost;
+    final plRate = liveTotalCost > 0 ? (totalPL / liveTotalCost) * 100 : 0.0;
+
+    return PortfolioStats(
+      liveTotalValue: liveTotalValue / getConversionRate(),
+      liveTotalCost: liveTotalCost / getConversionRate(),
+      totalPL: totalPL / getConversionRate(),
+      plRate: plRate,
+      dailyChange: dailyChangeTotal / getConversionRate(),
+      assetValues: assetValues,
+      assetProfits: assetProfits,
+    );
+  }
+
+  // --- Advanced Daily Profit/Loss Algorithm ---
+  double getDailyProfitForHolding(Holding h, MarketProvider marketProvider) {
+    if (h.quantity <= 0) return 0.0;
+
+    final asset = marketProvider.getAsset(h.symbol) ?? marketProvider.getAsset('${h.symbol}.IS');
+    double currentPrice = asset?.price ?? h.averageCost;
+    double changePercent = asset?.change ?? 0.0;
+    
+    // Geçen günkü kapanış
+    double previousClosePrice = currentPrice / (1 + (changePercent / 100));
+
+    // Bugüne ait işlemleri bul
+    final today = DateTime.now();
+    final todayTxs = _allTransactions.where((t) => 
+        t.holdingId == h.id && 
+        t.date.year == today.year && 
+        t.date.month == today.month && 
+        t.date.day == today.day
+    ).toList();
+
+    double profit = 0;
+
+    if (todayTxs.isEmpty) {
+       profit = (currentPrice - previousClosePrice) * h.quantity;
+    } else {
+       double todayBoughtQuantity = 0;
+       double todayCost = 0;
+       double todaySoldQuantity = 0;
+
+       for (var t in todayTxs) {
+          if (t.type == TransactionType.BUY) {
+             todayBoughtQuantity += t.amount;
+             todayCost += (t.price * t.amount);
+          } else if (t.type == TransactionType.SELL) {
+             todaySoldQuantity += t.amount;
+          }
+       }
+
+       double previousQuantity = h.quantity - todayBoughtQuantity + todaySoldQuantity;
+       if (previousQuantity < 0) previousQuantity = 0;
+       
+       double profitFromPrevious = previousQuantity * (currentPrice - previousClosePrice);
+       
+       double profitFromToday = 0;
+       if (todayBoughtQuantity > 0) {
+          double averageTodayCost = todayCost / todayBoughtQuantity;
+          double remainingTodayQuantity = h.quantity - previousQuantity;
+          if (remainingTodayQuantity < 0) remainingTodayQuantity = 0;
+          profitFromToday = remainingTodayQuantity * (currentPrice - averageTodayCost);
+       }
+
+       profit = profitFromPrevious + profitFromToday;
+    }
+
+    if (h.type == AssetType.CRYPTO || h.type == AssetType.GLOBAL) {
+       profit *= marketProvider.usdTryRate;
+    }
+
+    return profit;
   }
 
   Future<List<TransactionModel>> getTransactionsForHolding(int holdingId) async {
@@ -279,6 +420,13 @@ class PortfolioProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setCurrency(String currency) {
+    if (['TRY', 'USD', 'EUR'].contains(currency)) {
+      _selectedCurrency = currency;
+      notifyListeners();
+    }
+  }
+
   double getConversionRate() {
     if (_selectedCurrency == 'TRY') return 1.0;
     final rateSym = _selectedCurrency == 'USD' ? 'USD/TRY' : 'EUR/TRY';
@@ -288,6 +436,7 @@ class PortfolioProvider extends ChangeNotifier {
   double get displayedTotalValue => totalPortfolioValue / getConversionRate();
   double get displayedTotalCost => totalPortfolioCost / getConversionRate();
   double get displayedTotalProfitLoss => totalProfitLoss / getConversionRate();
+  double get displayedTotalRealizedProfit => totalRealizedProfit / getConversionRate();
 
   Future<void> _fetchPrices() async {
     final List<String> symbols = _holdings.map((e) => e.symbol).toList();

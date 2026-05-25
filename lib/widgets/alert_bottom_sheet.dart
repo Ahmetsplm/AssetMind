@@ -222,7 +222,7 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : Colors.black87,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
           const SizedBox(height: 12),
@@ -288,10 +288,10 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
         decoration: BoxDecoration(
           color: isSelected
               ? activeColor.withValues(alpha: 0.1)
-              : (isDark ? Colors.grey[800] : Colors.grey[200]),
+              : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? activeColor : Colors.transparent,
+            color: isSelected ? activeColor : Theme.of(context).dividerColor.withValues(alpha: 0.1),
             width: 2,
           ),
         ),
@@ -299,18 +299,15 @@ class _AlertBottomSheetState extends State<AlertBottomSheet> {
           children: [
             Icon(
               icon,
-              color: isSelected
-                  ? activeColor
-                  : (isDark ? Colors.grey[400] : Colors.grey[600]),
+              color: isSelected ? activeColor : Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
+              size: 32,
             ),
             const SizedBox(height: 8),
             Text(
               text,
               style: TextStyle(
-                color: isSelected
-                    ? activeColor
-                    : (isDark ? Colors.grey[400] : Colors.grey[600]),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? activeColor : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
               ),
             ),
           ],

@@ -167,7 +167,7 @@ class AssetDetailScreen extends StatelessWidget {
                         builder: (context) => AddTransactionScreen(
                           symbol: currentHolding.symbol,
                           name: "Varlık", // Simplified
-                          initialPrice: currentHolding.averageCost,
+                          initialPrice: currentPrice, // Fixed: Uses current price instead of average cost
                           type: currentHolding.type,
                         ),
                       );
@@ -243,7 +243,7 @@ class AssetDetailScreen extends StatelessWidget {
                           child: Text(
                             "Bu pozisyon kapanmıştır.\nToplam Realize Kâr: ${currentHolding.type.getCurrencySymbol(currentHolding.symbol)}${NumberFormat('#,##0.00', 'tr_TR').format(currentHolding.totalRealizedProfit)}",
                             style: GoogleFonts.poppins(
-                              color: Colors.red,
+                              color: currentHolding.totalRealizedProfit >= 0 ? Colors.green[700] : Colors.red,
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
                             ),

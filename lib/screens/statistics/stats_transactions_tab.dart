@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/portfolio_provider.dart';
 import '../../models/transaction.dart';
+import '../../services/api_service.dart';
+import '../../models/holding.dart';
 
 class StatsTransactionsTab extends StatelessWidget {
   const StatsTransactionsTab({super.key});
@@ -26,7 +28,13 @@ class StatsTransactionsTab extends StatelessWidget {
         final Map<int, double> monthlyVolume = {};
 
         for (var t in transactions) {
-          final val = t.amount * t.price;
+          final holding = provider.holdings.where((h) => h.id == t.holdingId).firstOrNull;
+          double price = t.price;
+          if (holding != null && (holding.type == AssetType.CRYPTO || holding.type == AssetType.GLOBAL)) {
+              price *= ApiService().usdTryRate;
+          }
+          final val = (t.amount * price) / provider.getConversionRate();
+          
           totalVolume += val;
 
           final key = t.date.month; // 1-12
@@ -191,6 +199,12 @@ class StatsTransactionsTab extends StatelessWidget {
                     );
                     final isBuy = t.type == TransactionType.BUY;
 
+                    double price = t.price;
+                    if (holding.type == AssetType.CRYPTO || holding.type == AssetType.GLOBAL) {
+                        price *= ApiService().usdTryRate;
+                    }
+                    double txVal = (t.amount * price) / provider.getConversionRate();
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
@@ -226,7 +240,7 @@ class StatsTransactionsTab extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              "${isBuy ? '+' : '-'}${NumberFormat.currency(symbol: currencySymbol).format(t.amount * t.price / provider.getConversionRate())}",
+                              "${isBuy ? '+' : '-'}${NumberFormat.currency(symbol: currencySymbol).format(txVal)}",
                               style: GoogleFonts.outfit(
                                 fontWeight: FontWeight.w900, 
                                 fontSize: 14,

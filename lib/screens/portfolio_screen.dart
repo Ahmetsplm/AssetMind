@@ -4,6 +4,9 @@ import 'package:flutter/services.dart'; // For HapticFeedback
 import 'package:shimmer/shimmer.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../widgets/live_ticker.dart';
+import '../services/portfolio_analyzer.dart';
+import 'portfolio/daily_performance_screen.dart';
 import '../providers/portfolio_provider.dart';
 import '../providers/market_provider.dart';
 import '../models/holding.dart';
@@ -15,6 +18,7 @@ import '../providers/theme_provider.dart';
 import '../models/portfolio.dart';
 import '../widgets/analysis_sheet.dart';
 import '../widgets/mesh_gradient_background.dart';
+import '../services/api_service.dart';
 import 'dart:ui' as ui;
 
 class PortfolioScreen extends StatefulWidget {
@@ -250,8 +254,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   }
 
   Widget _buildDashboardCard(BuildContext context) {
-    return Consumer<PortfolioProvider>(
-      builder: (context, provider, child) {
+    return Consumer2<PortfolioProvider, MarketProvider>(
+      builder: (context, provider, marketProvider, child) {
         if (provider.isLoading) {
           return SizedBox(
             height: 250,
@@ -263,14 +267,19 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           );
         }
 
-        final totalValue = provider.displayedTotalValue;
-        final totalPL = provider.displayedTotalProfitLoss;
-        final plRate = provider.totalProfitLossRate;
+        final stats = provider.getPortfolioStats(marketProvider);
+        
+        final totalValue = stats.liveTotalValue;
+        final totalPL = stats.totalPL;
+        final plRate = stats.plRate;
         final isProfit = totalPL >= 0;
+        final data = stats.assetValues;
+        
+        final dailyChange = stats.dailyChange;
+        final isDailyUp = dailyChange >= 0;
+        
         final currencySymbol = provider.currencySymbol;
 
-        // Data for chart
-        final Map<AssetType, double> data = provider.valueByType;
         final List<PieChartSectionData> sections = [];
 
         // Colors
@@ -355,10 +364,12 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.4),
+                  color: isCustom 
+                      ? Colors.black.withValues(alpha: 0.1) 
+                      : Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(32),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: isDark ? 0.05 : 0.2),
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
                     width: 0.5,
                   ),
                 ),
@@ -375,68 +386,100 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                       child: Column(
                         children: [
                           // Total Value Section
-                          Column(
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                "TOPLAM VARLIK",
-                                style: GoogleFonts.outfit(
-                                  color: subTextColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5,
+                              // TOPLAM VARLIK
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      "TOPLAM VARLIK",
+                                      style: GoogleFonts.outfit(
+                                        color: subTextColor,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: provider.isPrivacyMode
+                                          ? Text(
+                                              '****',
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 36,
+                                                fontWeight: FontWeight.w900,
+                                                color: textColor,
+                                                letterSpacing: 4,
+                                              ),
+                                            )
+                                          : Text(
+                                              '$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 36,
+                                                fontWeight: FontWeight.w900,
+                                                color: textColor,
+                                                letterSpacing: -1,
+                                              ),
+                                            ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Consumer<MarketProvider>(
+                                      builder: (context, marketProvider, _) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(alpha: 0.05),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.sync_rounded,
+                                                size: 10,
+                                                color: subTextColor,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                marketProvider.lastUpdateText.toUpperCase(),
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: subTextColor,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              provider.isPrivacyMode
-                                  ? Text(
-                                      '****',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 36,
-                                        fontWeight: FontWeight.w900,
-                                        color: textColor,
-                                        letterSpacing: 4,
-                                      ),
-                                    )
-                                  : Text(
-                                      '$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(totalValue)}',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 36,
-                                        fontWeight: FontWeight.w900,
-                                        color: textColor,
-                                        letterSpacing: -1,
-                                      ),
+                              // Döviz ve Ayar Butonları
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  _buildCurrencyToggleGroup(context, provider),
+                                  const SizedBox(height: 8),
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.edit_rounded,
+                                      color: subTextColor.withValues(alpha: 0.5),
+                                      size: 20,
                                     ),
-                              const SizedBox(height: 6),
-                              Consumer<MarketProvider>(
-                                builder: (context, marketProvider, _) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.05),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.sync_rounded,
-                                          size: 10,
-                                          color: subTextColor,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          marketProvider.lastUpdateText.toUpperCase(),
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: subTextColor,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
+                                    onPressed: () => _showCardStylePicker(context),
+                                    tooltip: "Kart Stilini Düzenle",
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -447,6 +490,54 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                             color: subTextColor.withValues(alpha: 0.2),
                           ),
                           const SizedBox(height: 24),
+                          
+                          // Günlük Değişim Kartı
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const DailyPerformanceScreen()));
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 24),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isCustom 
+                                   ? Colors.black.withValues(alpha: 0.15) 
+                                   : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Günlük Değişim",
+                                    style: GoogleFonts.outfit(
+                                      color: textColor,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "${isDailyUp ? '+' : ''}$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(dailyChange)}",
+                                        style: GoogleFonts.outfit(
+                                          color: isDailyUp ? (isCustom ? Colors.white : Colors.green) : (isCustom ? Colors.white : Colors.red),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: subTextColor,
+                                        size: 16,
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
 
                     // Chart & Stats Row
                     Row(
@@ -459,6 +550,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                           child: Stack(
                             children: [
                               PieChart(
+                                key: ValueKey(totalValue),
                                 PieChartData(
                                   pieTouchData: PieTouchData(
                                     touchCallback:
@@ -585,63 +677,61 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                   ],
                 ),
               ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Row(
-                  children: [
-                    _buildCurrencyToggle(context, provider, subTextColor),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(
-                        Icons.edit_rounded,
-                        color: subTextColor.withValues(alpha: 0.5),
-                        size: 20,
-                      ),
-                      onPressed: () => _showCardStylePicker(context),
-                      tooltip: "Kart Stilini Düzenle",
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
       ),
     ),
   );
-},
-);
-}
+      },
+    );
+  }
 
-  Widget _buildCurrencyToggle(
-    BuildContext context,
-    PortfolioProvider provider,
-    Color color,
-  ) {
-    return GestureDetector(
-      onTap: () => provider.toggleCurrency(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.swap_horiz_rounded, size: 14, color: color),
-            const SizedBox(width: 4),
-            Text(
-              provider.selectedCurrency,
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: color,
+  Widget _buildCurrencyToggleGroup(BuildContext context, PortfolioProvider provider) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor.withValues(alpha: isDark ? 0.3 : 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: ['TRY', 'USD', 'EUR'].map((currency) {
+          final isActive = provider.selectedCurrency == currency;
+          return GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              provider.setCurrency(currency);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              margin: EdgeInsets.zero,
+              decoration: BoxDecoration(
+                color: isActive ? Theme.of(context).primaryColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: isActive ? [
+                  BoxShadow(
+                    color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                ] : null,
+              ),
+              child: Text(
+                currency,
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                  color: isActive 
+                    ? Colors.white 
+                    : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                ),
               ),
             ),
-          ],
-        ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -795,8 +885,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   }
 
   Widget _buildAssetCategories(BuildContext context) {
-    return Consumer<PortfolioProvider>(
-      builder: (context, provider, child) {
+    return Consumer2<PortfolioProvider, MarketProvider>(
+      builder: (context, provider, marketProvider, child) {
         if (provider.isLoading) {
           return _buildSkeletonLoading(context);
         }
@@ -812,14 +902,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         final globalCount = provider.getCountByType(AssetType.GLOBAL);
         final fundCount = provider.getCountByType(AssetType.FUND);
 
-        final stockVal = provider.getValueByType(AssetType.STOCK);
-        final goldVal = provider.getValueByType(AssetType.GOLD);
-        final cryptoVal = provider.getValueByType(AssetType.CRYPTO);
-        final forexVal = provider.getValueByType(AssetType.FOREX);
-        final globalVal = provider.getValueByType(AssetType.GLOBAL);
-        final fundVal = provider.getValueByType(AssetType.FUND);
-
-        final total = provider.totalPortfolioValue;
+        final stats = provider.getPortfolioStats(marketProvider);
+        final total = stats.liveTotalValue;
 
         // Mock data to prevent empty feel if desired, but here we show a message
         if (stockCount == 0 &&
@@ -854,71 +938,61 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         // Create a list of Map to sort easily
         List<Map<String, dynamic>> categories = [];
 
-        if (stockCount > 0) {
-          categories.add({
-            'type': AssetType.STOCK,
-            'title': "Türk Hisse Senetleri",
-            'subtitle': "BIST 100 Endeks", // More context
-            'count': stockCount,
-            'value': stockVal,
-            'icon': Icons.trending_up_rounded,
-            'color': const Color(0xFF4285F4),
+        Map<String, dynamic> _getCategoryData(AssetType type, String defaultTitle, IconData icon, Color color) {
+          final hList = provider.getHoldingsByType(type).where((h) => h.quantity > 0).toList();
+          
+          hList.sort((a, b) {
+            double aVal = a.quantity * (marketProvider.getAsset(a.symbol)?.price ?? a.averageCost);
+            double bVal = b.quantity * (marketProvider.getAsset(b.symbol)?.price ?? b.averageCost);
+            return bVal.compareTo(aVal);
           });
+          
+          String subtitle = "";
+          if (hList.isNotEmpty) {
+            if (hList.length == 1) {
+              subtitle = hList[0].symbol;
+            } else if (hList.length == 2) {
+              subtitle = "${hList[0].symbol}, ${hList[1].symbol}";
+            } else {
+              subtitle = "${hList[0].symbol}, ${hList[1].symbol} (+${hList.length - 2})";
+            }
+          }
+
+          double val = stats.assetValues[type] ?? 0;
+          double profit = stats.assetProfits[type] ?? 0;
+          double totalCost = val - profit;
+          double profitPercent = totalCost > 0 ? (profit / totalCost) * 100 : 0.0;
+
+          return {
+            'type': type,
+            'title': defaultTitle,
+            'subtitle': subtitle,
+            'count': hList.length,
+            'value': val,
+            'profit': profit,
+            'profitPercent': profitPercent,
+            'icon': icon,
+            'color': color,
+          };
+        }
+
+        if (stockCount > 0) {
+          categories.add(_getCategoryData(AssetType.STOCK, "Türk Hisse Senetleri", Icons.trending_up_rounded, const Color(0xFF4285F4)));
         }
         if (goldCount > 0) {
-          categories.add({
-            'type': AssetType.GOLD,
-            'title': "Değerli Madenler",
-            'subtitle': "Altın, Gümüş, Platin",
-            'count': goldCount,
-            'value': goldVal,
-            'icon': Icons.diamond_outlined, // More premium icon
-            'color': const Color(0xFFEA4335),
-          });
+          categories.add(_getCategoryData(AssetType.GOLD, "Değerli Madenler", Icons.diamond_outlined, const Color(0xFFEA4335)));
         }
         if (cryptoCount > 0) {
-          categories.add({
-            'type': AssetType.CRYPTO,
-            'title': "Kripto Para",
-            'subtitle': "Bitcoin, Ethereum...",
-            'count': cryptoCount,
-            'value': cryptoVal,
-            'icon': Icons.currency_bitcoin_rounded,
-            'color': const Color(0xFFFBBC05),
-          });
+          categories.add(_getCategoryData(AssetType.CRYPTO, "Kripto Para", Icons.currency_bitcoin_rounded, const Color(0xFFFBBC05)));
         }
         if (forexCount > 0) {
-          categories.add({
-            'type': AssetType.FOREX,
-            'title': "Döviz",
-            'subtitle': "Dolar, Euro ve diğerleri",
-            'count': forexCount,
-            'value': forexVal,
-            'icon': Icons.currency_exchange_rounded,
-            'color': const Color(0xFF34A853),
-          });
+          categories.add(_getCategoryData(AssetType.FOREX, "Döviz", Icons.currency_exchange_rounded, const Color(0xFF34A853)));
         }
         if (globalCount > 0) {
-          categories.add({
-            'type': AssetType.GLOBAL,
-            'title': "Global Hisseler",
-            'subtitle': "Nasdaq, S&P 500",
-            'count': globalCount,
-            'value': globalVal,
-            'icon': Icons.public_rounded,
-            'color': const Color(0xFF9C27B0),
-          });
+          categories.add(_getCategoryData(AssetType.GLOBAL, "Global Hisseler", Icons.public_rounded, const Color(0xFF9C27B0)));
         }
         if (fundCount > 0) {
-          categories.add({
-            'type': AssetType.FUND,
-            'title': "Yatırım Fonları",
-            'subtitle': "TEFAS",
-            'count': fundCount,
-            'value': fundVal,
-            'icon': Icons.account_balance_rounded,
-            'color': const Color(0xFF00BCD4),
-          });
+          categories.add(_getCategoryData(AssetType.FUND, "Yatırım Fonları", Icons.account_balance_rounded, const Color(0xFF00BCD4)));
         }
 
         // SORTING LOGIC
@@ -943,10 +1017,13 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                   c['subtitle'],
                   c['count'],
                   c['value'],
+                  c['profit'],
+                  c['profitPercent'],
                   total,
                   c['icon'],
                   c['color'],
                   isPrivacyMode: provider.isPrivacyMode,
+                  currencySymbol: provider.currencySymbol,
                 ),
               )
               .toList(),
@@ -962,10 +1039,13 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     String subtitle,
     int count,
     double value,
+    double profit,
+    double profitPercent,
     double total,
     IconData icon,
     Color color, {
     required bool isPrivacyMode,
+    required String currencySymbol,
   }) {
     final double percentage = total > 0 ? (value / total) * 100 : 0;
     Color displayColor = color;
@@ -976,10 +1056,13 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       subtitle: subtitle,
       count: count,
       value: value,
+      profit: profit,
+      profitPercent: profitPercent,
       percentage: percentage,
       icon: icon,
       color: displayColor,
       isPrivacyMode: isPrivacyMode,
+      currencySymbol: currencySymbol,
     );
   }
 }
@@ -1238,10 +1321,13 @@ class _AnimatedCategoryCard extends StatefulWidget {
   final String subtitle;
   final int count;
   final double value;
+  final double profit;
+  final double profitPercent;
   final double percentage;
   final IconData icon;
   final Color color;
   final bool isPrivacyMode;
+  final String currencySymbol;
 
   const _AnimatedCategoryCard({
     required this.type,
@@ -1249,10 +1335,13 @@ class _AnimatedCategoryCard extends StatefulWidget {
     required this.subtitle,
     required this.count,
     required this.value,
+    required this.profit,
+    required this.profitPercent,
     required this.percentage,
     required this.icon,
     required this.color,
     required this.isPrivacyMode,
+    required this.currencySymbol,
   });
 
   @override
@@ -1348,6 +1437,8 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard>
                         fontSize: 16,
                         color: textColor,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       "${widget.count} Varlık • ${widget.subtitle}",
@@ -1355,6 +1446,8 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard>
                         fontSize: 12,
                         color: subTextColor,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -1403,6 +1496,16 @@ class _AnimatedCategoryCardState extends State<_AnimatedCategoryCard>
                       ),
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  if (!widget.isPrivacyMode)
+                    Text(
+                      '${widget.profit >= 0 ? '+' : '-'}${widget.currencySymbol}${NumberFormat('#,##0.00', 'tr_TR').format(widget.profit.abs())} (${widget.profit >= 0 ? '+' : '-'}%${widget.profitPercent.abs().toStringAsFixed(2)})',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                        color: widget.profit >= 0 ? Colors.green : Colors.red,
+                      ),
+                    ),
                 ],
               ),
             ],

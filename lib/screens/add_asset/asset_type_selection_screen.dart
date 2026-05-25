@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/portfolio_provider.dart';
 import '../../models/holding.dart'; // For AssetType
 import 'asset_list_screen.dart';
+import '../settings/alerts_screen.dart';
 
 class AssetTypeSelectionScreen extends StatelessWidget {
   const AssetTypeSelectionScreen({super.key});
@@ -33,6 +34,15 @@ class AssetTypeSelectionScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: Theme.of(context).iconTheme,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active_outlined),
+            tooltip: "Alarmlar",
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AlertsScreen()));
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [

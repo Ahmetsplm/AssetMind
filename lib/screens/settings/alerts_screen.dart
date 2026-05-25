@@ -77,22 +77,22 @@ class _AlertsScreenState extends State<AlertsScreen> {
         ),
         centerTitle: true,
       ),
-      body: _isLoading
+        body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _alerts.isEmpty
-              ? _buildEmptyState(isDark)
+              ? _buildEmptyState(context)
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _alerts.length,
                   itemBuilder: (context, index) {
                     final alert = _alerts[index];
-                    return _buildAlertCard(alert, isDark);
+                    return _buildAlertCard(context, alert, isDark);
                   },
                 ),
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -100,13 +100,13 @@ class _AlertsScreenState extends State<AlertsScreen> {
           Icon(
             Icons.notifications_off_outlined,
             size: 64,
-            color: isDark ? Colors.grey[700] : Colors.grey[300],
+            color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
             'Henüz bir alarm kurmadınız.',
             style: GoogleFonts.poppins(
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
               fontSize: 16,
             ),
           ),
@@ -114,7 +114,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
           Text(
             'Varlık detay sayfasından yeni alarm ekleyebilirsiniz.',
             style: GoogleFonts.poppins(
-              color: isDark ? Colors.grey[600] : Colors.grey[400],
+              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5),
               fontSize: 12,
             ),
           ),
@@ -135,11 +135,12 @@ class _AlertsScreenState extends State<AlertsScreen> {
     return '₺';
   }
 
-  Widget _buildAlertCard(Alert alert, bool isDark) {
+  Widget _buildAlertCard(BuildContext context, Alert alert, bool isDark) {
     final isAbove = alert.condition == 'above';
     final DateFormat formatter = DateFormat('dd MMM yyyy, HH:mm');
 
     return Card(
+      color: Theme.of(context).cardColor,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 2,
@@ -192,7 +193,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
               'Hedef: ${_getCurrencySymbol(alert.symbol)}${alert.targetPrice.toStringAsFixed(2)}',
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
             const SizedBox(height: 4),

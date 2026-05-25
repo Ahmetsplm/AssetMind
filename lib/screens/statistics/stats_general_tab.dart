@@ -71,6 +71,8 @@ class StatsGeneralTab extends StatelessWidget {
                 ],
               ),
 
+              const SizedBox(height: 16),
+              _buildRealizedProfitBanner(context, provider.displayedTotalRealizedProfit, currencySymbol),
               const SizedBox(height: 32),
 
               // Detailed Analysis Summary Section
@@ -314,6 +316,69 @@ class StatsGeneralTab extends StatelessWidget {
               letterSpacing: 0.5,
             ),
             textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRealizedProfitBanner(BuildContext context, double realizedProfit, String currencySymbol) {
+    final isProfit = realizedProfit >= 0;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: (isProfit ? Colors.green : Colors.red).withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: (isProfit ? Colors.green : Colors.red).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.account_balance_wallet_rounded,
+              color: isProfit ? Colors.green : Colors.red,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Realize Kâr (Kapananlar)",
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    color: Theme.of(context).disabledColor,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${isProfit ? '+' : ''}$currencySymbol${NumberFormat('#,##0.00', 'tr_TR').format(realizedProfit)}',
+                  style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: isProfit ? Colors.green : Colors.red,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
