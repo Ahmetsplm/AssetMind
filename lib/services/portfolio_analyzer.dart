@@ -318,13 +318,34 @@ class PortfolioAnalyzer {
     if (score < 0) score = 0;
 
     if (score < 100) {
-      recs.add(
-        AnalysisRecommendation(
-          title: "Hedef 100 Puan",
-          description: "Mükemmel (100) puana ulaşmak için: 1) Aşırı yığılma olan sektörlerde (varsa) kâr alarak diğer sektörlere dağılın, 2) Kur şoklarına karşı döviz bazlı varlıkları en az %25'e çıkarın, 3) Nakit/Altın gibi defansif varlıkları ihmal etmeyin, 4) Çok riskli spekülatif oranlarınızı (Kripto vs.) ideal seviyelere çekin.",
-          type: AnalysisType.tip,
-        ),
-      );
+      List<String> missingPoints = [];
+      if (hasDominantSector) {
+        missingPoints.add("Sektörel yığılmayı azaltıp portföyü farklı sektörlere dağıtın.");
+      }
+      if (bistRatio > 0.80) {
+        missingPoints.add("Global varlıklar (Yabancı hisse/Döviz) ekleyerek yerel piyasa riskini azaltın.");
+      }
+      if (fxIndexedRatio < 0.25) {
+        missingPoints.add("Kur şoklarına karşı döviz bazlı varlıkları en az %25 seviyesine çıkarın.");
+      }
+      if (commodityRatio < 0.05 && cashRatio < 0.10) {
+        missingPoints.add("Kriz anları için portföye savunma araçları (Altın/Para Piyasası) ekleyin.");
+      }
+      if (cryptoRatio > 0.50 || highRiskRatio > 0.60) {
+        missingPoints.add("Aşırı spekülatif ve yüksek riskli varlık ağırlığını acilen düşürün.");
+      } else if (cryptoRatio > 0.25) {
+        missingPoints.add("Kripto para oranını toplam portföyün %25'inin altına çekin.");
+      }
+
+      if (missingPoints.isNotEmpty) {
+        recs.add(
+          AnalysisRecommendation(
+            title: "Hedef 100 Puan: Neler Eksik?",
+            description: "Portföyünüzü mükemmelleştirmek için kişiye özel tavsiyelerimiz:\n\n- ${missingPoints.join('\n- ')}",
+            type: AnalysisType.tip,
+          ),
+        );
+      }
     }
 
     String status = "Zayıf";

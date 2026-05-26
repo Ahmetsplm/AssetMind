@@ -50,8 +50,6 @@ class TradingViewHelper {
           default: return null;
         }
 
-      default:
-        return null;
     }
   }
 
@@ -74,8 +72,6 @@ class TradingViewHelper {
         if (tvSym != null) {
           return "https://tr.tradingview.com/symbols/$tvSym/";
         }
-        return null;
-      default:
         return null;
     }
   }

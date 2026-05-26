@@ -7,7 +7,6 @@ import '../../models/holding.dart'; // AssetType
 import '../../models/transaction.dart';
 import '../../providers/portfolio_provider.dart';
 import '../../providers/market_provider.dart';
-import '../../services/api_service.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final String symbol;

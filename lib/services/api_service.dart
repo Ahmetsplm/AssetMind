@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/holding.dart';
 import 'asset_service.dart';
@@ -747,21 +746,28 @@ class ApiService {
   Future<void> _fetchYahooSingle(String symbol, {bool isTransient = false}) async {
     try {
       final url = Uri.parse(
-        "https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbol",
+        "https://query1.finance.yahoo.com/v8/finance/chart/$symbol?interval=1d&range=1d",
       );
       final response = await http.get(url, headers: _headers);
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        final resultList = json['quoteResponse']['result'] as List;
-        if (resultList.isNotEmpty) {
-          final data = resultList[0];
-          double current = (data['regularMarketPrice'] as num?)?.toDouble() ?? 0.0;
-          double change = (data['regularMarketChangePercent'] as num?)?.toDouble() ?? 0.0;
+        final resultList = json['chart']['result'] as List?;
+        if (resultList != null && resultList.isNotEmpty) {
+          final meta = resultList[0]['meta'];
+          if (meta != null) {
+            double current = (meta['regularMarketPrice'] as num?)?.toDouble() ?? 0.0;
+            double prevClose = (meta['chartPreviousClose'] as num?)?.toDouble() ?? 
+                               (meta['previousClose'] as num?)?.toDouble() ?? current;
+            double change = 0.0;
+            if (prevClose > 0) {
+              change = ((current - prevClose) / prevClose) * 100;
+            }
 
-          // BIST 100 Fix
-          if (symbol == "XU100.IS" && current > 50000) current /= 100;
+            // BIST 100 Fix
+            if (symbol == "XU100.IS" && current > 50000) current /= 100;
 
-          _updateCache(symbol, current, change, isTransient: isTransient);
+            _updateCache(symbol, current, change, isTransient: isTransient);
+          }
         }
       }
     } catch (_) {}

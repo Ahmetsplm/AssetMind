@@ -37,6 +37,7 @@ class _MarketScreenState extends State<MarketScreen> {
   Widget build(BuildContext context) {
     return Consumer<MarketProvider>(
       builder: (context, marketProvider, child) {
+        // ignore: deprecated_member_use
         return ShowCaseWidget(
           builder: (context) {
             return DefaultTabController(
@@ -104,6 +105,7 @@ class _MarketScreenState extends State<MarketScreen> {
             size: 28,
           ),
           onPressed: () {
+            // ignore: deprecated_member_use
             ShowCaseWidget.of(context).startShowCase([_oneKey, _twoKey, _threeKey]);
           },
         ),

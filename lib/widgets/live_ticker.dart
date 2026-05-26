@@ -47,6 +47,10 @@ class _LiveTickerState extends State<LiveTicker> {
   Widget build(BuildContext context) {
     final summaryData = ApiService().getMarketSummarySync();
     
+    if (summaryData.isEmpty) {
+      return const SizedBox(height: 32);
+    }
+    
     return Container(
       height: 32,
       decoration: BoxDecoration(

@@ -12,8 +12,6 @@ class StatsDistributionTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<PortfolioProvider>(
       builder: (context, provider, child) {
-        final totalValue = provider.displayedTotalValue;
-
         // Calculate data
         final holdings =
             provider.holdings.where((h) => h.quantity > 0).toList();

@@ -157,7 +157,6 @@ Future<void> main() async {
   
   Workmanager().initialize(
     callbackDispatcher,
-    isInDebugMode: false,
   );
   
   Workmanager().registerPeriodicTask(

@@ -149,6 +149,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: deprecated_member_use
     return ShowCaseWidget(
       builder: (context) {
         return Scaffold(
@@ -169,6 +170,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
             actions: [
               IconButton(
                 onPressed: () {
+                  // ignore: deprecated_member_use
                   ShowCaseWidget.of(context).startShowCase([_searchKey]);
                 },
                 icon: const Icon(Icons.help_outline_rounded),
@@ -304,9 +306,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
   }
 
   Widget _buildListItem(BuildContext context, Map<String, dynamic> item) {
-    final change = item['change'] as double;
-    final isUp = change >= 0;
-    final trendColor = isUp ? Colors.green : Colors.red;
+    // Remove unused trendColor
 
     return Container(
       decoration: BoxDecoration(

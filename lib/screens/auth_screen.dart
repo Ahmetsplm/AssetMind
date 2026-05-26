@@ -210,11 +210,9 @@ class _AuthScreenState extends State<AuthScreen> {
                       ? null
                       : () async {
                           final success = await authProvider.signInWithGoogle();
-                          if (!mounted) return;
-                          if (!success &&
-                              mounted &&
-                              authProvider.errorMessage != null) {
-                            if (!mounted) return;
+                          if (!context.mounted) return;
+                          
+                          if (!success && authProvider.errorMessage != null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                   content: Text(authProvider.errorMessage!)),

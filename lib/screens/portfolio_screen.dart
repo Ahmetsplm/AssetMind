@@ -4,8 +4,6 @@ import 'package:flutter/services.dart'; // For HapticFeedback
 import 'package:shimmer/shimmer.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../widgets/live_ticker.dart';
-import '../services/portfolio_analyzer.dart';
 import 'portfolio/daily_performance_screen.dart';
 import '../providers/portfolio_provider.dart';
 import '../providers/market_provider.dart';
@@ -18,7 +16,6 @@ import '../providers/theme_provider.dart';
 import '../models/portfolio.dart';
 import '../widgets/analysis_sheet.dart';
 import '../widgets/mesh_gradient_background.dart';
-import '../services/api_service.dart';
 import 'dart:ui' as ui;
 
 class PortfolioScreen extends StatefulWidget {
@@ -938,7 +935,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         // Create a list of Map to sort easily
         List<Map<String, dynamic>> categories = [];
 
-        Map<String, dynamic> _getCategoryData(AssetType type, String defaultTitle, IconData icon, Color color) {
+        Map<String, dynamic> getCategoryData(AssetType type, String defaultTitle, IconData icon, Color color) {
           final hList = provider.getHoldingsByType(type).where((h) => h.quantity > 0).toList();
           
           hList.sort((a, b) {
@@ -977,22 +974,22 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         }
 
         if (stockCount > 0) {
-          categories.add(_getCategoryData(AssetType.STOCK, "Türk Hisse Senetleri", Icons.trending_up_rounded, const Color(0xFF4285F4)));
+          categories.add(getCategoryData(AssetType.STOCK, "Türk Hisse Senetleri", Icons.trending_up_rounded, const Color(0xFF4285F4)));
         }
         if (goldCount > 0) {
-          categories.add(_getCategoryData(AssetType.GOLD, "Değerli Madenler", Icons.diamond_outlined, const Color(0xFFEA4335)));
+          categories.add(getCategoryData(AssetType.GOLD, "Değerli Madenler", Icons.diamond_outlined, const Color(0xFFEA4335)));
         }
         if (cryptoCount > 0) {
-          categories.add(_getCategoryData(AssetType.CRYPTO, "Kripto Para", Icons.currency_bitcoin_rounded, const Color(0xFFFBBC05)));
+          categories.add(getCategoryData(AssetType.CRYPTO, "Kripto Para", Icons.currency_bitcoin_rounded, const Color(0xFFFBBC05)));
         }
         if (forexCount > 0) {
-          categories.add(_getCategoryData(AssetType.FOREX, "Döviz", Icons.currency_exchange_rounded, const Color(0xFF34A853)));
+          categories.add(getCategoryData(AssetType.FOREX, "Döviz", Icons.currency_exchange_rounded, const Color(0xFF34A853)));
         }
         if (globalCount > 0) {
-          categories.add(_getCategoryData(AssetType.GLOBAL, "Global Hisseler", Icons.public_rounded, const Color(0xFF9C27B0)));
+          categories.add(getCategoryData(AssetType.GLOBAL, "Global Hisseler", Icons.public_rounded, const Color(0xFF9C27B0)));
         }
         if (fundCount > 0) {
-          categories.add(_getCategoryData(AssetType.FUND, "Yatırım Fonları", Icons.account_balance_rounded, const Color(0xFF00BCD4)));
+          categories.add(getCategoryData(AssetType.FUND, "Yatırım Fonları", Icons.account_balance_rounded, const Color(0xFF00BCD4)));
         }
 
         // SORTING LOGIC

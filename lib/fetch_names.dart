@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
+// ignore_for_file: avoid_print, empty_catches
+
 void main() async {
   final file = File('lib/services/global_whitelist.dart');
   final content = await file.readAsString();

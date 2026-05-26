@@ -1,3 +1,4 @@
+// ignore: constant_identifier_names
 enum AssetType { STOCK, CRYPTO, GOLD, FOREX, GLOBAL, FUND }
 
 class Holding {
